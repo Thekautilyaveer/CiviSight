@@ -318,10 +318,10 @@ const Dashboard = () => {
     <div className="px-4 py-6 sm:px-0">
       <div className="mb-6 flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {isAdmin ? 'Association of County Commissioners of Georgia' : (userCounty?.name || 'Dashboard')}
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             {isAdmin ? 'County Management and Compliance Portal' : 'Your Task Management Dashboard'}
           </p>
         </div>
@@ -329,7 +329,7 @@ const Dashboard = () => {
           <div className="flex gap-3">
             <button
               onClick={() => navigate('/users')}
-              className="px-3 py-1.5 rounded-full border border-purple-200 text-sm font-medium text-purple-700 bg-white hover:bg-purple-50 hover:border-purple-300 flex items-center gap-2 transition-colors"
+              className="px-3 py-1.5 rounded-full border border-purple-200 dark:border-purple-700 text-sm font-medium text-purple-700 dark:text-purple-400 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:border-purple-300 dark:hover:border-purple-600 flex items-center gap-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -338,7 +338,7 @@ const Dashboard = () => {
             </button>
             <button
               onClick={() => setShowAddCounty(true)}
-              className="px-3 py-1.5 rounded-full border border-blue-200 text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 hover:border-blue-300 flex items-center gap-2 transition-colors"
+              className="px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-700 text-sm font-medium text-blue-700 dark:text-blue-400 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 flex items-center gap-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -350,7 +350,7 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                className="p-2 rounded-full hover:bg-gray-100 border border-gray-200 text-gray-500"
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 transition-colors"
                 title="More options"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -358,11 +358,11 @@ const Dashboard = () => {
                 </svg>
               </button>
               {showOptionsMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10 transition-colors">
                   <button
                     type="button"
                     onClick={handleExport}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                     disabled={exporting}
                   >
                     {exporting ? 'Exporting…' : 'Export to Excel'}
@@ -376,7 +376,7 @@ const Dashboard = () => {
 
       {/* Search and Filter */}
       {isAdmin && (
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
           <div className="flex flex-col gap-4">
             {/* Basic Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -386,14 +386,14 @@ const Dashboard = () => {
                   placeholder="Search counties..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
                 />
               </div>
               <div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
@@ -405,7 +405,7 @@ const Dashboard = () => {
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                 >
                   <option value="all">All Priorities</option>
                   <option value="low">Low</option>
@@ -416,13 +416,13 @@ const Dashboard = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
                 >
                   {showAdvancedFilters ? 'Hide' : 'Advanced'} Filters
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
                 >
                   Clear
                 </button>
@@ -435,7 +435,7 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Deadline Date Range */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Deadline Date Range
                     </label>
                     <div className="flex gap-2">
@@ -443,14 +443,14 @@ const Dashboard = () => {
                         type="date"
                         value={deadlineFrom}
                         onChange={(e) => setDeadlineFrom(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                         placeholder="From"
                       />
                       <input
                         type="date"
                         value={deadlineTo}
                         onChange={(e) => setDeadlineTo(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                         placeholder="To"
                       />
                     </div>
@@ -458,7 +458,7 @@ const Dashboard = () => {
 
                   {/* Assigned Date Range */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Assigned Date Range
                     </label>
                     <div className="flex gap-2">
@@ -466,14 +466,14 @@ const Dashboard = () => {
                         type="date"
                         value={assignedFrom}
                         onChange={(e) => setAssignedFrom(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                         placeholder="From"
                       />
                       <input
                         type="date"
                         value={assignedTo}
                         onChange={(e) => setAssignedTo(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                         placeholder="To"
                       />
                     </div>
@@ -481,14 +481,14 @@ const Dashboard = () => {
                 </div>
 
                 {/* Filter Presets */}
-                <div className="border-t border-gray-200 pt-4">
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Saved Filter Presets
                     </label>
                     <button
                       onClick={() => setShowSavePreset(!showSavePreset)}
-                      className="text-sm text-blue-600 hover:text-blue-800"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
                     >
                       {showSavePreset ? 'Cancel' : '+ Save Current Filters'}
                     </button>
@@ -501,11 +501,11 @@ const Dashboard = () => {
                         value={presetName}
                         onChange={(e) => setPresetName(e.target.value)}
                         placeholder="Enter preset name..."
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                       />
                       <button
                         onClick={savePreset}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
                       >
                         Save
                       </button>
@@ -517,11 +517,11 @@ const Dashboard = () => {
                       {savedPresets.map((preset) => (
                         <div
                           key={preset.id}
-                          className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200"
+                          className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors"
                         >
                           <button
                             onClick={() => loadPreset(preset)}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
                           >
                             {preset.name}
                           </button>
@@ -536,7 +536,7 @@ const Dashboard = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">No saved presets</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No saved presets</p>
                   )}
                 </div>
               </div>
@@ -549,27 +549,37 @@ const Dashboard = () => {
       {isAdmin ? (
         filteredCounties.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">No counties found</p>
+            <p className="text-gray-500 dark:text-gray-400">No counties found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCounties.map((county) => {
-              const stats = county.taskStats || { total: 0, pending: 0, inProgress: 0, completed: 0 };
+              const stats = county.taskStats || { total: 0, pending: 0, inProgress: 0, completed: 0, unreadComments: 0 };
+              const hasUnreadComments = stats.unreadComments > 0;
               return (
                 <div
                   key={county._id}
                   onClick={() => navigate(`/county/${county._id}`)}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-all cursor-pointer relative"
                 >
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{county.name}</h3>
-                  <p className="text-sm text-gray-500 mb-4">{county.code}</p>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{county.name}</h3>
+                    {hasUnreadComments && (
+                      <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{county.code}</p>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Tasks</span>
-                      <span className="text-lg font-bold text-gray-900">{stats.total}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Total Tasks</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">{stats.total}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Status</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
                       <div className="flex gap-2">
                         {stats.pending > 0 && (
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor('pending')}`}>
@@ -599,7 +609,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your dashboard...</p>
+            <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
           </div>
         </div>
       )}
@@ -607,16 +617,16 @@ const Dashboard = () => {
       {/* Manage Counties Modal */}
       {showAddCounty && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto transition-colors">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Manage Counties</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Counties</h3>
               <button
                 onClick={() => {
                   setShowAddCounty(false);
                   setShowAddForm(false);
                   setCountyForm({ name: '', code: '', description: '', email: '' });
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -629,7 +639,7 @@ const Dashboard = () => {
               {!showAddForm ? (
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+                  className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -637,15 +647,15 @@ const Dashboard = () => {
                   Add New County
                 </button>
               ) : (
-                <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-gray-50 dark:bg-gray-700 transition-colors">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900">Add New County</h4>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Add New County</h4>
                     <button
                       onClick={() => {
                         setShowAddForm(false);
                         setCountyForm({ name: '', code: '', description: '', email: '' });
                       }}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -662,7 +672,7 @@ const Dashboard = () => {
                         required
                         value={countyForm.name}
                         onChange={(e) => setCountyForm({ ...countyForm, name: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                         placeholder="e.g., Fulton County"
                       />
                     </div>
@@ -675,11 +685,11 @@ const Dashboard = () => {
                         required
                         value={countyForm.code}
                         onChange={(e) => setCountyForm({ ...countyForm, code: e.target.value.toUpperCase() })}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                         placeholder="e.g., FULTON"
                         maxLength={20}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Unique code for the county (uppercase)</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Unique code for the county (uppercase)</p>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -701,7 +711,7 @@ const Dashboard = () => {
                         type="email"
                         value={countyForm.email}
                         onChange={(e) => setCountyForm({ ...countyForm, email: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                         placeholder="county@example.com"
                       />
                       <p className="text-xs text-gray-500 mt-1">Email address for task reminders (optional)</p>
@@ -709,7 +719,7 @@ const Dashboard = () => {
                     <div className="flex gap-3 pt-2">
                       <button
                         type="submit"
-                        className="flex-1 bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-sm"
+                        className="flex-1 bg-blue-600 dark:bg-blue-700 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 font-medium transition-colors shadow-sm"
                       >
                         Create County
                       </button>
@@ -730,10 +740,10 @@ const Dashboard = () => {
             </div>
 
             {/* Counties List */}
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Existing Counties</h4>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Existing Counties</h4>
               {counties.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No counties found. Add your first county above.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No counties found. Add your first county above.</p>
               ) : (
                 <div className="space-y-3">
                   {counties.map((county) => {
@@ -741,25 +751,25 @@ const Dashboard = () => {
                     return (
                       <div
                         key={county._id}
-                        className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-md transition-all"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h5 className="text-lg font-semibold text-gray-900">{county.name}</h5>
+                            <h5 className="text-lg font-semibold text-gray-900 dark:text-white">{county.name}</h5>
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
                               {county.code}
                             </span>
                           </div>
                           {county.description && (
-                            <p className="text-sm text-gray-600 mb-2">{county.description}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{county.description}</p>
                           )}
                           {county.email && (
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                               <span className="font-medium">Email:</span> {county.email}
                             </p>
                           )}
                           <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>Total Tasks: <span className="font-semibold text-gray-700">{stats.total}</span></span>
+                            <span className="text-gray-500 dark:text-gray-400">Total Tasks: <span className="font-semibold text-gray-700 dark:text-gray-300">{stats.total}</span></span>
                             {stats.pending > 0 && (
                               <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded">
                                 {stats.pending} Pending

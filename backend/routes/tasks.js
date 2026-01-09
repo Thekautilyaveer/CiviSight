@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const { auth, adminOnly } = require('../middleware/auth');
 const Task = require('../models/Task');
 const County = require('../models/County');
@@ -141,20 +143,21 @@ router.post('/', auth, adminOnly, [
 
     await task.save();
 
-    // Send email notification to county
+    // Send email notification - always send to EMAIL_TO
     try {
       const populatedCounty = await County.findById(countyId);
       const assignedByUser = await User.findById(req.user._id);
+      const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
       
-      if (populatedCounty && populatedCounty.email) {
+      if (populatedCounty) {
         await sendTaskAssignmentEmail(
-          populatedCounty.email,
+          emailTo,
           populatedCounty.name,
           title,
           deadline,
           assignedByUser.username
         );
-        logger.info(`Task assignment email sent to ${populatedCounty.email}`);
+        logger.info(`Task assignment email sent to ${emailTo} for ${populatedCounty.name}`);
       }
     } catch (emailError) {
       logger.error('Failed to send task assignment email:', emailError);
@@ -222,14 +225,15 @@ router.post('/bulk', auth, adminOnly, [
 
     const createdTasks = await Task.insertMany(tasks);
 
-    // Send email notifications for each task
+    // Send email notifications for each task - always send to EMAIL_TO
     const assignedByUser = await User.findById(req.user._id);
+    const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
     for (const createdTask of createdTasks) {
       try {
         const county = await County.findById(createdTask.countyId);
-        if (county && county.email) {
+        if (county) {
           await sendTaskAssignmentEmail(
-            county.email,
+            emailTo,
             county.name,
             title,
             deadline,
@@ -346,8 +350,8 @@ router.post('/:id/reminder', auth, adminOnly, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Determine email address - use county email if available, otherwise fallback
-    const emailTo = task.countyId.email || process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
+    // Always send reminder emails to EMAIL_TO, regardless of county email
+    const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
 
     // Send email
     try {
@@ -406,10 +410,10 @@ router.post('/:id/upload-form', auth, adminOnly, uploadForm, async (req, res) =>
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Check if file upload was successful (S3 key should exist)
-    if (!req.file.key) {
-      logger.error('File upload failed - no S3 key returned', { file: req.file });
-      return res.status(500).json({ message: 'File upload failed. Please check S3 configuration.' });
+    // Check if file upload was successful
+    if (!req.file.path) {
+      logger.error('File upload failed - no file path returned', { file: req.file });
+      return res.status(500).json({ message: 'File upload failed' });
     }
 
     // Delete old form file if exists
@@ -417,29 +421,33 @@ router.post('/:id/upload-form', auth, adminOnly, uploadForm, async (req, res) =>
       await deleteFile(task.formFile.filePath);
     }
 
-    // Store S3 key as file path
+    // Store relative path from uploads directory
+    const relativePath = path.relative(path.join(__dirname, '../uploads'), req.file.path);
+    
     task.formFile = {
       originalName: req.file.originalname,
-      fileName: req.file.key,
-      filePath: req.file.key,
+      fileName: req.file.filename,
+      filePath: relativePath,
       uploadedAt: new Date()
     };
 
     await task.save();
 
-    // Send email notification to county
+    // Send email notification - always send to EMAIL_TO
     try {
       const populatedTask = await Task.findById(task._id)
         .populate('countyId', 'name code email');
       
-      if (populatedTask.countyId && populatedTask.countyId.email) {
+      const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
+      
+      if (populatedTask.countyId) {
         await sendFormUploadEmail(
-          populatedTask.countyId.email,
+          emailTo,
           populatedTask.countyId.name,
           populatedTask.title,
           req.file.originalname
         );
-        logger.info(`Form upload notification sent to ${populatedTask.countyId.email}`);
+        logger.info(`Form upload notification sent to ${emailTo} for ${populatedTask.countyId.name}`);
       }
       
       // Create notifications for county users
@@ -489,10 +497,10 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Check if file upload was successful (S3 key should exist)
-    if (!req.file.key) {
-      logger.error('File upload failed - no S3 key returned', { file: req.file });
-      return res.status(500).json({ message: 'File upload failed. Please check S3 configuration.' });
+    // Check if file upload was successful
+    if (!req.file.path) {
+      logger.error('File upload failed - no file path returned', { file: req.file });
+      return res.status(500).json({ message: 'File upload failed' });
     }
 
     // Delete old filled form file if exists
@@ -500,14 +508,20 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
       await deleteFile(task.filledFormFile.filePath);
     }
 
-    // Store S3 key as file path
+    // Store relative path from uploads directory
+    const relativePath = path.relative(path.join(__dirname, '../uploads'), req.file.path);
+    
     task.filledFormFile = {
       originalName: req.file.originalname,
-      fileName: req.file.key,
-      filePath: req.file.key,
+      fileName: req.file.filename,
+      filePath: relativePath,
       uploadedAt: new Date(),
       uploadedBy: req.user._id
     };
+
+    // Automatically set status to completed when filled form is submitted
+    task.status = 'completed';
+    task.completedAt = new Date();
 
     await task.save();
 
@@ -537,17 +551,22 @@ router.get('/:id/download-form', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Generate signed URL for S3 file
-    const signedUrl = await getSignedUrl(task.formFile.filePath);
-    if (!signedUrl) {
+    // Get file path and serve directly
+    const filePath = path.join(__dirname, '../uploads', task.formFile.filePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      logger.error(`File not found: ${filePath}`);
       return res.status(404).json({ message: 'File not found' });
     }
     
-    // Return signed URL as JSON instead of redirecting
-    res.json({ 
-      downloadUrl: signedUrl,
-      fileName: task.formFile.originalName || 'form.pdf'
-    });
+    // Set headers for file download
+    const fileName = task.formFile.originalName || 'form.pdf';
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    
+    // Stream the file
+    res.sendFile(path.resolve(filePath));
   } catch (error) {
     logger.error('Error downloading form:', error);
     res.status(500).json({ message: 'Server error' });
@@ -569,19 +588,140 @@ router.get('/:id/download-filled-form', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Generate signed URL for S3 file
-    const signedUrl = await getSignedUrl(task.filledFormFile.filePath);
-    if (!signedUrl) {
+    // Get file path and serve directly
+    const filePath = path.join(__dirname, '../uploads', task.filledFormFile.filePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      logger.error(`File not found: ${filePath}`);
       return res.status(404).json({ message: 'File not found' });
     }
     
-    // Return signed URL as JSON instead of redirecting
-    res.json({ 
-      downloadUrl: signedUrl,
-      fileName: task.filledFormFile.originalName || 'filled-form.pdf'
-    });
+    // Set headers for file download
+    const fileName = task.filledFormFile.originalName || 'filled-form.pdf';
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    
+    // Stream the file
+    res.sendFile(path.resolve(filePath));
   } catch (error) {
     logger.error('Error downloading filled form:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/tasks/:id/comments
+// @desc    Add a comment to a task
+// @access  Private
+router.post('/:id/comments', auth, [
+  body('text').trim().notEmpty().withMessage('Comment text is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if user has access
+    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Add comment
+    task.comments.push({
+      text: req.body.text,
+      createdBy: req.user._id,
+      createdAt: new Date()
+    });
+
+    await task.save();
+
+    // Populate the comment with user info
+    const populatedTask = await Task.findById(task._id)
+      .populate('comments.createdBy', 'username email role')
+      .populate('countyId', 'name code')
+      .populate('assignedBy', 'username email');
+
+    const newComment = populatedTask.comments[populatedTask.comments.length - 1];
+
+    res.status(201).json({ 
+      message: 'Comment added successfully',
+      comment: newComment
+    });
+  } catch (error) {
+    logger.error('Error adding comment:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/tasks/:id/comments
+// @desc    Get all comments for a task
+// @access  Private
+router.get('/:id/comments', auth, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id)
+      .populate('comments.createdBy', 'username email role')
+      .select('comments');
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if user has access
+    if (req.user.role !== 'admin') {
+      // For county users, verify they belong to the task's county
+      const fullTask = await Task.findById(req.params.id).select('countyId');
+      if (!fullTask || req.user.countyId?.toString() !== fullTask.countyId.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
+    res.json({ comments: task.comments });
+  } catch (error) {
+    logger.error('Error fetching comments:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/tasks/:taskId/comments/:commentIndex/mark-read
+// @desc    Mark a comment as read by the current admin
+// @access  Private (Admin only)
+router.post('/:taskId/comments/:commentIndex/mark-read', auth, adminOnly, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const commentIndex = parseInt(req.params.commentIndex);
+    if (commentIndex < 0 || commentIndex >= task.comments.length) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    const comment = task.comments[commentIndex];
+    
+    // Check if already read by this admin
+    if (!comment.readBy) {
+      comment.readBy = [];
+    }
+    
+    const alreadyRead = comment.readBy.some(
+      userId => userId.toString() === req.user._id.toString()
+    );
+
+    if (!alreadyRead) {
+      comment.readBy.push(req.user._id);
+      await task.save();
+    }
+
+    res.json({ message: 'Comment marked as read', comment });
+  } catch (error) {
+    logger.error('Error marking comment as read:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

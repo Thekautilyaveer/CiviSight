@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const logger = require('./utils/logger');
 
 dotenv.config();
@@ -11,10 +12,7 @@ const requiredEnvVars = [
   'JWT_SECRET', 
   'MONGODB_URI', 
   'EMAIL_USER', 
-  'EMAIL_PASSWORD',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_S3_BUCKET'
+  'EMAIL_PASSWORD'
 ];
 requiredEnvVars.forEach(varName => {
   if (!process.env[varName]) {
@@ -28,6 +26,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files
+app.use('/api/files', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

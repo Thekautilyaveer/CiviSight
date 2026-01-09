@@ -59,6 +59,29 @@ const taskSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     }
+  },
+  comments: [{
+    text: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    readBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }]
+  }],
+  completedAt: {
+    type: Date
   }
 }, {
   timestamps: true

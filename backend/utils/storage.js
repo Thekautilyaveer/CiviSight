@@ -1,27 +1,20 @@
 const multer = require('multer');
-const multerS3 = require('multer-s3');
-const aws = require('aws-sdk');
 const path = require('path');
+const fs = require('fs');
 const logger = require('./logger');
 
-// Initialize AWS S3
-let s3 = null;
-const S3_BUCKET = process.env.AWS_S3_BUCKET;
+// Create uploads directory structure
+const uploadsDir = path.join(__dirname, '../uploads');
+const formsDir = path.join(uploadsDir, 'forms');
+const filledFormsDir = path.join(uploadsDir, 'filled-forms');
 
-if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && S3_BUCKET) {
-  try {
-    s3 = new aws.S3({
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      region: process.env.AWS_REGION || 'us-east-1'
-    });
-    logger.info('AWS S3 client initialized successfully');
-  } catch (error) {
-    logger.error('Failed to initialize AWS S3 client:', error);
+// Ensure directories exist
+[uploadsDir, formsDir, filledFormsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    logger.info(`Created upload directory: ${dir}`);
   }
-} else {
-  logger.warn('AWS S3 configuration missing. File uploads will fail.');
-}
+});
 
 // File filter
 const fileFilter = (req, file, cb) => {
@@ -36,136 +29,90 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// S3 storage configuration
-const createS3Storage = (folder) => {
-  if (!s3) {
-    logger.error('S3 client not initialized. Cannot create storage.');
-    throw new Error('S3 client not initialized. Please check AWS credentials.');
-  }
+// Local storage configuration
+const createLocalStorage = (folder) => {
+  const storageDir = folder === 'forms' ? formsDir : filledFormsDir;
   
-  if (!S3_BUCKET) {
-    logger.error('S3 bucket not configured.');
-    throw new Error('S3 bucket not configured.');
-  }
-  
-  try {
-    return multerS3({
-      s3: s3,
-      bucket: S3_BUCKET,
-      acl: 'private',
-      key: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const filename = `${folder}/${uniqueSuffix}-${file.originalname}`;
-        cb(null, filename);
-      },
-      contentType: multerS3.AUTO_CONTENT_TYPE,
-      metadata: (req, file, cb) => {
-        cb(null, {
-          originalName: file.originalname,
-          uploadedBy: req.user?._id?.toString() || 'system'
-        });
-      }
-    });
-  } catch (error) {
-    logger.error('Error creating S3 storage:', error);
-    throw error;
-  }
+  return multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, storageDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const filename = `${uniqueSuffix}-${file.originalname}`;
+      cb(null, filename);
+    }
+  });
 };
 
-// Form file storage (S3) - only create if S3 is initialized
-let formStorage = null;
-let filledFormStorage = null;
+// Create storage instances
+const formStorage = createLocalStorage('forms');
+const filledFormStorage = createLocalStorage('filled-forms');
 
-if (s3 && S3_BUCKET) {
-  try {
-    formStorage = createS3Storage('forms');
-    filledFormStorage = createS3Storage('filled-forms');
-    logger.info('S3 storage configured successfully');
-  } catch (error) {
-    logger.error('Failed to create S3 storage:', error);
-  }
-} else {
-  logger.warn('S3 storage not configured - file uploads will fail');
-}
+// Create multer instances
+const uploadForm = multer({
+  storage: formStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: fileFilter
+});
 
-// Create multer instances only if storage is configured
-let uploadForm = null;
-let uploadFilledForm = null;
+const uploadFilledForm = multer({
+  storage: filledFormStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: fileFilter
+});
 
-if (formStorage && filledFormStorage) {
-  uploadForm = multer({
-    storage: formStorage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-    fileFilter: fileFilter
-  });
+logger.info('Local file storage configured successfully');
 
-  uploadFilledForm = multer({
-    storage: filledFormStorage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-    fileFilter: fileFilter
-  });
-} else {
-  // Create a dummy multer that will fail with a clear error
-  const errorStorage = multer.memoryStorage();
-  uploadForm = multer({
-    storage: errorStorage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: fileFilter
-  });
-  uploadFilledForm = multer({
-    storage: errorStorage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: fileFilter
-  });
-  logger.warn('Using memory storage as fallback - files will not be saved to S3');
-}
-
-// Generate signed URL for S3 files (expires in 1 hour)
-const getSignedUrl = async (fileKey) => {
-  if (!fileKey || !s3) return null;
+// Generate download URL for local files
+const getSignedUrl = async (filePath) => {
+  if (!filePath) return null;
   
   try {
-    const params = {
-      Bucket: S3_BUCKET,
-      Key: fileKey,
-      Expires: 3600 // 1 hour
-    };
+    // For local storage, return the file path relative to uploads directory
+    // The actual file serving will be handled by Express static middleware
+    const fullPath = path.join(__dirname, '../uploads', filePath);
     
-    return await s3.getSignedUrlPromise('getObject', params);
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      logger.error(`File not found: ${fullPath}`);
+      return null;
+    }
+    
+    // Return relative path that can be used with /api/files endpoint
+    return `/api/files/${filePath}`;
   } catch (error) {
-    logger.error('Error generating signed URL:', error);
+    logger.error('Error generating file URL:', error);
     return null;
   }
 };
 
-// Delete file from S3
+// Delete file from local storage
 const deleteFile = async (filePath) => {
-  if (!filePath || !s3) return;
+  if (!filePath) return;
   
   try {
-    await s3.deleteObject({
-      Bucket: S3_BUCKET,
-      Key: filePath
-    }).promise();
-    logger.info(`Deleted file from S3: ${filePath}`);
+    const fullPath = path.join(__dirname, '../uploads', filePath);
+    
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+      logger.info(`Deleted file: ${filePath}`);
+    } else {
+      logger.warn(`File not found for deletion: ${filePath}`);
+    }
   } catch (error) {
-    logger.error('Error deleting file from S3:', error);
+    logger.error('Error deleting file:', error);
   }
 };
 
 // Export multer middleware with error handling
 const uploadFormMiddleware = (req, res, next) => {
-  if (!formStorage || !uploadForm) {
-    logger.error('S3 storage not configured when upload attempted');
-    return res.status(500).json({ message: 'S3 storage not configured. Please check AWS credentials.' });
-  }
-  
   uploadForm.single('formFile')(req, res, (err) => {
     if (err) {
-      logger.error('Multer/S3 upload error in uploadFormMiddleware:', err);
+      logger.error('Multer upload error in uploadFormMiddleware:', err);
       if (!res.headersSent) {
         return res.status(500).json({ 
-          message: err.message || 'File upload failed. Please check S3 configuration.',
+          message: err.message || 'File upload failed',
           error: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
       }
@@ -177,17 +124,12 @@ const uploadFormMiddleware = (req, res, next) => {
 };
 
 const uploadFilledFormMiddleware = (req, res, next) => {
-  if (!filledFormStorage || !uploadFilledForm) {
-    logger.error('S3 storage not configured when upload attempted');
-    return res.status(500).json({ message: 'S3 storage not configured. Please check AWS credentials.' });
-  }
-  
   uploadFilledForm.single('filledFormFile')(req, res, (err) => {
     if (err) {
-      logger.error('Multer/S3 upload error in uploadFilledFormMiddleware:', err);
+      logger.error('Multer upload error in uploadFilledFormMiddleware:', err);
       if (!res.headersSent) {
         return res.status(500).json({ 
-          message: err.message || 'File upload failed. Please check S3 configuration.',
+          message: err.message || 'File upload failed',
           error: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
       }
@@ -204,4 +146,3 @@ module.exports = {
   getSignedUrl,
   deleteFile
 };
-

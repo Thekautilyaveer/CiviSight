@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const CountyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [county, setCounty] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,12 @@ const CountyDetail = () => {
   const [filledFormFile, setFilledFormFile] = useState(null);
   const [uploadingForm, setUploadingForm] = useState(null);
   const [uploadingFilledForm, setUploadingFilledForm] = useState(null);
+  const [expandedTask, setExpandedTask] = useState(null);
+  const [taskComments, setTaskComments] = useState({});
+  const [newComment, setNewComment] = useState('');
+  const [addingComment, setAddingComment] = useState(null);
+  const [loadingComments, setLoadingComments] = useState({});
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     fetchCounty();
@@ -40,6 +46,15 @@ const CountyDetail = () => {
     fetchTasks();
     saveFiltersToStorage();
   }, [id, statusFilter, priorityFilter, deadlineFrom, deadlineTo, assignedFrom, assignedTo, searchTerm]);
+
+  // Update countdown timer every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const saveFiltersToStorage = () => {
     try {
@@ -241,13 +256,32 @@ const CountyDetail = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Download failed' }));
         throw new Error(error.message || 'Download failed');
       }
 
-      const data = await response.json();
-      // Open the signed URL directly in a new window/tab
-      window.open(data.downloadUrl, '_blank');
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'form.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       alert(error.message || 'Error downloading form');
     }
@@ -263,13 +297,32 @@ const CountyDetail = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Download failed' }));
         throw new Error(error.message || 'Download failed');
       }
 
-      const data = await response.json();
-      // Open the signed URL directly in a new window/tab
-      window.open(data.downloadUrl, '_blank');
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'filled-form.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       alert(error.message || 'Error downloading filled form');
     }
@@ -283,6 +336,241 @@ const CountyDetail = () => {
     } catch (error) {
       alert(error.response?.data?.message || 'Error sending reminder');
     }
+  };
+
+  const toggleTaskExpansion = async (taskId) => {
+    if (expandedTask === taskId) {
+      setExpandedTask(null);
+      setNewComment('');
+    } else {
+      setExpandedTask(taskId);
+      // Load comments if not already loaded
+      if (!taskComments[taskId]) {
+        await fetchTaskComments(taskId);
+      }
+    }
+  };
+
+  const fetchTaskComments = async (taskId) => {
+    try {
+      setLoadingComments(prev => ({ ...prev, [taskId]: true }));
+      const res = await api.get(`/tasks/${taskId}/comments`);
+      setTaskComments(prev => ({ ...prev, [taskId]: res.data.comments }));
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      alert(error.response?.data?.message || 'Error loading comments');
+    } finally {
+      setLoadingComments(prev => ({ ...prev, [taskId]: false }));
+    }
+  };
+
+  const handleAddComment = async (taskId) => {
+    if (!newComment.trim()) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    try {
+      setAddingComment(taskId);
+      const res = await api.post(`/tasks/${taskId}/comments`, { text: newComment.trim() });
+      
+      // Update comments for this task
+      setTaskComments(prev => ({
+        ...prev,
+        [taskId]: [...(prev[taskId] || []), res.data.comment]
+      }));
+      
+      setNewComment('');
+      // Refresh tasks to show updated comment count
+      fetchTasks();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert(error.response?.data?.message || 'Error adding comment');
+    } finally {
+      setAddingComment(null);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
+  // Calculate time remaining until deadline
+  const getTimeRemaining = (deadline) => {
+    const now = currentTime;
+    const deadlineDate = new Date(deadline);
+    const diff = deadlineDate - now;
+    
+    if (diff < 0) {
+      // Overdue
+      const daysOverdue = Math.floor(Math.abs(diff) / (1000 * 60 * 60 * 24));
+      const hoursOverdue = Math.floor((Math.abs(diff) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      return {
+        overdue: true,
+        days: daysOverdue,
+        hours: hoursOverdue,
+        totalHours: Math.floor(Math.abs(diff) / (1000 * 60 * 60)),
+        totalMinutes: Math.floor(Math.abs(diff) / (1000 * 60))
+      };
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return {
+      overdue: false,
+      days,
+      hours,
+      minutes,
+      totalHours: Math.floor(diff / (1000 * 60 * 60)),
+      totalMinutes: Math.floor(diff / (1000 * 60))
+    };
+  };
+
+  // Get urgency level and styling
+  const getDeadlineUrgency = (deadline, status) => {
+    if (status === 'completed') {
+      return { level: 'completed', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' };
+    }
+    
+    const timeRemaining = getTimeRemaining(deadline);
+    
+    if (timeRemaining.overdue) {
+      return { 
+        level: 'overdue', 
+        color: 'text-red-600', 
+        bg: 'bg-red-50', 
+        border: 'border-red-200',
+        label: 'Overdue'
+      };
+    }
+    
+    if (timeRemaining.totalHours < 24) {
+      // Due within 24 hours
+      return { 
+        level: 'urgent', 
+        color: 'text-red-600', 
+        bg: 'bg-red-50', 
+        border: 'border-red-200',
+        label: 'Due Soon'
+      };
+    } else if (timeRemaining.days <= 1) {
+      // Due within 1 day
+      return { 
+        level: 'very-soon', 
+        color: 'text-orange-600', 
+        bg: 'bg-orange-50', 
+        border: 'border-orange-200',
+        label: 'Due Tomorrow'
+      };
+    } else if (timeRemaining.days <= 3) {
+      // Due within 3 days
+      return { 
+        level: 'soon', 
+        color: 'text-yellow-600', 
+        bg: 'bg-yellow-50', 
+        border: 'border-yellow-200',
+        label: 'Due Soon'
+      };
+    }
+    
+    return { 
+      level: 'normal', 
+      color: 'text-gray-600', 
+      bg: 'bg-gray-50', 
+      border: 'border-gray-200',
+      label: null
+    };
+  };
+
+  // Format countdown timer text
+  const formatCountdown = (deadline, status) => {
+    if (status === 'completed') {
+      return 'Completed';
+    }
+    
+    const timeRemaining = getTimeRemaining(deadline);
+    
+    if (timeRemaining.overdue) {
+      if (timeRemaining.days > 0) {
+        return `${timeRemaining.days}d ${timeRemaining.hours}h overdue`;
+      } else if (timeRemaining.hours > 0) {
+        return `${timeRemaining.hours}h overdue`;
+      } else {
+        return `${timeRemaining.totalMinutes}m overdue`;
+      }
+    }
+    
+    if (timeRemaining.days > 0) {
+      return `${timeRemaining.days}d ${timeRemaining.hours}h remaining`;
+    } else if (timeRemaining.hours > 0) {
+      return `${timeRemaining.hours}h ${timeRemaining.minutes}m remaining`;
+    } else {
+      return `${timeRemaining.minutes}m remaining`;
+    }
+  };
+
+  const handleMarkAsRead = async (taskId, commentIndex) => {
+    try {
+      await api.post(`/tasks/${taskId}/comments/${commentIndex}/mark-read`);
+      
+      // Update the comment in local state to mark it as read
+      setTaskComments(prev => {
+        const updated = { ...prev };
+        if (updated[taskId] && user) {
+          const comments = [...updated[taskId]];
+          if (!comments[commentIndex].readBy) {
+            comments[commentIndex].readBy = [];
+          }
+          const userId = user._id || user.id;
+          if (userId) {
+            const alreadyRead = comments[commentIndex].readBy.some(
+              readUserId => {
+                const readId = readUserId._id ? readUserId._id.toString() : readUserId.toString();
+                return readId === userId.toString();
+              }
+            );
+            if (!alreadyRead) {
+              comments[commentIndex].readBy.push(userId);
+            }
+          }
+          updated[taskId] = comments;
+        }
+        return updated;
+      });
+      
+      // Refresh tasks to update unread count
+      fetchTasks();
+    } catch (error) {
+      console.error('Error marking comment as read:', error);
+      alert(error.response?.data?.message || 'Error marking comment as read');
+    }
+  };
+
+  const isCommentUnread = (comment) => {
+    if (!isAdmin || !user) return false;
+    // Comment is unread if:
+    // 1. It wasn't created by the current admin
+    // 2. The current admin hasn't read it yet
+    const userId = user._id || user.id;
+    if (!userId) return false;
+    
+    const createdByAdmin = comment.createdBy?._id?.toString() === userId.toString();
+    const readByAdmin = comment.readBy?.some(
+      readUserId => {
+        const readId = readUserId._id ? readUserId._id.toString() : readUserId.toString();
+        return readId === userId.toString();
+      }
+    );
+    return !createdByAdmin && !readByAdmin;
   };
 
   const openEditModal = (task) => {
@@ -508,13 +796,17 @@ const CountyDetail = () => {
           <div className="divide-y divide-gray-200">
             {filteredTasks.map((task) => {
               const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
+              const urgency = getDeadlineUrgency(task.deadline, task.status);
+              const timeRemaining = getTimeRemaining(task.deadline);
+              const countdownText = formatCountdown(task.deadline, task.status);
+              
               return (
-                <div key={task._id} className={`p-6 hover:bg-gray-50 transition-colors ${isOverdue ? 'bg-red-50 border-l-4 border-red-500' : ''}`}>
+                <div key={task._id} className={`p-6 hover:bg-gray-50 transition-colors ${urgency.level === 'overdue' ? 'bg-red-50 border-l-4 border-red-500' : urgency.level === 'urgent' ? 'bg-red-50 border-l-4 border-red-400' : urgency.level === 'very-soon' ? 'bg-orange-50 border-l-4 border-orange-400' : urgency.level === 'soon' ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-start gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3 mb-2 flex-wrap">
                             <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
                             <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${priorityColors[task.priority] || priorityColors.medium}`}>
                               {task.priority}
@@ -522,21 +814,21 @@ const CountyDetail = () => {
                             <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${getStatusColor(task.status)}`}>
                               {task.status.replace('_', ' ')}
                             </span>
-                            {isOverdue && (
-                              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
-                                Overdue
+                            {urgency.label && (
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${urgency.bg} ${urgency.color} border ${urgency.border}`}>
+                                {urgency.label}
                               </span>
                             )}
                           </div>
                           {task.description && (
                             <p className="text-sm text-gray-600 mb-3">{task.description}</p>
                           )}
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <div className={`flex items-center gap-2 ${urgency.color}`}>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                              <span className="font-medium">
                                 Deadline: {new Date(task.deadline).toLocaleDateString('en-US', { 
                                   month: 'short', 
                                   day: 'numeric', 
@@ -544,6 +836,14 @@ const CountyDetail = () => {
                                 })}
                               </span>
                             </div>
+                            {task.status !== 'completed' && (
+                              <div className={`flex items-center gap-2 ${urgency.color} font-semibold`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>{countdownText}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -619,6 +919,113 @@ const CountyDetail = () => {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                             Uploading...
                           </span>
+                        )}
+                      </div>
+                      
+                      {/* Comments Section */}
+                      <div className="mt-4">
+                        <button
+                          onClick={() => toggleTaskExpansion(task._id)}
+                          className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span>
+                            {task.comments?.length || 0} {task.comments?.length === 1 ? 'comment' : 'comments'}
+                          </span>
+                          <svg 
+                            className={`w-4 h-4 transition-transform ${expandedTask === task._id ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {expandedTask === task._id && (
+                          <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            {/* Comments List */}
+                            <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+                              {loadingComments[task._id] ? (
+                                <div className="text-center py-4">
+                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                                  <p className="text-sm text-gray-500 mt-2">Loading comments...</p>
+                                </div>
+                              ) : taskComments[task._id]?.length > 0 ? (
+                                taskComments[task._id].map((comment, idx) => {
+                                  const unread = isCommentUnread(comment);
+                                  return (
+                                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <span className="text-blue-600 font-semibold text-sm">
+                                              {comment.createdBy?.username?.charAt(0).toUpperCase() || 'U'}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <p className="text-sm font-semibold text-gray-900">
+                                              {comment.createdBy?.username || 'Unknown User'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              {comment.createdBy?.role === 'admin' ? 'Admin' : 'County User'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <span className="text-xs text-gray-500">
+                                          {formatDate(comment.createdAt)}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{comment.text}</p>
+                                      {isAdmin && unread && (
+                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                          <button
+                                            onClick={() => handleMarkAsRead(task._id, idx)}
+                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                          >
+                                            Mark as read
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <p className="text-sm text-gray-500 text-center py-4">No comments yet. Be the first to comment!</p>
+                              )}
+                            </div>
+
+                            {/* Add Comment Form */}
+                            <div className="border-t border-gray-200 pt-4">
+                              <textarea
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                placeholder="Add a comment..."
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                rows="3"
+                              />
+                              <div className="flex justify-end gap-2 mt-2">
+                                <button
+                                  onClick={() => {
+                                    setExpandedTask(null);
+                                    setNewComment('');
+                                  }}
+                                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleAddComment(task._id)}
+                                  disabled={addingComment === task._id || !newComment.trim()}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {addingComment === task._id ? 'Adding...' : 'Add Comment'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

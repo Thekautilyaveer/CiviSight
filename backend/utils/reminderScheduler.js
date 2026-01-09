@@ -29,7 +29,8 @@ const checkAndSendReminders = async () => {
       });
 
       if (!recentReminder && task.countyId) {
-        const emailTo = task.countyId.email || process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
+        // Always send reminder emails to EMAIL_TO, regardless of county email
+        const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
         
         try {
           await sendReminderEmail(

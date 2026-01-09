@@ -26,10 +26,34 @@ router.get('/', auth, async (req, res) => {
     // Get task statistics for each county
     const countiesWithStats = await Promise.all(
       counties.map(async (county) => {
-        const tasks = await Task.find({ countyId: county._id });
+        const tasks = await Task.find({ countyId: county._id })
+          .populate('comments.createdBy', '_id');
         const pending = tasks.filter(t => t.status === 'pending').length;
         const inProgress = tasks.filter(t => t.status === 'in_progress').length;
         const completed = tasks.filter(t => t.status === 'completed').length;
+        
+        // Count unread comments for admin (only if user is admin)
+        let unreadComments = 0;
+        if (req.user.role === 'admin') {
+          unreadComments = tasks.reduce((sum, task) => {
+            if (!task.comments || task.comments.length === 0) return sum;
+            const unread = task.comments.filter(comment => {
+              // Comment is unread if:
+              // 1. It wasn't created by the current admin (they don't need to read their own comments)
+              // 2. The current admin hasn't read it yet
+              const createdByAdmin = comment.createdBy?._id?.toString() === req.user._id.toString() ||
+                                     comment.createdBy?.toString() === req.user._id.toString();
+              const readByAdmin = comment.readBy?.some(
+                userId => {
+                  const userIdStr = userId._id ? userId._id.toString() : userId.toString();
+                  return userIdStr === req.user._id.toString();
+                }
+              );
+              return !createdByAdmin && !readByAdmin;
+            }).length;
+            return sum + unread;
+          }, 0);
+        }
 
         return {
           ...county.toObject(),
@@ -37,7 +61,8 @@ router.get('/', auth, async (req, res) => {
             total: tasks.length,
             pending,
             inProgress,
-            completed
+            completed,
+            unreadComments
           }
         };
       })

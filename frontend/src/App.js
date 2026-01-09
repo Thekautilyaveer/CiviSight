@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -10,11 +11,13 @@ import Notifications from './pages/Notifications';
 import CreateTask from './pages/CreateTask';
 import Contacts from './pages/Contacts';
 import Users from './pages/Users';
+import FormPilot from './pages/FormPilot';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -43,6 +46,16 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <Contacts />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/county/:id/formpilot"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <FormPilot />
                 </Layout>
               </PrivateRoute>
             }
@@ -80,7 +93,8 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
