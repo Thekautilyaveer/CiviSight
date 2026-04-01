@@ -22,7 +22,11 @@ const countySchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
     default: ''
-  }
+  },
+  fiscalYearStartMonth: { type: Number, default: 1 },
+  fiscalYearStartDay: { type: Number, default: 1 },
+  fiscalYearEndMonth: { type: Number, default: 12 },
+  fiscalYearEndDay: { type: Number, default: 31 }
 }, {
   timestamps: true
 });

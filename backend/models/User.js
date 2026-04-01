@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { DEPARTMENT_ROLE_SLUGS } = require('../constants/departmentRoles');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -28,7 +29,11 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'County',
     default: null
-  }
+  },
+  departmentRoles: [{
+    type: String,
+    enum: DEPARTMENT_ROLE_SLUGS
+  }]
 }, {
   timestamps: true
 });

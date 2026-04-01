@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { DEPARTMENT_ROLES } from '../constants/departmentRoles';
 
 const CountyDetail = () => {
   const { id } = useParams();
@@ -19,13 +20,29 @@ const CountyDetail = () => {
   const [deadlineTo, setDeadlineTo] = useState('');
   const [assignedFrom, setAssignedFrom] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
+  const submittedToOptions = [
+    'Georgia Department of Community Affairs (DCA)',
+    'Georgia Department of Audits and Accounts (DOAA)',
+    'Federal Audit Clearinghouse (FAC)',
+    'Georgia Office of Planning and Budget (OPB)',
+    'State Records Committee',
+    'Other'
+  ];
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
     deadline: '',
     status: 'pending',
     priority: 'medium',
+    submittedToSelect: '',
+    submittedToOther: '',
+    portalLink: '',
+    assignedRoles: []
   });
+  const [showAddRoleDropdown, setShowAddRoleDropdown] = useState(false);
+  const [showEditRoleDropdown, setShowEditRoleDropdown] = useState(false);
+  const [deadlineMode, setDeadlineMode] = useState('date');
+  const [deadlinePreset, setDeadlinePreset] = useState(null);
   const [formFile, setFormFile] = useState(null);
   const [filledFormFile, setFilledFormFile] = useState(null);
   const [uploadingForm, setUploadingForm] = useState(null);
@@ -123,12 +140,36 @@ const CountyDetail = () => {
 
   const handleAddTask = async (e) => {
     e.preventDefault();
+    const finalSubmittedTo =
+      taskForm.submittedToSelect === 'Other'
+        ? taskForm.submittedToOther.trim()
+        : taskForm.submittedToSelect;
+
+    if (!finalSubmittedTo) {
+      alert('Please select who this task is submitted to.');
+      return;
+    }
+    const useFiscalPreset = deadlineMode === 'fiscal_preset' && deadlinePreset != null;
+    if (!useFiscalPreset && !taskForm.deadline) {
+      alert('Please choose a deadline (specific date or fiscal year preset).');
+      return;
+    }
     try {
-      const response = await api.post('/tasks', {
+      const payload = {
         ...taskForm,
         countyId: id,
-        deadline: new Date(taskForm.deadline).toISOString(),
-      });
+        submittedTo: finalSubmittedTo,
+        portalLink: (taskForm.portalLink && taskForm.portalLink.trim()) || undefined,
+        assignedRoles: Array.isArray(taskForm.assignedRoles) ? taskForm.assignedRoles : []
+      };
+      if (useFiscalPreset) {
+        payload.deadlineType = 'fiscal_year_offset';
+        payload.deadlineOffsetDays = deadlinePreset;
+        delete payload.deadline;
+      } else {
+        payload.deadline = new Date(taskForm.deadline).toISOString();
+      }
+      const response = await api.post('/tasks', payload);
       
       // Upload form file if provided
       if (formFile && response.data && response.data._id) {
@@ -136,7 +177,19 @@ const CountyDetail = () => {
       }
       
       setShowAddTask(false);
-      setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium' });
+      setTaskForm({
+        title: '',
+        description: '',
+        deadline: '',
+        status: 'pending',
+        priority: 'medium',
+        submittedToSelect: '',
+        submittedToOther: '',
+        portalLink: '',
+        assignedRoles: []
+      });
+      setDeadlineMode('date');
+      setDeadlinePreset(null);
       setFormFile(null);
       fetchTasks();
     } catch (error) {
@@ -146,10 +199,22 @@ const CountyDetail = () => {
 
   const handleEditTask = async (e) => {
     e.preventDefault();
+    const finalSubmittedTo =
+      taskForm.submittedToSelect === 'Other'
+        ? taskForm.submittedToOther.trim()
+        : taskForm.submittedToSelect;
+
+    if (!finalSubmittedTo) {
+      alert('Please select who this task is submitted to.');
+      return;
+    }
     try {
       await api.put(`/tasks/${showEditTask._id}`, {
         ...taskForm,
+        submittedTo: finalSubmittedTo,
         deadline: new Date(taskForm.deadline).toISOString(),
+        portalLink: (taskForm.portalLink && taskForm.portalLink.trim()) || '',
+        assignedRoles: Array.isArray(taskForm.assignedRoles) ? taskForm.assignedRoles : []
       });
       
       if (formFile) {
@@ -157,7 +222,19 @@ const CountyDetail = () => {
       }
       
       setShowEditTask(null);
-      setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium' });
+      setTaskForm({
+        title: '',
+        description: '',
+        deadline: '',
+        status: 'pending',
+        priority: 'medium',
+        submittedToSelect: '',
+        submittedToOther: '',
+        portalLink: '',
+        assignedRoles: []
+      });
+      setDeadlineMode('date');
+      setDeadlinePreset(null);
       setFormFile(null);
       fetchTasks();
     } catch (error) {
@@ -575,13 +652,36 @@ const CountyDetail = () => {
 
   const openEditModal = (task) => {
     setShowEditTask(task);
+    const isPredefinedSubmittedTo = submittedToOptions.includes(task.submittedTo);
     setTaskForm({
       title: task.title,
       description: task.description,
       deadline: new Date(task.deadline).toISOString().slice(0, 16),
       status: task.status,
       priority: task.priority || 'medium',
+      submittedToSelect: isPredefinedSubmittedTo
+        ? task.submittedTo
+        : task.submittedTo
+        ? 'Other'
+        : '',
+      submittedToOther: isPredefinedSubmittedTo ? '' : (task.submittedTo || ''),
+      portalLink: task.portalLink || '',
+      assignedRoles: Array.isArray(task.assignedRoles) ? [...task.assignedRoles] : []
     });
+  };
+
+  const handleOpenPortalLink = async (task) => {
+    if (!task.portalLink) return;
+    if (task.status === 'pending') {
+      try {
+        await api.put(`/tasks/${task._id}`, { status: 'in_progress' });
+        fetchTasks();
+      } catch (err) {
+        alert(err.response?.data?.message || 'Failed to update status');
+        return;
+      }
+    }
+    window.open(task.portalLink, '_blank');
   };
 
   const getStatusColor = (status) => {
@@ -882,36 +982,51 @@ const CountyDetail = () => {
                             </label>
                           )
                         )}
-                        
-                        {/* Filled Form File */}
-                        {task.filledFormFile ? (
+                        {/* Portal link: show when task has portalLink (and no form file, or in addition to form file) */}
+                        {task.portalLink && (
                           <button
-                            onClick={() => handleDownloadFilledForm(task._id)}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200"
+                            type="button"
+                            onClick={() => handleOpenPortalLink(task)}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium transition-colors border border-indigo-200"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
-                            View Submitted Form
-                            <span className="text-xs text-green-600">({task.filledFormFile.originalName})</span>
+                            {task.formFile ? 'Open form portal' : 'Fill form online'}
                           </button>
-                        ) : (
-                          <label className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200 cursor-pointer">
-                            <input
-                              type="file"
-                              className="hidden"
-                              onChange={(e) => {
-                                if (e.target.files[0]) {
-                                  handleUploadFilledForm(task._id, e.target.files[0]);
-                                }
-                              }}
-                              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"
-                            />
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                            {uploadingFilledForm === task._id ? 'Uploading...' : 'Upload Filled Form'}
-                          </label>
+                        )}
+                        
+                        {/* Filled Form File - only show when task has a PDF form (not portal-link-only) */}
+                        {task.formFile && (
+                          task.filledFormFile ? (
+                            <button
+                              onClick={() => handleDownloadFilledForm(task._id)}
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              View Submitted Form
+                              <span className="text-xs text-green-600">({task.filledFormFile.originalName})</span>
+                            </button>
+                          ) : (
+                            <label className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200 cursor-pointer">
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={(e) => {
+                                  if (e.target.files[0]) {
+                                    handleUploadFilledForm(task._id, e.target.files[0]);
+                                  }
+                                }}
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"
+                              />
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              {uploadingFilledForm === task._id ? 'Uploading...' : 'Upload Filled Form'}
+                            </label>
+                          )
                         )}
                         
                         {(uploadingForm === task._id || uploadingFilledForm === task._id) && (
@@ -1078,14 +1193,16 @@ const CountyDetail = () => {
 
       {/* Add Task Modal */}
       {showAddTask && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Add New Task</h3>
               <button
                 onClick={() => {
                   setShowAddTask(false);
-                  setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium' });
+                  setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium', submittedToSelect: '', submittedToOther: '', portalLink: '' });
+                  setDeadlineMode('date');
+                  setDeadlinePreset(null);
                   setFormFile(null);
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -1121,19 +1238,56 @@ const CountyDetail = () => {
                   placeholder="Enter task description"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Deadline *
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={taskForm.deadline}
-                    onChange={(e) => setTaskForm({ ...taskForm, deadline: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Deadline *
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="addDeadlineMode"
+                        checked={deadlineMode === 'date'}
+                        onChange={() => setDeadlineMode('date')}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm">Specific date</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="addDeadlineMode"
+                        checked={deadlineMode === 'fiscal_preset'}
+                        onChange={() => setDeadlineMode('fiscal_preset')}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm">Based on fiscal year end</span>
+                    </label>
+                  </div>
+                  {deadlineMode === 'date' ? (
+                    <input
+                      type="datetime-local"
+                      value={taskForm.deadline}
+                      onChange={(e) => setTaskForm({ ...taskForm, deadline: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <select
+                      value={deadlinePreset ?? ''}
+                      onChange={(e) => setDeadlinePreset(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select option</option>
+                      <option value="60">60 days after fiscal year ends</option>
+                      <option value="90">Three months after fiscal year ends</option>
+                      <option value="180">Six months after fiscal year ends</option>
+                      <option value="270">Nine months after fiscal year ends</option>
+                    </select>
+                  )}
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Priority *
@@ -1147,6 +1301,119 @@ const CountyDetail = () => {
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                   </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Submitted To *
+                </label>
+                <select
+                  value={taskForm.submittedToSelect}
+                  onChange={(e) =>
+                    setTaskForm((prev) => ({
+                      ...prev,
+                      submittedToSelect: e.target.value,
+                      submittedToOther:
+                        e.target.value === 'Other' ? prev.submittedToOther : ''
+                    }))
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select Agency</option>
+                  {submittedToOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {taskForm.submittedToSelect === 'Other' && (
+                  <input
+                    type="text"
+                    value={taskForm.submittedToOther}
+                    onChange={(e) =>
+                      setTaskForm((prev) => ({
+                        ...prev,
+                        submittedToOther: e.target.value
+                      }))
+                    }
+                    className="mt-2 w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter the agency or recipient"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Link to portal (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={taskForm.portalLink}
+                  onChange={(e) => setTaskForm({ ...taskForm, portalLink: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Visible to roles (optional)
+                </label>
+                <p className="mb-2 text-xs text-gray-500">
+                  Only county users with at least one of these roles will see this task. Leave empty for all.
+                </p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddRoleDropdown((prev) => !prev)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <span className="text-sm text-gray-900">
+                      {(taskForm.assignedRoles || []).length === 0
+                        ? 'All county users'
+                        : (taskForm.assignedRoles || []).length === 1
+                        ? DEPARTMENT_ROLES.find((r) => r.slug === (taskForm.assignedRoles || [])[0])?.label || '1 role selected'
+                        : `${(taskForm.assignedRoles || []).length} roles selected`}
+                    </span>
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {showAddRoleDropdown && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {DEPARTMENT_ROLES.map(({ slug, label }) => {
+                        const checked = (taskForm.assignedRoles || []).includes(slug);
+                        return (
+                          <label
+                            key={slug}
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                setTaskForm((prev) => {
+                                  const current = prev.assignedRoles || [];
+                                  return {
+                                    ...prev,
+                                    assignedRoles: e.target.checked
+                                      ? [...current, slug]
+                                      : current.filter((r) => r !== slug)
+                                  };
+                                });
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -1171,7 +1438,19 @@ const CountyDetail = () => {
                   type="button"
                   onClick={() => {
                     setShowAddTask(false);
-                    setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium' });
+                    setTaskForm({
+                      title: '',
+                      description: '',
+                      deadline: '',
+                      status: 'pending',
+                      priority: 'medium',
+                      submittedToSelect: '',
+                      submittedToOther: '',
+                      portalLink: '',
+                      assignedRoles: []
+                    });
+                    setDeadlineMode('date');
+                    setDeadlinePreset(null);
                     setFormFile(null);
                   }}
                   className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 font-medium transition-colors"
@@ -1186,14 +1465,14 @@ const CountyDetail = () => {
 
       {/* Edit Task Modal */}
       {showEditTask && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Edit Task</h3>
               <button
                 onClick={() => {
                   setShowEditTask(null);
-                  setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium' });
+                  setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium', submittedToSelect: '', submittedToOther: '', portalLink: '', assignedRoles: [] });
                   setFormFile(null);
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -1259,6 +1538,119 @@ const CountyDetail = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Submitted To *
+                </label>
+                <select
+                  value={taskForm.submittedToSelect}
+                  onChange={(e) =>
+                    setTaskForm((prev) => ({
+                      ...prev,
+                      submittedToSelect: e.target.value,
+                      submittedToOther:
+                        e.target.value === 'Other' ? prev.submittedToOther : ''
+                    }))
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select Agency</option>
+                  {submittedToOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {taskForm.submittedToSelect === 'Other' && (
+                  <input
+                    type="text"
+                    value={taskForm.submittedToOther}
+                    onChange={(e) =>
+                      setTaskForm((prev) => ({
+                        ...prev,
+                        submittedToOther: e.target.value
+                      }))
+                    }
+                    className="mt-2 w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter the agency or recipient"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Link to portal (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={taskForm.portalLink}
+                  onChange={(e) => setTaskForm({ ...taskForm, portalLink: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Visible to roles (optional)
+                </label>
+                <p className="mb-2 text-xs text-gray-500">
+                  Only county users with at least one of these roles will see this task. Leave empty for all.
+                </p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditRoleDropdown((prev) => !prev)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <span className="text-sm text-gray-900">
+                      {(taskForm.assignedRoles || []).length === 0
+                        ? 'All county users'
+                        : (taskForm.assignedRoles || []).length === 1
+                        ? DEPARTMENT_ROLES.find((r) => r.slug === (taskForm.assignedRoles || [])[0])?.label || '1 role selected'
+                        : `${(taskForm.assignedRoles || []).length} roles selected`}
+                    </span>
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {showEditRoleDropdown && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {DEPARTMENT_ROLES.map(({ slug, label }) => {
+                        const checked = (taskForm.assignedRoles || []).includes(slug);
+                        return (
+                          <label
+                            key={slug}
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                setTaskForm((prev) => {
+                                  const current = prev.assignedRoles || [];
+                                  return {
+                                    ...prev,
+                                    assignedRoles: e.target.checked
+                                      ? [...current, slug]
+                                      : current.filter((r) => r !== slug)
+                                  };
+                                });
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-900">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Status *
                 </label>
                 <select
@@ -1293,7 +1685,17 @@ const CountyDetail = () => {
                   type="button"
                   onClick={() => {
                     setShowEditTask(null);
-                    setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium' });
+                    setTaskForm({
+                      title: '',
+                      description: '',
+                      deadline: '',
+                      status: 'pending',
+                      priority: 'medium',
+                      submittedToSelect: '',
+                      submittedToOther: '',
+                      portalLink: '',
+                      assignedRoles: []
+                    });
                     setFormFile(null);
                   }}
                   className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 font-medium transition-colors"

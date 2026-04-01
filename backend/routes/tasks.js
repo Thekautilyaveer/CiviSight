@@ -11,6 +11,33 @@ const { uploadForm, uploadFilledForm, getSignedUrl, deleteFile } = require('../m
 const { sendReminderEmail, sendTaskAssignmentEmail, sendFormUploadEmail } = require('../utils/email');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const { DEPARTMENT_ROLE_SLUGS } = require('../constants/departmentRoles');
+
+const FISCAL_OFFSET_DAYS = [60, 90, 180, 270];
+
+function parseAssignedRoles(arr) {
+  if (!Array.isArray(arr)) return [];
+  const valid = arr.filter((s) => typeof s === 'string' && DEPARTMENT_ROLE_SLUGS.includes(s.trim()));
+  return [...new Set(valid)];
+}
+
+function usersToNotifyForTask(countyUsers, assignedRoles) {
+  if (!assignedRoles || assignedRoles.length === 0) return countyUsers;
+  return countyUsers.filter((u) => {
+    const roles = u.departmentRoles;
+    if (!roles || roles.length === 0) return true; // user has "all roles"
+    return assignedRoles.some((r) => roles.includes(r));
+  });
+}
+
+function getDeadlineFromFiscalYearEnd(county, offsetDays) {
+  const year = new Date().getFullYear();
+  const endMonth = (county.fiscalYearEndMonth != null) ? county.fiscalYearEndMonth : 12;
+  const endDay = (county.fiscalYearEndDay != null) ? county.fiscalYearEndDay : 31;
+  const endDate = new Date(year, endMonth - 1, endDay, 23, 59, 0);
+  endDate.setDate(endDate.getDate() + offsetDays);
+  return endDate;
+}
 
 // @route   GET /api/tasks
 // @desc    Get all tasks (filtered by county for county users)
@@ -25,6 +52,20 @@ router.get('/', auth, async (req, res) => {
         return res.json([]);
       }
       query.countyId = req.user.countyId;
+
+      // Role-based visibility: if user has departmentRoles, only show tasks with no assignedRoles or overlapping roles
+      const userRoles = req.user.departmentRoles;
+      if (userRoles && userRoles.length > 0) {
+        query.$and = (query.$and || []).concat([
+          {
+            $or: [
+              { assignedRoles: { $exists: false } },
+              { assignedRoles: { $size: 0 } },
+              { assignedRoles: { $in: userRoles } }
+            ]
+          }
+        ]);
+      }
     }
 
     // Filter by county if provided
@@ -97,9 +138,18 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Check if user has access
+    // Check if user has access (county)
     if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // County users: if task has assigned roles, user must have at least one matching role
+    if (req.user.role === 'county_user' && task.assignedRoles && task.assignedRoles.length > 0) {
+      const userRoles = req.user.departmentRoles || [];
+      const hasMatch = task.assignedRoles.some((r) => userRoles.includes(r));
+      if (!hasMatch) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
     }
 
     res.json(task);
@@ -115,7 +165,8 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, adminOnly, [
   body('title').trim().notEmpty().withMessage('Title is required'),
   body('countyId').notEmpty().withMessage('County ID is required'),
-  body('deadline').isISO8601().withMessage('Valid deadline is required')
+  body('deadline').optional({ checkFalsy: true }).isISO8601().withMessage('Valid deadline is required'),
+  body('submittedTo').trim().notEmpty().withMessage('"Submitted To" is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -123,7 +174,8 @@ router.post('/', auth, adminOnly, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { title, description, countyId, status, deadline } = req.body;
+    const { title, description, countyId, status, deadline, submittedTo, portalLink, deadlineType, deadlineOffsetDays } = req.body;
+    const assignedRoles = parseAssignedRoles(req.body.assignedRoles);
 
     // Verify county exists
     const county = await County.findById(countyId);
@@ -131,14 +183,26 @@ router.post('/', auth, adminOnly, [
       return res.status(404).json({ message: 'County not found' });
     }
 
+    let resolvedDeadline;
+    if (deadline) {
+      resolvedDeadline = new Date(deadline);
+    } else if (deadlineType === 'fiscal_year_offset' && deadlineOffsetDays != null && FISCAL_OFFSET_DAYS.includes(Number(deadlineOffsetDays))) {
+      resolvedDeadline = getDeadlineFromFiscalYearEnd(county, Number(deadlineOffsetDays));
+    } else {
+      return res.status(400).json({ message: 'Either deadline (ISO date) or deadlineType "fiscal_year_offset" with deadlineOffsetDays (60, 90, 180, or 270) is required' });
+    }
+
     const task = new Task({
       title,
       description: description || '',
       countyId,
+      submittedTo: submittedTo || '',
+      portalLink: (portalLink && String(portalLink).trim()) || '',
       status: status || 'pending',
       priority: req.body.priority || 'medium',
-      deadline: new Date(deadline),
-      assignedBy: req.user._id
+      deadline: resolvedDeadline,
+      assignedBy: req.user._id,
+      assignedRoles
     });
 
     await task.save();
@@ -154,7 +218,7 @@ router.post('/', auth, adminOnly, [
           emailTo,
           populatedCounty.name,
           title,
-          deadline,
+          resolvedDeadline,
           assignedByUser.username
         );
         logger.info(`Task assignment email sent to ${emailTo} for ${populatedCounty.name}`);
@@ -164,10 +228,11 @@ router.post('/', auth, adminOnly, [
       // Continue even if email fails
     }
 
-    // Create notification for county users
+    // Create notification for county users whose roles match the task
     const Notification = require('../models/Notification');
     const countyUsers = await User.find({ countyId: countyId, role: 'county_user' });
-    for (const user of countyUsers) {
+    const usersToNotify = usersToNotifyForTask(countyUsers, task.assignedRoles);
+    for (const user of usersToNotify) {
       const notification = new Notification({
         userId: user._id,
         type: 'task_assigned',
@@ -196,7 +261,8 @@ router.post('/bulk', auth, adminOnly, [
   body('title').trim().notEmpty().withMessage('Title is required'),
   body('countyIds').isArray().withMessage('County IDs must be an array'),
   body('countyIds.*').isMongoId().withMessage('Each county ID must be a valid MongoDB ObjectId'),
-  body('deadline').isISO8601().withMessage('Valid deadline is required')
+  body('deadline').optional({ checkFalsy: true }).isISO8601().withMessage('Valid deadline is required'),
+  body('submittedTo').trim().notEmpty().withMessage('"Submitted To" is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -204,7 +270,8 @@ router.post('/bulk', auth, adminOnly, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { title, description, countyIds, status, deadline, priority } = req.body;
+    const { title, description, countyIds, status, deadline, priority, submittedTo, portalLink, deadlineType, deadlineOffsetDays } = req.body;
+    const assignedRoles = parseAssignedRoles(req.body.assignedRoles);
 
     // Verify all counties exist
     const counties = await County.find({ _id: { $in: countyIds } });
@@ -212,16 +279,31 @@ router.post('/bulk', auth, adminOnly, [
       return res.status(404).json({ message: 'One or more counties not found' });
     }
 
-    // Create tasks for each county
-    const tasks = countyIds.map(countyId => ({
-      title,
-      description: description || '',
-      countyId,
-      status: status || 'pending',
-      priority: priority || 'medium',
-      deadline: new Date(deadline),
-      assignedBy: req.user._id
-    }));
+    const useFiscalPreset = deadlineType === 'fiscal_year_offset' && deadlineOffsetDays != null && FISCAL_OFFSET_DAYS.includes(Number(deadlineOffsetDays));
+    if (!deadline && !useFiscalPreset) {
+      return res.status(400).json({ message: 'Either deadline (ISO date) or deadlineType "fiscal_year_offset" with deadlineOffsetDays (60, 90, 180, or 270) is required' });
+    }
+
+    const portalLinkVal = (portalLink && String(portalLink).trim()) || '';
+
+    const tasks = countyIds.map(countyId => {
+      const county = counties.find(c => c._id.toString() === countyId.toString());
+      const taskDeadline = useFiscalPreset
+        ? getDeadlineFromFiscalYearEnd(county, Number(deadlineOffsetDays))
+        : new Date(deadline);
+      return {
+        title,
+        description: description || '',
+        countyId,
+        submittedTo: submittedTo || '',
+        portalLink: portalLinkVal,
+        status: status || 'pending',
+        priority: priority || 'medium',
+        deadline: taskDeadline,
+        assignedBy: req.user._id,
+        assignedRoles
+      };
+    });
 
     const createdTasks = await Task.insertMany(tasks);
 
@@ -236,15 +318,16 @@ router.post('/bulk', auth, adminOnly, [
             emailTo,
             county.name,
             title,
-            deadline,
+            createdTask.deadline,
             assignedByUser.username
           );
         }
         
-        // Create notifications for county users
+        // Create notifications for county users whose roles match the task
         const Notification = require('../models/Notification');
         const countyUsers = await User.find({ countyId: createdTask.countyId, role: 'county_user' });
-        for (const user of countyUsers) {
+        const usersToNotify = usersToNotifyForTask(countyUsers, createdTask.assignedRoles);
+        for (const user of usersToNotify) {
           const notification = new Notification({
             userId: user._id,
             type: 'task_assigned',
@@ -297,13 +380,16 @@ router.put('/:id', auth, [
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { title, description, status, deadline } = req.body;
+    const { title, description, status, deadline, submittedTo, portalLink } = req.body;
 
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
     if (status) task.status = status;
     if (req.body.priority) task.priority = req.body.priority;
     if (deadline) task.deadline = new Date(deadline);
+    if (submittedTo !== undefined) task.submittedTo = submittedTo;
+    if (portalLink !== undefined) task.portalLink = (portalLink && String(portalLink).trim()) || '';
+    if (req.body.assignedRoles !== undefined) task.assignedRoles = parseAssignedRoles(req.body.assignedRoles);
 
     await task.save();
 

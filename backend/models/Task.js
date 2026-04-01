@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { DEPARTMENT_ROLE_SLUGS } = require('../constants/departmentRoles');
 
 const taskSchema = new mongoose.Schema({
   title: {
@@ -14,6 +15,16 @@ const taskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'County',
     required: true
+  },
+  submittedTo: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  portalLink: {
+    type: String,
+    trim: true,
+    default: ''
   },
   status: {
     type: String,
@@ -34,6 +45,10 @@ const taskSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  assignedRoles: [{
+    type: String,
+    enum: DEPARTMENT_ROLE_SLUGS
+  }],
   reminders: [{
     sentAt: {
       type: Date,
@@ -102,6 +117,7 @@ taskSchema.index({ countyId: 1, deadline: 1 }); // County tasks sorted by deadli
 taskSchema.index({ status: 1, deadline: 1 }); // For reminder scheduler queries
 taskSchema.index({ countyId: 1, priority: 1 }); // County + priority filtering
 taskSchema.index({ countyId: 1, createdAt: 1 }); // County + assigned date filtering
+taskSchema.index({ countyId: 1, assignedRoles: 1 }); // Role-based visibility
 
 // Text search index for title and description searches
 taskSchema.index({ title: 'text', description: 'text' });
