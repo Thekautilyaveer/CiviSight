@@ -1,0 +1,132 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CiviSight · Iteration 4 — Attention first</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16233b; --muted:#64748b; --faint:#94a3b8;
+  --line:#e6e9ef; --line-soft:#eef1f6;
+  --bg:#f4f5f8; --surface:#ffffff;
+  --primary:#1b4965; --primary-ink:#12384f;
+  --todo-bg:#fdf0d5; --todo-fg:#9a5b06;
+  --prog-bg:#dde9fb; --prog-fg:#1d4e89;
+  --done-bg:#d8efe1; --done-fg:#1c6b46;
+  --none-bg:#eef1f6; --none-fg:#7a8699;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Public Sans',-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45}
+a{color:inherit;text-decoration:none}
+.cap{font-family:'Public Sans';font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:#fff;background:var(--primary-ink);padding:7px 18px;font-weight:600}
+.cap b{color:#9ec7dd;font-weight:700}
+/* top bar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px}
+.brand{display:flex;align-items:center;gap:18px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;letter-spacing:-.01em}
+.logo .mark{width:24px;height:24px;border-radius:6px;background:var(--primary);
+  display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.nav{display:flex;gap:22px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.nav .on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--primary);padding-bottom:18px}
+.who{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}
+.who .out{background:var(--primary);color:#fff;padding:6px 14px;border-radius:7px;font-weight:600;font-size:12.5px}
+/* page shell */
+main{max-width:1080px;margin:0 auto;padding:30px 28px 60px}
+.head{margin-bottom:20px}
+.head h1{font-family:'Newsreader',serif;font-weight:600;font-size:27px;letter-spacing:-.01em;margin:0}
+.head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.btn{font-family:inherit;font-size:13.5px;font-weight:600;border-radius:8px;padding:9px 15px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.ghost{background:transparent;border-color:var(--line)}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;font-family:inherit;font-size:14px;padding:9px 13px 9px 36px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.search input::placeholder{color:var(--faint)}
+/* status chip */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  padding:3px 9px;border-radius:999px;white-space:nowrap}
+.chip.todo{background:var(--todo-bg);color:var(--todo-fg)}
+.chip.prog{background:var(--prog-bg);color:var(--prog-fg)}
+.chip.done{background:var(--done-bg);color:var(--done-fg)}
+.chip.none{background:var(--none-bg);color:var(--none-fg)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dot.todo{background:var(--todo-fg)} .dot.prog{background:var(--prog-fg)}
+.dot.done{background:var(--done-fg)} .dot.none{background:var(--faint)}
+.new{font-size:11px;font-weight:700;color:var(--prog-fg);background:var(--prog-bg);
+  padding:2px 7px;border-radius:999px}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.code{font-size:11.5px;color:var(--faint);font-weight:600;letter-spacing:.04em}
+
+  .sec{margin-bottom:22px}
+  .sec h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .sec h2 .n{background:var(--todo-bg);color:var(--todo-fg);border-radius:99px;padding:1px 8px;font-size:11px}
+  .sec.calm h2 .n{background:var(--done-bg);color:var(--done-fg)}
+  .alist{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .att-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--todo-fg);
+    border-radius:var(--radius-sm);padding:13px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .att-card:hover{box-shadow:0 4px 14px rgba(20,35,59,.06)}
+  .att-card .nm{font-weight:700}.att-card .sl{font-size:12px;color:var(--muted);margin-top:2px}
+  .calm-list{display:flex;flex-wrap:wrap;gap:8px}
+  .calm-pill{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);
+    border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer}
+  .calm-pill svg{color:var(--done-fg)}</style></head>
+<body>
+<div class="cap">Iteration 4 · <b>Attention first</b> &nbsp;—&nbsp; Counties needing action float to the top; finished ones tuck away</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><span class="mark">C</span>CiviSight</span>
+    <nav class="nav"><span class="on">Dashboard</span><span>Create Task</span><span>Notifications</span></nav>
+  </div>
+  <div class="who"><span>admin (Admin)</span><span class="out">Logout</span></div>
+</header>
+<main>
+  <div class="head"><h1>Counties</h1><p>Select a county to view and manage its tasks.</p></div>
+  
+<div class="toolbar">
+  <button class="btn primary">Manage Counties</button>
+  <button class="btn">Manage Users</button>
+  <button class="btn ghost">Export to Excel</button>
+  <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search for a county…"></div>
+</div>
+  <div class="sec">
+    <h2>Needs attention <span class="n">5</span></h2>
+    <div class="alist">
+    <div class="att-card">
+      <div><div class="nm">Fulton County <span class="new">new</span></div><div class="sl">3 to do · 2 in progress · 7 done</div></div>
+      <span class="chip todo">3 to do</span></div><div class="att-card">
+      <div><div class="nm">Troup County</div><div class="sl">4 to do</div></div>
+      <span class="chip todo">4 to do</span></div><div class="att-card">
+      <div><div class="nm">Cobb County <span class="new">new</span></div><div class="sl">5 to do · 5 done</div></div>
+      <span class="chip todo">5 to do</span></div><div class="att-card">
+      <div><div class="nm">Chatham County</div><div class="sl">2 to do · 3 in progress · 4 done</div></div>
+      <span class="chip todo">2 to do</span></div><div class="att-card">
+      <div><div class="nm">Bibb County</div><div class="sl">1 to do · 2 in progress · 4 done</div></div>
+      <span class="chip todo">1 to do</span></div>
+    </div>
+  </div>
+  <div class="sec calm">
+    <h2>Up to date <span class="n">4</span></h2>
+    <div class="calm-list">
+    <div class="calm-pill">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+      Gwinnett County <span class="code">GWINNETT</span></div><div class="calm-pill">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+      DeKalb County <span class="code">DEKALB</span></div><div class="calm-pill">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+      Muscogee County <span class="code">MUSCOGEE</span></div><div class="calm-pill">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+      Clarke County <span class="code">CLARKE</span></div>
+    </div>
+  </div>
+</main>
+</body></html>

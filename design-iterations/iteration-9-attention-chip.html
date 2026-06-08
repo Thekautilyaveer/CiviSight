@@ -1,0 +1,149 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CiviSight · Iteration 9 — Attention chip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16233b; --muted:#64748b; --faint:#94a3b8;
+  --line:#e6e9ef; --line-soft:#eef1f6;
+  --bg:#f4f5f8; --surface:#ffffff;
+  --primary:#1b4965; --primary-ink:#12384f;
+  --todo-bg:#fdf0d5; --todo-fg:#9a5b06;
+  --prog-bg:#dde9fb; --prog-fg:#1d4e89;
+  --done-bg:#d8efe1; --done-fg:#1c6b46;
+  --none-bg:#eef1f6; --none-fg:#7a8699;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Public Sans',-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45}
+a{color:inherit;text-decoration:none}
+.cap{font-family:'Public Sans';font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:#fff;background:var(--primary-ink);padding:7px 18px;font-weight:600}
+.cap b{color:#9ec7dd;font-weight:700}
+/* top bar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px}
+.brand{display:flex;align-items:center;gap:18px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;letter-spacing:-.01em}
+.logo .mark{width:24px;height:24px;border-radius:6px;background:var(--primary);
+  display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.nav{display:flex;gap:22px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.nav .on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--primary);padding-bottom:18px}
+.who{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}
+.who .out{background:var(--primary);color:#fff;padding:6px 14px;border-radius:7px;font-weight:600;font-size:12.5px}
+/* page shell */
+main{max-width:1080px;margin:0 auto;padding:30px 28px 60px}
+.head{margin-bottom:20px}
+.head h1{font-family:'Newsreader',serif;font-weight:600;font-size:27px;letter-spacing:-.01em;margin:0}
+.head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.btn{font-family:inherit;font-size:13.5px;font-weight:600;border-radius:8px;padding:9px 15px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.ghost{background:transparent;border-color:var(--line)}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;font-family:inherit;font-size:14px;padding:9px 13px 9px 36px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.search input::placeholder{color:var(--faint)}
+/* status chip */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  padding:3px 9px;border-radius:999px;white-space:nowrap}
+.chip.todo{background:var(--todo-bg);color:var(--todo-fg)}
+.chip.prog{background:var(--prog-bg);color:var(--prog-fg)}
+.chip.done{background:var(--done-bg);color:var(--done-fg)}
+.chip.none{background:var(--none-bg);color:var(--none-fg)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dot.todo{background:var(--todo-fg)} .dot.prog{background:var(--prog-fg)}
+.dot.done{background:var(--done-fg)} .dot.none{background:var(--faint)}
+.new{font-size:11px;font-weight:700;color:var(--prog-fg);background:var(--prog-bg);
+  padding:2px 7px;border-radius:999px}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.code{font-size:11.5px;color:var(--faint);font-weight:600;letter-spacing:.04em}
+
+  .sec{margin-bottom:24px}
+  .sec h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .sec h2 .n{border-radius:99px;padding:1px 8px;font-size:11px}
+  .sec.attn h2 .n{background:var(--todo-bg);color:var(--todo-fg)}
+  .sec.calm h2 .n{background:var(--done-bg);color:var(--done-fg)}
+  .sec.calm h2{color:var(--faint)}
+  .mwrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .sec.attn .mwrap{border-left:3px solid var(--todo-fg)}
+  .m{display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line-soft);cursor:pointer}
+  .m:last-child{border-bottom:none}.m:hover{background:#f8fafc}
+  .m .nm{font-size:15px;font-weight:700;flex:1}
+  .sec.calm .m .nm{font-weight:600}
+  .m .cd{margin-right:16px}
+  .m .arr{color:var(--faint);margin-left:16px;font-size:15px}
+  .m .chip{font-size:12.5px;padding:4px 11px}
+  .empty{padding:16px 20px;color:var(--faint);font-size:13.5px}</style></head>
+<body>
+<div class="cap">Iteration 9 · <b>Attention chip</b> &nbsp;—&nbsp; Triage groups from #4, one minimal status chip per row from #8</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><span class="mark">C</span>CiviSight</span>
+    <nav class="nav"><span class="on">Dashboard</span><span>Create Task</span><span>Notifications</span></nav>
+  </div>
+  <div class="who"><span>admin (Admin)</span><span class="out">Logout</span></div>
+</header>
+<main>
+  <div class="head"><h1>Counties</h1><p>Select a county to view and manage its tasks.</p></div>
+  
+<div class="toolbar">
+  <button class="btn primary">Manage Counties</button>
+  <button class="btn">Manage Users</button>
+  <button class="btn ghost">Export to Excel</button>
+  <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search for a county…"></div>
+</div>
+    <div class="sec attn">
+      <h2>Needs attention <span class="n">5</span></h2>
+      <div class="mwrap"><div class="m">
+      <span class="nm">Fulton County</span>
+      <span class="new" style="margin-right:12px">new comments</span>
+      <span class="code cd">FULTON</span>
+      <span class="chip todo">3 to do</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">Troup County</span>
+      
+      <span class="code cd">TROUP</span>
+      <span class="chip todo">4 to do</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">Cobb County</span>
+      <span class="new" style="margin-right:12px">new comments</span>
+      <span class="code cd">COBB</span>
+      <span class="chip todo">5 to do</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">Chatham County</span>
+      
+      <span class="code cd">CHATHAM</span>
+      <span class="chip todo">2 to do</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">Bibb County</span>
+      
+      <span class="code cd">BIBB</span>
+      <span class="chip todo">1 to do</span><span class="arr">›</span></div></div>
+    </div>
+    <div class="sec calm">
+      <h2>Up to date <span class="n">4</span></h2>
+      <div class="mwrap"><div class="m">
+      <span class="nm">Gwinnett County</span>
+      
+      <span class="code cd">GWINNETT</span>
+      <span class="chip prog">In progress</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">DeKalb County</span>
+      
+      <span class="code cd">DEKALB</span>
+      <span class="chip done">All done</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">Muscogee County</span>
+      
+      <span class="code cd">MUSCOGEE</span>
+      <span class="chip done">All done</span><span class="arr">›</span></div><div class="m">
+      <span class="nm">Clarke County</span>
+      
+      <span class="code cd">CLARKE</span>
+      <span class="chip none">No tasks</span><span class="arr">›</span></div></div>
+    </div>
+</main>
+</body></html>

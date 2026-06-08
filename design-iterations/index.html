@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CiviSight Dashboard — 8 Layout Iterations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#16233b;--muted:#64748b;--line:#e6e9ef;--bg:#eef0f4;--surface:#fff;--primary:#1b4965}
+  *{box-sizing:border-box}body{margin:0;font-family:'Public Sans',sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:40px 32px 24px;max-width:1200px;margin:0 auto}
+  h1{font-family:'Newsreader',serif;font-weight:600;font-size:34px;margin:0}
+  header p{color:var(--muted);font-size:15px;max-width:640px}
+  .grid{max-width:1200px;margin:0 auto;padding:0 32px 60px;display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+  .item{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;display:block;transition:box-shadow .15s,transform .15s}
+  .item:hover{box-shadow:0 12px 32px rgba(20,35,59,.12);transform:translateY(-2px)}
+  .item img{width:100%;display:block;border-bottom:1px solid var(--line)}
+  .meta{padding:14px 18px}
+  .meta .n{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}
+  .meta h2{font-size:17px;margin:3px 0 4px;font-weight:700}
+  .meta p{margin:0;color:var(--muted);font-size:13px}
+</style></head>
+<body>
+<header>
+  <h1>Counties Dashboard — 8 Layout Directions</h1>
+  <p>Same data, same toolbar, eight different ways to present the county list. All deliberately compact and calm — simpler to scan, not bigger. Click any to open the live page.</p>
+</header>
+<div class="grid">
+  <a class="item" href="iteration-1-data-table.html"><img src="screens/iteration-1-data-table.png"><div class="meta"><div class="n">Iteration 1</div><h2>Data table</h2><p>Familiar spreadsheet rows; numbers aligned for fast scanning.</p></div></a>
+  <a class="item" href="iteration-2-compact-cards.html"><img src="screens/iteration-2-compact-cards.png"><div class="meta"><div class="n">Iteration 2</div><h2>Compact cards</h2><p>Small tiles, four per row, with a tiny stat trio per county.</p></div></a>
+  <a class="item" href="iteration-3-progress-rows.html"><img src="screens/iteration-3-progress-rows.png"><div class="meta"><div class="n">Iteration 3</div><h2>Progress rows</h2><p>One row per county with a completion bar — progress at a glance.</p></div></a>
+  <a class="item" href="iteration-4-attention-first.html"><img src="screens/iteration-4-attention-first.png"><div class="meta"><div class="n">Iteration 4</div><h2>Attention first</h2><p>Counties needing action float up; finished ones tuck away.</p></div></a>
+  <a class="item" href="iteration-5-inbox.html"><img src="screens/iteration-5-inbox.png"><div class="meta"><div class="n">Iteration 5</div><h2>Inbox</h2><p>Slim two-line rows with a status stripe, like an email inbox.</p></div></a>
+  <a class="item" href="iteration-6-summary-strip.html"><img src="screens/iteration-6-summary-strip.png"><div class="meta"><div class="n">Iteration 6</div><h2>Summary strip</h2><p>A thin totals bar for orientation, then quiet compact rows.</p></div></a>
+  <a class="item" href="iteration-7-segmented.html"><img src="screens/iteration-7-segmented.png"><div class="meta"><div class="n">Iteration 7</div><h2>Segmented</h2><p>A segmented filter with live counts drives a tidy two-column list.</p></div></a>
+  <a class="item" href="iteration-8-minimal.html"><img src="screens/iteration-8-minimal.png"><div class="meta"><div class="n">Iteration 8</div><h2>Minimal</h2><p>Just a name and one status — least to read, fastest to act.</p></div></a>
+</div>
+</body></html>

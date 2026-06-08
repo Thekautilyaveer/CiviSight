@@ -6,3 +6,9 @@ dist/
 build/
 coverage/
 
+# Local Claude Code settings
+.claude/
+
+# Generated design-iteration screenshots (regenerable from the HTML prototypes)
+design-iterations/screens/
+
