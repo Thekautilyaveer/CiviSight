@@ -43,7 +43,65 @@ const counties = [
   { name: 'Coweta County', code: 'COWETA', description: 'Southwest Georgia county', email: 'coweta@civisight.org', ...fiscalYearJanDec },
   { name: 'Carroll County', code: 'CARROLL', description: 'West Georgia county', email: 'carroll@civisight.org', ...fiscalYearJanDec },
   { name: 'Newton County', code: 'NEWTON', description: 'East metro Atlanta county', email: 'newton@civisight.org', ...fiscalYearJanDec },
-  { name: 'Bartow County', code: 'BARTOW', description: 'Northwest Georgia county', email: 'bartow@civisight.org', ...fiscalYearJanDec }
+  { name: 'Bartow County', code: 'BARTOW', description: 'Northwest Georgia county', email: 'bartow@civisight.org', ...fiscalYearJanDec },
+  { name: 'Troup County', code: 'TROUP', description: 'West Georgia county including LaGrange', email: 'troup@civisight.org', ...fiscalYearJanDec }
+];
+
+const deadlineDate = (year, month, day) => new Date(year, month - 1, day, 23, 59, 0);
+
+/** Explicit demo tasks for Bibb / Troup with future deadlines */
+const countyDemoTasks = (countyName, countyId, adminId) => [
+  {
+    title: `${countyName} - Zoning Ordinance Update`,
+    description:
+      'Review and update zoning ordinances to reflect current development patterns and community needs.',
+    countyId,
+    priority: 'medium',
+    status: 'completed',
+    deadline: deadlineDate(2026, 12, 15),
+    completedAt: deadlineDate(2026, 11, 1),
+    assignedBy: adminId
+  },
+  {
+    title: `${countyName} - Annual Budget Review`,
+    description:
+      'Review and approve the annual budget for the upcoming fiscal year. Includes department allocations and capital expenditures.',
+    countyId,
+    priority: 'high',
+    status: 'pending',
+    deadline: deadlineDate(2027, 3, 12),
+    assignedBy: adminId
+  },
+  {
+    title: `${countyName} - Infrastructure Assessment Report`,
+    description:
+      'Complete comprehensive assessment of county infrastructure needs including roads, bridges, and public facilities.',
+    countyId,
+    priority: 'high',
+    status: 'in_progress',
+    deadline: deadlineDate(2027, 3, 16),
+    assignedBy: adminId
+  },
+  {
+    title: `${countyName} - Public Safety Quarterly Report`,
+    description:
+      'Submit quarterly public safety report covering crime statistics, response times, and department activities.',
+    countyId,
+    priority: 'medium',
+    status: 'pending',
+    deadline: deadlineDate(2027, 3, 23),
+    assignedBy: adminId
+  },
+  {
+    title: `${countyName} - Property Tax Assessment Review`,
+    description:
+      'Review property tax assessments and ensure accuracy of valuations for upcoming tax year.',
+    countyId,
+    priority: 'medium',
+    status: 'in_progress',
+    deadline: deadlineDate(2027, 3, 30),
+    assignedBy: adminId
+  }
 ];
 
 const seedData = async () => {
@@ -160,7 +218,7 @@ const seedData = async () => {
         description: 'Review and update zoning ordinances to reflect current development patterns and community needs.',
         priority: 'medium',
         status: 'completed',
-        daysOffset: -10 // Completed 10 days ago
+        daysOffset: 45
       },
       {
         title: 'Environmental Compliance Audit',
@@ -188,7 +246,7 @@ const seedData = async () => {
         description: 'Prepare and submit application for state community development grant funding.',
         priority: 'low',
         status: 'completed',
-        daysOffset: -5 // Completed 5 days ago
+        daysOffset: 60
       },
       {
         title: 'Water Quality Testing Report',
@@ -202,7 +260,7 @@ const seedData = async () => {
         description: 'Organize and conduct mandatory employee training program on workplace safety and compliance.',
         priority: 'low',
         status: 'completed',
-        daysOffset: -15 // Completed 15 days ago
+        daysOffset: 90
       }
     ];
 
@@ -213,12 +271,21 @@ const seedData = async () => {
     for (let i = 0; i < createdCounties.length; i++) {
       const county = createdCounties[i];
 
-      // Special case: Fulton County gets specific compliance / audit forms
-      if (county.code === 'FULTON') {
-        const currentYear = new Date().getFullYear();
-        const june30 = new Date(currentYear, 5, 30, 23, 59, 0); // June 30, 11:59 PM
-        const sept30 = new Date(currentYear, 8, 30, 23, 59, 0); // Sept 30, 11:59 PM
-
+      if (county.code === 'BIBB') {
+        allTasks.push(...countyDemoTasks(county.name, county._id, admin._id));
+        allTasks.push({
+          title: 'Test 1',
+          description: '',
+          countyId: county._id,
+          priority: 'medium',
+          status: 'completed',
+          deadline: deadlineDate(2027, 3, 31),
+          completedAt: deadlineDate(2027, 3, 1),
+          assignedBy: admin._id
+        });
+      } else if (county.code === 'TROUP') {
+        allTasks.push(...countyDemoTasks(county.name, county._id, admin._id));
+      } else if (county.code === 'FULTON') {
         allTasks.push(
           {
             title: 'Annual Financial Audit Report',
@@ -228,7 +295,8 @@ const seedData = async () => {
             priority: 'high',
             status: 'pending',
             submittedTo: 'Georgia Department of Audits and Accounts (DOAA)',
-            deadline: june30,
+            portalLink: 'https://www.fultoncountyga.gov/',
+            deadline: deadlineDate(2027, 3, 1),
             assignedBy: admin._id
           },
           {
@@ -239,7 +307,7 @@ const seedData = async () => {
             priority: 'high',
             status: 'pending',
             submittedTo: 'Federal Audit Clearinghouse (FAC)',
-            deadline: sept30,
+            deadline: deadlineDate(2027, 9, 30),
             assignedBy: admin._id
           },
           {
@@ -250,7 +318,7 @@ const seedData = async () => {
             priority: 'medium',
             status: 'pending',
             submittedTo: 'Georgia Department of Audits and Accounts (DOAA)',
-            deadline: june30,
+            deadline: deadlineDate(2027, 6, 30),
             assignedBy: admin._id
           }
         );
@@ -297,7 +365,7 @@ const seedData = async () => {
           priority: 'medium',
           status: 'completed',
           deadline: new Date(now + taskTemplates[3].daysOffset * 24 * 60 * 60 * 1000),
-          completedAt: new Date(now + taskTemplates[3].daysOffset * 24 * 60 * 60 * 1000),
+          completedAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
           assignedBy: admin._id
         });
 
@@ -312,7 +380,7 @@ const seedData = async () => {
           deadline: new Date(now + taskTemplates[task5Index].daysOffset * 24 * 60 * 60 * 1000),
           completedAt:
             taskTemplates[task5Index].status === 'completed'
-              ? new Date(now + taskTemplates[task5Index].daysOffset * 24 * 60 * 60 * 1000)
+              ? new Date(now - 7 * 24 * 60 * 60 * 1000)
               : undefined,
           assignedBy: admin._id
         });
@@ -416,6 +484,54 @@ const seedData = async () => {
       });
       await bartowContacts.save();
       console.log(`\nCreated ${bartowContacts.contacts.length} contacts for Bartow County`);
+    }
+
+    // Create dummy contacts for Troup County
+    const troupCounty = createdCounties.find(c => c.code === 'TROUP');
+    if (troupCounty) {
+      const troupContacts = new Contact({
+        countyId: troupCounty._id,
+        contacts: [
+          {
+            role: 'County Manager / Administrator',
+            name: 'Eric Steele',
+            email: 'eric.steele@troupcounty.org',
+            phone: '(706) 883-1610'
+          },
+          {
+            role: 'County Clerk / Clerk of the Board',
+            name: 'Diane Morrison',
+            email: 'diane.morrison@troupcounty.org',
+            phone: '(706) 883-1611'
+          },
+          {
+            role: 'Chief Financial Officer (CFO) / Finance Director',
+            name: 'Patricia Nguyen',
+            email: 'patricia.nguyen@troupcounty.org',
+            phone: '(706) 883-1612'
+          },
+          {
+            role: 'Budget Director',
+            name: 'James Carter',
+            email: 'james.carter@troupcounty.org',
+            phone: '(706) 883-1613'
+          },
+          {
+            role: 'Grants Manager / Grants Coordinator',
+            name: 'Angela Brooks',
+            email: 'angela.brooks@troupcounty.org',
+            phone: '(706) 883-1614'
+          },
+          {
+            role: 'County Attorney / Legal Counsel',
+            name: 'David Whitfield',
+            email: 'david.whitfield@troupcounty.org',
+            phone: '(706) 883-1615'
+          }
+        ]
+      });
+      await troupContacts.save();
+      console.log(`\nCreated ${troupContacts.contacts.length} contacts for Troup County`);
     }
 
     console.log('Seed data created successfully!');
