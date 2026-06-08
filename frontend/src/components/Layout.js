@@ -104,7 +104,10 @@ const Layout = ({ children }) => {
                       e.target.style.display = 'none';
                     }}
                   />
-                  <span className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <span
+                    className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight"
+                    style={{ fontFamily: "'Manrope', system-ui, sans-serif" }}
+                  >
                     CiviSight
                   </span>
                 </Link>
@@ -129,12 +132,6 @@ const Layout = ({ children }) => {
                       className={getLinkClasses('/reminders')}
                     >
                       Reminders
-                    </Link>
-                    <Link
-                      to="/notifications"
-                      className={getLinkClasses('/notifications')}
-                    >
-                      Notifications
                     </Link>
                   </>
                 ) : (

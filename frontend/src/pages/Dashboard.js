@@ -9,6 +9,7 @@ const Dashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [agency, setAgency] = useState('all');
   const [expanded, setExpanded] = useState(null);
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
@@ -86,7 +87,17 @@ const Dashboard = () => {
     return arr;
   }, [tasks]);
 
-  const filtered = filings.filter((f) => f.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Distinct submitting agencies for the filter strip.
+  const agencies = useMemo(
+    () => [...new Set(filings.map((f) => f.submittedTo).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [filings]
+  );
+
+  const filtered = filings.filter(
+    (f) =>
+      f.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (agency === 'all' || f.submittedTo === agency)
+  );
   const attention = filtered.filter((f) => f.notDone.length > 0);
   const complete = filtered.filter((f) => f.notDone.length === 0);
 
@@ -220,7 +231,7 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* Search + Create Task shortcut on one row */}
+      {/* Search · Agency filter · Create Task shortcut on one row */}
       <div className="mb-6 flex items-center gap-3">
         <div className="relative flex-1">
           <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -235,6 +246,17 @@ const Dashboard = () => {
             className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 transition-colors"
           />
         </div>
+        <select
+          value={agency}
+          onChange={(e) => setAgency(e.target.value)}
+          title="Filter by agency"
+          className="shrink-0 max-w-[200px] px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+        >
+          <option value="all">All agencies</option>
+          {agencies.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
         <button
           onClick={() => navigate('/create-task')}
           title="Create a new task"
