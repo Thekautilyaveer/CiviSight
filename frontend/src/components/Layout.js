@@ -1,18 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import api from '../utils/api';
 import Chatbot from './Chatbot';
 
 const Layout = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
-  const { darkMode, toggleDarkMode } = useTheme();
+  const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const createCsvValue = (value) => {
+    if (value === null || value === undefined) return '';
+    const str = String(value).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const res = await api.get('/tasks');
+      const allTasks = res.data || [];
+
+      const header = [
+        'County Name',
+        'County Code',
+        'Task Title',
+        'Task Description',
+        'Priority',
+        'Status',
+        'Assigned Date',
+        'Deadline',
+        'Completion Date'
+      ];
+
+      const rows = allTasks.map((task) => {
+        const countyName = task.countyId?.name || '';
+        const countyCode = task.countyId?.code || '';
+        const assignedDate = task.createdAt ? new Date(task.createdAt).toISOString() : '';
+        const deadline = task.deadline ? new Date(task.deadline).toISOString() : '';
+        const completionDate =
+          task.status === 'completed' && task.updatedAt
+            ? new Date(task.updatedAt).toISOString()
+            : '';
+
+        return [
+          countyName,
+          countyCode,
+          task.title,
+          task.description || '',
+          task.priority || '',
+          task.status || '',
+          assignedDate,
+          deadline,
+          completionDate
+        ]
+          .map(createCsvValue)
+          .join(',');
+      });
+
+      const csvContent = [header.join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `civisight-counties-tasks-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error exporting data');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const getLinkClasses = (path) => {
@@ -25,7 +91,7 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <nav className="bg-white dark:bg-gray-800 shadow-lg transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
@@ -53,10 +119,16 @@ const Layout = ({ children }) => {
                       Dashboard
                     </Link>
                     <Link
-                      to="/create-task"
-                      className={getLinkClasses('/create-task')}
+                      to="/track-by-counties"
+                      className={getLinkClasses('/track-by-counties')}
                     >
-                      Create Task
+                      Track by Counties
+                    </Link>
+                    <Link
+                      to="/reminders"
+                      className={getLinkClasses('/reminders')}
+                    >
+                      Reminders
                     </Link>
                     <Link
                       to="/notifications"
@@ -94,21 +166,35 @@ const Layout = ({ children }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {darkMode ? (
-                  <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </button>
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => navigate('/users')}
+                    title="Manage Users"
+                    aria-label="Manage Users"
+                    className="hidden md:inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    title="Export to Excel"
+                    aria-label="Export to Excel"
+                    className="hidden md:inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    {exporting ? (
+                      <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                    )}
+                  </button>
+                </>
+              )}
               <div className="flex-shrink-0">
                 <span className="text-sm text-gray-700 dark:text-gray-300 mr-4">
                   {user?.username} ({user?.role === 'admin' ? 'Admin' : 'County User'})
@@ -124,7 +210,7 @@ const Layout = ({ children }) => {
           </div>
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="py-6 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
       <Chatbot />

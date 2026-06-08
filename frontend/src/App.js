@@ -6,6 +6,9 @@ import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import DashboardClassic from './pages/DashboardClassic';
+import TrackByCounties from './pages/TrackByCounties';
+import Reminders from './pages/Reminders';
 import CountyDetail from './pages/CountyDetail';
 import Notifications from './pages/Notifications';
 import CreateTask from './pages/CreateTask';
@@ -26,6 +29,26 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <Dashboard />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/track-by-counties"
+            element={
+              <PrivateRoute adminOnly={true}>
+                <Layout>
+                  <TrackByCounties />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard/classic"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <DashboardClassic />
                 </Layout>
               </PrivateRoute>
             }
@@ -66,6 +89,16 @@ function App() {
               <PrivateRoute adminOnly={true}>
                 <Layout>
                   <CreateTask />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/reminders"
+            element={
+              <PrivateRoute adminOnly={true}>
+                <Layout>
+                  <Reminders />
                 </Layout>
               </PrivateRoute>
             }

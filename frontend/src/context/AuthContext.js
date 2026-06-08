@@ -28,7 +28,8 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const res = await api.get('/auth/me');
-      setUser(res.data);
+      // /auth/me returns { user: {...} } — match the shape used by login()
+      setUser(res.data.user);
       setIsAuthenticated(true);
     } catch (error) {
       localStorage.removeItem('token');
