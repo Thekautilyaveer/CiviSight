@@ -16,93 +16,125 @@ const FULTON_HR_LEGAL_ROLES = ['hr_training', 'legal_governance'];
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/civisight';
 
-const fiscalYearJanDec = {
-  fiscalYearStartMonth: 1,
-  fiscalYearStartDay: 1,
-  fiscalYearEndMonth: 12,
-  fiscalYearEndDay: 31
+// ---------------------------------------------------------------------------
+// Fiscal years (source: Georgia Local Government Fiscal Years list).
+// Each county's start/end drives the FY-relative filing deadlines below.
+// ---------------------------------------------------------------------------
+const FY = {
+  janDec: { fiscalYearStartMonth: 1, fiscalYearStartDay: 1, fiscalYearEndMonth: 12, fiscalYearEndDay: 31 },
+  julJun: { fiscalYearStartMonth: 7, fiscalYearStartDay: 1, fiscalYearEndMonth: 6, fiscalYearEndDay: 30 },
+  octSep: { fiscalYearStartMonth: 10, fiscalYearStartDay: 1, fiscalYearEndMonth: 9, fiscalYearEndDay: 30 }
 };
 
 const counties = [
-  { name: 'Fulton County', code: 'FULTON', description: 'Largest county in Georgia', email: 'fulton@civisight.org', ...fiscalYearJanDec },
-  { name: 'Gwinnett County', code: 'GWINNETT', description: 'Second most populous county', email: 'gwinnett@civisight.org', ...fiscalYearJanDec },
-  { name: 'Cobb County', code: 'COBB', description: 'Third most populous county', email: 'cobb@civisight.org', ...fiscalYearJanDec },
-  { name: 'DeKalb County', code: 'DEKALB', description: 'Fourth most populous county', email: 'dekalb@civisight.org', ...fiscalYearJanDec },
-  { name: 'Clayton County', code: 'CLAYTON', description: 'Fifth most populous county', email: 'clayton@civisight.org', ...fiscalYearJanDec },
-  { name: 'Chatham County', code: 'CHATHAM', description: 'Coastal county including Savannah', email: 'chatham@civisight.org', ...fiscalYearJanDec },
-  { name: 'Richmond County', code: 'RICHMOND', description: 'Includes Augusta', email: 'richmond@civisight.org', ...fiscalYearJanDec },
-  { name: 'Muscogee County', code: 'MUSCOGEE', description: 'Includes Columbus', email: 'muscogee@civisight.org', ...fiscalYearJanDec },
-  { name: 'Bibb County', code: 'BIBB', description: 'Includes Macon', email: 'bibb@civisight.org', ...fiscalYearJanDec },
-  { name: 'Hall County', code: 'HALL', description: 'Includes Gainesville', email: 'hall@civisight.org', ...fiscalYearJanDec },
-  { name: 'Forsyth County', code: 'FORSYTH', description: 'Fast-growing suburban county', email: 'forsyth@civisight.org', ...fiscalYearJanDec },
-  { name: 'Cherokee County', code: 'CHEROKEE', description: 'North Georgia county', email: 'cherokee@civisight.org', ...fiscalYearJanDec },
-  { name: 'Henry County', code: 'HENRY', description: 'South metro Atlanta county', email: 'henry@civisight.org', ...fiscalYearJanDec },
-  { name: 'Paulding County', code: 'PAULDING', description: 'West metro Atlanta county', email: 'paulding@civisight.org', ...fiscalYearJanDec },
-  { name: 'Douglas County', code: 'DOUGLAS', description: 'West metro Atlanta county', email: 'douglas@civisight.org', ...fiscalYearJanDec },
-  { name: 'Fayette County', code: 'FAYETTE', description: 'South metro Atlanta county', email: 'fayette@civisight.org', ...fiscalYearJanDec },
-  { name: 'Coweta County', code: 'COWETA', description: 'Southwest Georgia county', email: 'coweta@civisight.org', ...fiscalYearJanDec },
-  { name: 'Carroll County', code: 'CARROLL', description: 'West Georgia county', email: 'carroll@civisight.org', ...fiscalYearJanDec },
-  { name: 'Newton County', code: 'NEWTON', description: 'East metro Atlanta county', email: 'newton@civisight.org', ...fiscalYearJanDec },
-  { name: 'Bartow County', code: 'BARTOW', description: 'Northwest Georgia county', email: 'bartow@civisight.org', ...fiscalYearJanDec },
-  { name: 'Troup County', code: 'TROUP', description: 'West Georgia county including LaGrange', email: 'troup@civisight.org', ...fiscalYearJanDec }
+  { name: 'Fulton County', code: 'FULTON', description: 'Largest county in Georgia', email: 'fulton@civisight.org', ...FY.janDec },
+  { name: 'Gwinnett County', code: 'GWINNETT', description: 'Second most populous county', email: 'gwinnett@civisight.org', ...FY.janDec },
+  { name: 'Cobb County', code: 'COBB', description: 'Third most populous county', email: 'cobb@civisight.org', ...FY.octSep },
+  { name: 'DeKalb County', code: 'DEKALB', description: 'Fourth most populous county', email: 'dekalb@civisight.org', ...FY.janDec },
+  { name: 'Clayton County', code: 'CLAYTON', description: 'Fifth most populous county', email: 'clayton@civisight.org', ...FY.julJun },
+  { name: 'Chatham County', code: 'CHATHAM', description: 'Coastal county including Savannah', email: 'chatham@civisight.org', ...FY.julJun },
+  { name: 'Richmond County', code: 'RICHMOND', description: 'Includes Augusta (Augusta–Richmond CG)', email: 'richmond@civisight.org', ...FY.janDec },
+  { name: 'Muscogee County', code: 'MUSCOGEE', description: 'Includes Columbus (Columbus–Muscogee CG)', email: 'muscogee@civisight.org', ...FY.julJun },
+  { name: 'Bibb County', code: 'BIBB', description: 'Includes Macon (Macon–Bibb County)', email: 'bibb@civisight.org', ...FY.julJun },
+  { name: 'Hall County', code: 'HALL', description: 'Includes Gainesville', email: 'hall@civisight.org', ...FY.julJun },
+  { name: 'Forsyth County', code: 'FORSYTH', description: 'Fast-growing suburban county', email: 'forsyth@civisight.org', ...FY.janDec },
+  { name: 'Cherokee County', code: 'CHEROKEE', description: 'North Georgia county', email: 'cherokee@civisight.org', ...FY.octSep },
+  { name: 'Henry County', code: 'HENRY', description: 'South metro Atlanta county', email: 'henry@civisight.org', ...FY.julJun },
+  { name: 'Paulding County', code: 'PAULDING', description: 'West metro Atlanta county', email: 'paulding@civisight.org', ...FY.julJun },
+  { name: 'Douglas County', code: 'DOUGLAS', description: 'West metro Atlanta county', email: 'douglas@civisight.org', ...FY.janDec },
+  { name: 'Fayette County', code: 'FAYETTE', description: 'South metro Atlanta county', email: 'fayette@civisight.org', ...FY.julJun },
+  { name: 'Coweta County', code: 'COWETA', description: 'Southwest metro Atlanta county', email: 'coweta@civisight.org', ...FY.octSep },
+  { name: 'Carroll County', code: 'CARROLL', description: 'West Georgia county', email: 'carroll@civisight.org', ...FY.julJun },
+  { name: 'Newton County', code: 'NEWTON', description: 'East metro Atlanta county', email: 'newton@civisight.org', ...FY.julJun },
+  { name: 'Bartow County', code: 'BARTOW', description: 'Northwest Georgia county', email: 'bartow@civisight.org', ...FY.janDec },
+  { name: 'Troup County', code: 'TROUP', description: 'West Georgia county including LaGrange', email: 'troup@civisight.org', ...FY.julJun }
 ];
 
-const deadlineDate = (year, month, day) => new Date(year, month - 1, day, 23, 59, 0);
+// ---------------------------------------------------------------------------
+// Recurring reports & filings Georgia counties submit (source: Georgia County
+// Recurring Reports & Filings). Deadlines are computed for calendar year 2026.
+//   rule: { type: 'fyOffset', days }   -> N days after the county's FY-end
+//         { type: 'fixed', month, day} -> a fixed statutory calendar date
+//         { type: 'beforeFYStart' }    -> day before the county's next FY starts
+//         { type: 'monthly' }          -> end of the current month
+// ---------------------------------------------------------------------------
+const FORMS = [
+  { title: 'Annual Financial Audit', submittedTo: 'Dept. of Audits & Accounts (DOAA)', priority: 'high', rule: { type: 'fyOffset', days: 180 },
+    description: 'Independent external audit of the county\'s financial statements under Government Auditing Standards (O.C.G.A. § 36-81-7). Due within 180 days of fiscal year-end. Agreed-Upon Procedures may substitute if expenditures are under $550K.' },
+  { title: 'Audit Corrective-Action Plan', submittedTo: 'Dept. of Audits & Accounts (DOAA)', priority: 'medium', rule: { type: 'fyOffset', days: 210 },
+    description: 'Corrective-action plan addressing any findings in the annual audit (O.C.G.A. § 36-81-7). Due 30 days after the audit due date.' },
+  { title: 'Report of Local Government Finances (RLGF)', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'high', rule: { type: 'fyOffset', days: 270 },
+    description: 'Standardized report of county revenues, expenditures, debt, and fund balances filed through the DCA survey window (O.C.G.A. § 36-81-8).' },
+  { title: 'County Property Tax Digest + Submission Package', submittedTo: 'Dept. of Revenue (DOR), Local Govt. Services', priority: 'high', rule: { type: 'fixed', month: 9, day: 1 },
+    description: 'Annual property tax digest and supporting submission package to the Department of Revenue (O.C.G.A. Title 48, Ch. 5). Due September 1.' },
+  { title: 'Millage Rate / 5-Year History + Rollback Advertisement', submittedTo: 'Published in local newspaper', priority: 'medium', rule: { type: 'fixed', month: 8, day: 31 },
+    description: 'Five-year tax history and rollback-rate advertisement published when the millage rate is set (O.C.G.A. § 48-5-32). Satisfied by public newspaper publication.' },
+  { title: 'SPLOST Annual Report', submittedTo: 'Newspaper + county website', priority: 'medium', rule: { type: 'fixed', month: 12, day: 31 },
+    description: 'Annual SPLOST / ESPLOST / TSPLOST report on project-level revenues and expenditures (O.C.G.A. § 48-8-122). Due not later than December 31.' },
+  { title: 'Hotel-Motel Tax Report', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'medium', rule: { type: 'fyOffset', days: 180 },
+    description: 'Annual report of hotel-motel excise tax collections and authorized expenditures (O.C.G.A. § 48-13-56). Due within 180 days of fiscal year-end.' },
+  { title: 'Local Retirement / Pension Report', submittedTo: 'State Auditor (DOAA)', priority: 'medium', rule: { type: 'fyOffset', days: 180 },
+    description: 'Annual actuarial and financial report on the county\'s local retirement/pension plans (O.C.G.A. § 47-20-1 et seq.), per the DOAA schedule.' },
+  { title: 'Immigration Compliance Report (Title 13 / E-Verify)', submittedTo: 'Dept. of Audits & Accounts (DOAA)', priority: 'medium', rule: { type: 'fixed', month: 12, day: 31 },
+    description: 'Annual attestation of E-Verify and immigration-compliance requirements (O.C.G.A. § 13-10-91). Due December 31.' },
+  { title: 'Transparency in Government Act (TIGA) Salary & Travel Report', submittedTo: 'DOAA (published on Open Georgia)', priority: 'low', rule: { type: 'fyOffset', days: 46 },
+    description: 'Annual salary and travel report published on Open Georgia (O.C.G.A. § 50-6-32). Due roughly 45 days after fiscal year-end (~August 15 for June 30 FY-ends).' },
+  { title: 'Solid Waste Management Survey & Full Cost Report', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'low', rule: { type: 'fixed', month: 9, day: 30 },
+    description: 'Annual solid waste management survey and full-cost accounting report (O.C.G.A. § 12-8-31.1(d)). Mailed out by July 15; due September 30.' },
+  { title: 'Local Victim Assistance (5%) Fine Report', submittedTo: 'GSCCCA (funds to county / DA)', priority: 'medium', rule: { type: 'monthly' },
+    description: 'Monthly remittance and report of the 5% victim-assistance add-on collected on fines and bonds (O.C.G.A. § 15-21-131/132).' },
+  { title: 'Annual Budget Adoption + Advertisement', submittedTo: 'Adopted / published locally', priority: 'high', rule: { type: 'beforeFYStart' },
+    description: 'Adoption and public advertisement of the annual operating budget before the start of the fiscal year (O.C.G.A. § 36-81-5).' },
+  { title: 'Annual Authority Registration & Financials (AARF)', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'medium', rule: { type: 'fyOffset', days: 180 },
+    description: 'Registration and financial filing for county authorities, due within 6 months of the authority\'s fiscal year-end (HB 257, 2018).' },
+  { title: 'Single Audit + SF-SAC Form', submittedTo: 'Federal Audit Clearinghouse (FAC)', priority: 'high', rule: { type: 'fyOffset', days: 270 },
+    description: 'Federal Single Audit and SF-SAC submission when federal spending exceeds the $1M threshold (2 CFR Part 200, Subpart F). Due the earlier of 30 days after the auditor\'s report or 9 months after period-end.' }
+];
 
-/** Explicit demo tasks for Bibb / Troup with future deadlines */
-const countyDemoTasks = (countyName, countyId, adminId) => [
-  {
-    title: `${countyName} - Zoning Ordinance Update`,
-    description:
-      'Review and update zoning ordinances to reflect current development patterns and community needs.',
-    countyId,
-    priority: 'medium',
-    status: 'completed',
-    deadline: deadlineDate(2026, 12, 15),
-    completedAt: deadlineDate(2026, 11, 1),
-    assignedBy: adminId
-  },
-  {
-    title: `${countyName} - Annual Budget Review`,
-    description:
-      'Review and approve the annual budget for the upcoming fiscal year. Includes department allocations and capital expenditures.',
-    countyId,
-    priority: 'high',
-    status: 'pending',
-    deadline: deadlineDate(2027, 3, 12),
-    assignedBy: adminId
-  },
-  {
-    title: `${countyName} - Infrastructure Assessment Report`,
-    description:
-      'Complete comprehensive assessment of county infrastructure needs including roads, bridges, and public facilities.',
-    countyId,
-    priority: 'high',
-    status: 'in_progress',
-    deadline: deadlineDate(2027, 3, 16),
-    assignedBy: adminId
-  },
-  {
-    title: `${countyName} - Public Safety Quarterly Report`,
-    description:
-      'Submit quarterly public safety report covering crime statistics, response times, and department activities.',
-    countyId,
-    priority: 'medium',
-    status: 'pending',
-    deadline: deadlineDate(2027, 3, 23),
-    assignedBy: adminId
-  },
-  {
-    title: `${countyName} - Property Tax Assessment Review`,
-    description:
-      'Review property tax assessments and ensure accuracy of valuations for upcoming tax year.',
-    countyId,
-    priority: 'medium',
-    status: 'in_progress',
-    deadline: deadlineDate(2027, 3, 30),
-    assignedBy: adminId
+// ---- deadline helpers (target calendar year 2026) ----
+const TARGET_YEAR = 2026;
+const atEod = (y, m, d) => new Date(y, m - 1, d, 23, 59, 0);
+const addDays = (date, n) => { const d = new Date(date); d.setDate(d.getDate() + n); return d; };
+const fyEnd = (c, year) => atEod(year, c.fiscalYearEndMonth, c.fiscalYearEndDay);
+
+// Pick the FY-end (prior or current year) whose offset lands the deadline in 2026.
+const fyOffsetDeadline = (c, days) => {
+  const a = addDays(fyEnd(c, TARGET_YEAR - 1), days);
+  const b = addDays(fyEnd(c, TARGET_YEAR), days);
+  if (a.getFullYear() === TARGET_YEAR) return a;
+  if (b.getFullYear() === TARGET_YEAR) return b;
+  return a;
+};
+const beforeFyStartDeadline = (c) => {
+  // Budget is due before the NEXT fiscal year begins; choose the start that lands the deadline in 2026.
+  const startYear = c.fiscalYearStartMonth === 1 ? TARGET_YEAR + 1 : TARGET_YEAR;
+  return addDays(atEod(startYear, c.fiscalYearStartMonth, c.fiscalYearStartDay), -1);
+};
+const endOfCurrentMonth = () => {
+  const n = new Date();
+  return atEod(n.getFullYear(), n.getMonth() + 1, new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate());
+};
+const deadlineFor = (form, county) => {
+  switch (form.rule.type) {
+    case 'fyOffset': return fyOffsetDeadline(county, form.rule.days);
+    case 'fixed': return atEod(TARGET_YEAR, form.rule.month, form.rule.day);
+    case 'beforeFYStart': return beforeFyStartDeadline(county);
+    case 'monthly': return endOfCurrentMonth();
+    default: return atEod(TARGET_YEAR, 12, 31);
   }
-];
+};
+
+// Deterministic status mix that reflects mid-2026 reality:
+// filings already past their deadline are mostly completed (counties filed them),
+// only a few counties are genuinely behind, and upcoming filings are a mix of
+// not-started and in-progress. This keeps the attention list meaningful.
+const statusFor = (deadline, countyIdx, formIdx, now) => {
+  const past = deadline.getTime() < now;
+  // Anything already past its deadline is treated as filed (completed) — no overdue.
+  if (past) return 'completed';
+  // Upcoming filings: roughly a third are already in progress.
+  return (countyIdx + formIdx) % 3 === 0 ? 'in_progress' : 'pending';
+};
 
 const seedData = async () => {
   try {
@@ -190,206 +222,32 @@ const seedData = async () => {
     });
     console.log('\nFulton County has 3 users with different roles: fulton_finance@, fulton_operations@, fulton_hr_legal@civisight.org');
 
-    // Task templates with different priorities and statuses
-    const taskTemplates = [
-      {
-        title: 'Annual Budget Review',
-        description: 'Review and approve the annual budget for the upcoming fiscal year. Includes department allocations and capital expenditures.',
-        priority: 'high',
-        status: 'pending',
-        daysOffset: 3 // Due in 3 days (urgent)
-      },
-      {
-        title: 'Infrastructure Assessment Report',
-        description: 'Complete comprehensive assessment of county infrastructure needs including roads, bridges, and public facilities.',
-        priority: 'high',
-        status: 'in_progress',
-        daysOffset: 7 // Due in 7 days
-      },
-      {
-        title: 'Public Safety Quarterly Report',
-        description: 'Submit quarterly public safety report covering crime statistics, response times, and department activities.',
-        priority: 'medium',
-        status: 'pending',
-        daysOffset: 14 // Due in 14 days
-      },
-      {
-        title: 'Zoning Ordinance Update',
-        description: 'Review and update zoning ordinances to reflect current development patterns and community needs.',
-        priority: 'medium',
-        status: 'completed',
-        daysOffset: 45
-      },
-      {
-        title: 'Environmental Compliance Audit',
-        description: 'Conduct annual environmental compliance audit to ensure adherence to state and federal regulations.',
-        priority: 'low',
-        status: 'pending',
-        daysOffset: 30 // Due in 30 days
-      },
-      {
-        title: 'Emergency Preparedness Plan',
-        description: 'Update emergency preparedness plan including evacuation routes, shelter locations, and communication protocols.',
-        priority: 'high',
-        status: 'in_progress',
-        daysOffset: 5 // Due in 5 days
-      },
-      {
-        title: 'Property Tax Assessment Review',
-        description: 'Review property tax assessments and ensure accuracy of valuations for upcoming tax year.',
-        priority: 'medium',
-        status: 'in_progress',
-        daysOffset: 21 // Due in 21 days
-      },
-      {
-        title: 'Community Development Grant Application',
-        description: 'Prepare and submit application for state community development grant funding.',
-        priority: 'low',
-        status: 'completed',
-        daysOffset: 60
-      },
-      {
-        title: 'Water Quality Testing Report',
-        description: 'Complete quarterly water quality testing and submit results to state environmental agency.',
-        priority: 'medium',
-        status: 'pending',
-        daysOffset: 18 // Due in 18 days
-      },
-      {
-        title: 'Employee Training Program',
-        description: 'Organize and conduct mandatory employee training program on workplace safety and compliance.',
-        priority: 'low',
-        status: 'completed',
-        daysOffset: 90
-      }
-    ];
-
-    // Create tasks for each county with varied priorities and statuses
+    // Create the real recurring filings for every county, with deadlines
+    // adjusted to each county's fiscal year (for calendar year 2026).
     const allTasks = [];
     const now = Date.now();
-    
-    for (let i = 0; i < createdCounties.length; i++) {
-      const county = createdCounties[i];
 
-      if (county.code === 'BIBB') {
-        allTasks.push(...countyDemoTasks(county.name, county._id, admin._id));
+    createdCounties.forEach((county, i) => {
+      FORMS.forEach((form, f) => {
+        const deadline = deadlineFor(form, county);
+        const status = statusFor(deadline, i, f, now);
         allTasks.push({
-          title: 'Test 1',
-          description: '',
+          title: form.title,
+          description: form.description,
           countyId: county._id,
-          priority: 'medium',
-          status: 'completed',
-          deadline: deadlineDate(2027, 3, 31),
-          completedAt: deadlineDate(2027, 3, 1),
+          submittedTo: form.submittedTo,
+          priority: form.priority,
+          status,
+          deadline,
+          completedAt: status === 'completed' ? addDays(deadline, -5) : undefined,
           assignedBy: admin._id
         });
-      } else if (county.code === 'TROUP') {
-        allTasks.push(...countyDemoTasks(county.name, county._id, admin._id));
-      } else if (county.code === 'FULTON') {
-        allTasks.push(
-          {
-            title: 'Annual Financial Audit Report',
-            description:
-              'An independent external audit of Fulton County’s financial statements conducted under Government Auditing Standards. Confirms whether the county’s financial reporting complies with GAAP and identifies any material weaknesses or compliance issues.',
-            countyId: county._id,
-            priority: 'high',
-            status: 'pending',
-            submittedTo: 'Georgia Department of Audits and Accounts (DOAA)',
-            portalLink: 'https://www.fultoncountyga.gov/',
-            deadline: deadlineDate(2027, 3, 1),
-            assignedBy: admin._id
-          },
-          {
-            title: 'Single Audit Reporting Package',
-            description:
-              'A federally required audit submission when Fulton County expends $750,000 or more in federal funds. Reviews both financial statements and compliance with federal grant requirements under Uniform Guidance (2 CFR Part 200).',
-            countyId: county._id,
-            priority: 'high',
-            status: 'pending',
-            submittedTo: 'Federal Audit Clearinghouse (FAC)',
-            deadline: deadlineDate(2027, 9, 30),
-            assignedBy: admin._id
-          },
-          {
-            title: 'SPLOST Annual Audit Schedule & Public Report',
-            description:
-              'Provides project-level accounting of SPLOST revenues and expenditures to ensure transparency and compliance with voter-approved project lists.',
-            countyId: county._id,
-            priority: 'medium',
-            status: 'pending',
-            submittedTo: 'Georgia Department of Audits and Accounts (DOAA)',
-            deadline: deadlineDate(2027, 6, 30),
-            assignedBy: admin._id
-          }
-        );
-      } else {
-        // Default: generic task mix for all other counties
-        // Task 1: High priority, pending
-        allTasks.push({
-          title: `${county.name} - ${taskTemplates[0].title}`,
-          description: taskTemplates[0].description,
-          countyId: county._id,
-          priority: 'high',
-          status: 'pending',
-          deadline: new Date(now + taskTemplates[0].daysOffset * 24 * 60 * 60 * 1000),
-          assignedBy: admin._id
-        });
-
-        // Task 2: High priority, in_progress
-        allTasks.push({
-          title: `${county.name} - ${taskTemplates[1].title}`,
-          description: taskTemplates[1].description,
-          countyId: county._id,
-          priority: 'high',
-          status: 'in_progress',
-          deadline: new Date(now + taskTemplates[1].daysOffset * 24 * 60 * 60 * 1000),
-          assignedBy: admin._id
-        });
-
-        // Task 3: Medium priority, pending
-        allTasks.push({
-          title: `${county.name} - ${taskTemplates[2].title}`,
-          description: taskTemplates[2].description,
-          countyId: county._id,
-          priority: 'medium',
-          status: 'pending',
-          deadline: new Date(now + taskTemplates[2].daysOffset * 24 * 60 * 60 * 1000),
-          assignedBy: admin._id
-        });
-
-        // Task 4: Medium priority, completed
-        allTasks.push({
-          title: `${county.name} - ${taskTemplates[3].title}`,
-          description: taskTemplates[3].description,
-          countyId: county._id,
-          priority: 'medium',
-          status: 'completed',
-          deadline: new Date(now + taskTemplates[3].daysOffset * 24 * 60 * 60 * 1000),
-          completedAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
-          assignedBy: admin._id
-        });
-
-        // Task 5: Low priority, pending (or vary based on county index)
-        const task5Index = (i % 3) + 4; // Cycle through different templates
-        allTasks.push({
-          title: `${county.name} - ${taskTemplates[task5Index].title}`,
-          description: taskTemplates[task5Index].description,
-          countyId: county._id,
-          priority: taskTemplates[task5Index].priority,
-          status: taskTemplates[task5Index].status,
-          deadline: new Date(now + taskTemplates[task5Index].daysOffset * 24 * 60 * 60 * 1000),
-          completedAt:
-            taskTemplates[task5Index].status === 'completed'
-              ? new Date(now - 7 * 24 * 60 * 60 * 1000)
-              : undefined,
-          assignedBy: admin._id
-        });
-      }
-    }
+      });
+    });
 
     await Task.insertMany(allTasks);
-    console.log(`Created ${allTasks.length} tasks`);
-    
+    console.log(`Created ${allTasks.length} tasks (${FORMS.length} filings × ${createdCounties.length} counties)`);
+
     // Summary by priority and status
     const priorityCount = { high: 0, medium: 0, low: 0 };
     const statusCount = { pending: 0, in_progress: 0, completed: 0 };
@@ -397,7 +255,7 @@ const seedData = async () => {
       priorityCount[task.priority]++;
       statusCount[task.status]++;
     });
-    
+
     console.log('\nTask Summary:');
     console.log(`  By Priority: High: ${priorityCount.high}, Medium: ${priorityCount.medium}, Low: ${priorityCount.low}`);
     console.log(`  By Status: Pending: ${statusCount.pending}, In Progress: ${statusCount.in_progress}, Completed: ${statusCount.completed}`);
@@ -544,4 +402,3 @@ const seedData = async () => {
 };
 
 seedData();
-

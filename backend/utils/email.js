@@ -20,13 +20,21 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
   logger.warn('Email credentials not configured. Email functionality will be disabled.');
 }
 
-// Send reminder email
-const sendReminderEmail = async (to, countyName, taskName, deadline) => {
+// Send reminder email. `customMessage` (optional) is included when an admin
+// sends a manual reminder from the Reminders page.
+const sendReminderEmail = async (to, countyName, taskName, deadline, customMessage = '') => {
   if (!transporter) {
     logger.warn('Email transporter not available. Skipping email send.');
     return { success: false, message: 'Email not configured' };
   }
-  
+
+  const messageBlockHtml = customMessage
+    ? `<div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 16px; border-radius: 6px; margin: 20px 0;">
+         <p style="margin: 0; color: #1e3a8a; font-size: 14px; white-space: pre-wrap;">${customMessage}</p>
+       </div>`
+    : '';
+  const messageBlockText = customMessage ? `\nMessage: ${customMessage}\n` : '';
+
   try {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -40,10 +48,11 @@ const sendReminderEmail = async (to, countyName, taskName, deadline) => {
             <p style="margin: 10px 0;"><strong style="color: #374151;">Deadline:</strong> <span style="color: #111827;">${new Date(deadline).toLocaleString()}</span></p>
             <p style="margin: 10px 0;"><strong style="color: #374151;">County:</strong> <span style="color: #111827;">${countyName}</span></p>
           </div>
-          <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">This is an automated reminder from CiviSight - Association of County Commissioners of Georgia.</p>
+          ${messageBlockHtml}
+          <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">This is a reminder from CiviSight - Association of County Commissioners of Georgia.</p>
         </div>
       `,
-      text: `Task Reminder\n\nTask Name: ${taskName}\nDeadline: ${new Date(deadline).toLocaleString()}\nCounty: ${countyName}\n\nThis is an automated reminder from CiviSight.`
+      text: `Task Reminder\n\nTask Name: ${taskName}\nDeadline: ${new Date(deadline).toLocaleString()}\nCounty: ${countyName}\n${messageBlockText}\nThis is a reminder from CiviSight.`
     };
 
     const info = await transporter.sendMail(mailOptions);

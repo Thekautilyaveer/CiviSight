@@ -482,6 +482,64 @@ router.post('/:id/reminder', auth, adminOnly, async (req, res) => {
   }
 });
 
+// @route   POST /api/tasks/send-reminders
+// @desc    Send a manual reminder for many tasks at once (admin only)
+// @access  Private (Admin only)
+router.post('/send-reminders', auth, adminOnly, async (req, res) => {
+  try {
+    const { taskIds, message } = req.body;
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({ message: 'No recipients selected' });
+    }
+
+    const tasks = await Task.find({ _id: { $in: taskIds } })
+      .populate('countyId', 'name code email');
+
+    if (tasks.length === 0) {
+      return res.status(404).json({ message: 'No matching tasks found' });
+    }
+
+    // Always send to EMAIL_TO, consistent with the per-task reminder + scheduler.
+    const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
+    const customMessage = typeof message === 'string' ? message.trim() : '';
+
+    let sent = 0;
+    for (const task of tasks) {
+      try {
+        await sendReminderEmail(
+          emailTo,
+          task.countyId?.name || 'County',
+          task.title,
+          task.deadline,
+          customMessage
+        );
+        sent++;
+      } catch (emailError) {
+        logger.error('Failed to send manual reminder email:', { taskId: task._id, error: emailError.message });
+        // Continue — still record the reminder on the task.
+      }
+
+      task.reminders.push({ sentAt: new Date(), sentBy: req.user._id });
+      await task.save();
+    }
+
+    // One summary notification for the admin's activity feed.
+    await new Notification({
+      userId: req.user._id,
+      type: 'reminder',
+      title: 'Reminders Sent',
+      message: `Manual reminder sent for "${tasks[0].title}" to ${sent} ${sent === 1 ? 'county' : 'counties'}`
+    }).save();
+
+    logger.info(`Manual reminders sent for ${tasks.length} tasks (${sent} emails) by ${req.user.username}`);
+    res.json({ message: 'Reminders sent', sent, total: tasks.length });
+  } catch (error) {
+    logger.error('Error sending bulk reminders:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   POST /api/tasks/:id/upload-form
 // @desc    Upload form file for a task (admin only)
 // @access  Private (Admin only)
