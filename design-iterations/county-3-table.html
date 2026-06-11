@@ -1,0 +1,138 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CiviSight County · 3 Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#111827; --muted:#4b5563; --faint:#9ca3af;
+  --line:#e5e7eb; --line-soft:#f1f3f5; --bg:#f9fafb; --surface:#fff;
+  --primary:#2563eb; --primary-dark:#1d4ed8;
+  --todo-bg:#fef3c7; --todo-fg:#92400e;
+  --soon-bg:#f3f4f6; --soon-fg:#4b5563;
+  --prog-bg:#dbeafe; --prog-fg:#1e40af;
+  --done-bg:#dcfce7; --done-fg:#166534;
+  --over-bg:#fee2e2; --over-fg:#991b1b;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45}
+.cap{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#1e293b;padding:7px 18px;font-weight:600}
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px}
+.brand{display:flex;align-items:center;gap:28px}
+.logo{display:flex;align-items:center;gap:9px}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:var(--primary);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800;font-family:'Manrope',sans-serif}
+.logo .name{font-family:'Manrope',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em}
+.nav{display:flex;gap:26px;font-size:14px;font-weight:500;color:var(--muted)}
+.nav .on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--primary);padding-bottom:20px}
+.who{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted)}
+.who .out{background:#dc2626;color:#fff;padding:8px 16px;border-radius:7px;font-weight:600;font-size:13px}
+main{padding:28px 32px 60px}
+.head{margin-bottom:22px}
+.head h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0}
+.head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.chip.todo{background:var(--todo-bg);color:var(--todo-fg)} .chip.soon{background:var(--soon-bg);color:var(--soon-fg)}
+.chip.prog{background:var(--prog-bg);color:var(--prog-fg)} .chip.done{background:var(--done-bg);color:var(--done-fg)}
+.chip.over{background:var(--over-bg);color:var(--over-fg)}
+.sec-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.sec-h .n{border-radius:999px;padding:1px 8px;font-size:11px}
+.sec-h.attn .n{background:var(--todo-bg);color:var(--todo-fg)} .sec-h.calm .n{background:var(--done-bg);color:var(--done-fg)}
+.agency{font-size:12.5px;color:var(--faint)}
+/* action buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.ghost{background:#fff;color:var(--primary);border-color:#bfdbfe}
+.btn svg{width:14px;height:14px}
+
+  .tbl{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .tbl th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:12px 16px;background:#fafbfc;border-bottom:1px solid var(--line)}
+  .tbl td{padding:13px 16px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tbody tr:hover{background:#f8fafc}
+  .tbl .nm{font-weight:700}
+  .tbl .act{text-align:right}</style></head>
+<body>
+<div class="cap">County side · Version 3 — <b>Table</b> &nbsp; Compact spreadsheet-style rows with an action per filing</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><span class="mark">C</span><span class="name">CiviSight</span></span>
+    <nav class="nav"><span class="on">My Tasks</span><span>Contacts</span><span>FormPilot</span></nav>
+  </div>
+  <div class="who"><span>troup_user (County User)</span><span class="out">Logout</span></div>
+</header>
+<main>
+  <div class="head"><h1>Troup County</h1><p>Your filings and deadlines — download each form, complete it, and upload it back.</p></div>
+  <table class="tbl"><thead><tr>
+    <th>Filing</th><th>Submitted to</th><th>Status</th><th>Deadline</th><th class="act">Action</th>
+  </tr></thead><tbody>
+    <tr>
+      <td class="nm">Local Victim Assistance (5%) Fine Report</td>
+      <td class="agency">GSCCCA</td>
+      <td><span class="chip todo">Not started</span></td>
+      <td><span class="chip todo">Due in 19 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6m0 0v6m0-6L10 14M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg> Fill online</span></td>
+    </tr><tr>
+      <td class="nm">Report of Local Government Finances (RLGF)</td>
+      <td class="agency">Dept. of Community Affairs (DCA)</td>
+      <td><span class="chip prog">In progress</span></td>
+      <td><span class="chip todo">Due in 30 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6m0 0v6m0-6L10 14M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg> Fill online</span></td>
+    </tr><tr>
+      <td class="nm">County Property Tax Digest + Submission Package</td>
+      <td class="agency">Dept. of Revenue (DOR)</td>
+      <td><span class="chip todo">Not started</span></td>
+      <td><span class="chip soon">Due in 82 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21V9m0 0 4 4m-4-4-4 4M5 3h14"/></svg> Upload</span></td>
+    </tr><tr>
+      <td class="nm">Annual Financial Audit</td>
+      <td class="agency">Dept. of Audits & Accounts (DOAA)</td>
+      <td><span class="chip todo">Not started</span></td>
+      <td><span class="chip soon">Due in 91 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21V9m0 0 4 4m-4-4-4 4M5 3h14"/></svg> Upload</span></td>
+    </tr><tr>
+      <td class="nm">Hotel-Motel Tax Report</td>
+      <td class="agency">Dept. of Community Affairs (DCA)</td>
+      <td><span class="chip todo">Not started</span></td>
+      <td><span class="chip soon">Due in 91 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21V9m0 0 4 4m-4-4-4 4M5 3h14"/></svg> Upload</span></td>
+    </tr><tr>
+      <td class="nm">Solid Waste Management Survey & Full Cost Report</td>
+      <td class="agency">Dept. of Community Affairs (DCA)</td>
+      <td><span class="chip prog">In progress</span></td>
+      <td><span class="chip soon">Due in 111 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21V9m0 0 4 4m-4-4-4 4M5 3h14"/></svg> Upload</span></td>
+    </tr><tr>
+      <td class="nm">Immigration Compliance Report (E-Verify)</td>
+      <td class="agency">Dept. of Audits & Accounts (DOAA)</td>
+      <td><span class="chip todo">Not started</span></td>
+      <td><span class="chip soon">Due in 203 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6m0 0v6m0-6L10 14M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg> Fill online</span></td>
+    </tr><tr>
+      <td class="nm">SPLOST Annual Report</td>
+      <td class="agency">Newspaper + county website</td>
+      <td><span class="chip todo">Not started</span></td>
+      <td><span class="chip soon">Due in 203 days</span></td>
+      <td class="act"><span class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6m0 0v6m0-6L10 14M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg> Fill online</span></td>
+    </tr><tr>
+      <td class="nm">Annual Budget Adoption + Advertisement</td>
+      <td class="agency">Adopted / published locally</td>
+      <td><span class="chip done">Completed</span></td>
+      <td><span class="chip done">Filed</span></td>
+      <td class="act"><span class="btn ghost">View</span></td>
+    </tr><tr>
+      <td class="nm">Millage Rate / 5-Year History + Rollback</td>
+      <td class="agency">Published in local newspaper</td>
+      <td><span class="chip done">Completed</span></td>
+      <td><span class="chip done">Filed</span></td>
+      <td class="act"><span class="btn ghost">View</span></td>
+    </tr><tr>
+      <td class="nm">TIGA Salary & Travel Report</td>
+      <td class="agency">DOAA (Open Georgia)</td>
+      <td><span class="chip done">Completed</span></td>
+      <td><span class="chip done">Filed</span></td>
+      <td class="act"><span class="btn ghost">View</span></td>
+    </tr>
+  </tbody></table>
+</main></body></html>

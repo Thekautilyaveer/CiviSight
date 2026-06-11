@@ -48,6 +48,7 @@ const CountyDetail = () => {
   const [uploadingForm, setUploadingForm] = useState(null);
   const [uploadingFilledForm, setUploadingFilledForm] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null);
+  const [collapsedSections, setCollapsedSections] = useState({ done: true }); // Completed starts collapsed
   const [taskComments, setTaskComments] = useState({});
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(null);
@@ -314,7 +315,13 @@ const CountyDetail = () => {
         throw new Error(error.message || 'Upload failed');
       }
 
-      alert('Filled form uploaded successfully');
+      // Uploading the completed form marks the filing as done.
+      try {
+        await api.put(`/tasks/${taskId}`, { status: 'completed' });
+      } catch (statusErr) {
+        console.error('Could not update status after upload:', statusErr);
+      }
+      alert('Filled form uploaded — filing marked as completed');
       fetchTasks();
     } catch (error) {
       alert(error.message || 'Error uploading filled form');
@@ -712,13 +719,23 @@ const CountyDetail = () => {
     return true;
   });
 
-  const taskStats = {
-    total: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
-    inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-    overdue: tasks.filter(t => new Date(t.deadline) < new Date() && t.status !== 'completed').length
-  };
+  // Group filings into three sections: due within 90 days, due later, completed.
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const daysToDeadline = (t) => Math.ceil((new Date(t.deadline) - new Date()) / DAY_MS);
+  const dueSoonTasks = filteredTasks
+    .filter((t) => t.status !== 'completed' && daysToDeadline(t) <= 90)
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  const dueLaterTasks = filteredTasks
+    .filter((t) => t.status !== 'completed' && daysToDeadline(t) > 90)
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  const completedTasks = filteredTasks
+    .filter((t) => t.status === 'completed')
+    .sort((a, b) => new Date(b.deadline) - new Date(a.deadline));
+  const taskSections = [
+    { key: 'soon', label: 'Due in the next 90 days', tasks: dueSoonTasks },
+    { key: 'later', label: 'Due later than 90 days', tasks: dueLaterTasks },
+    { key: 'done', label: 'Completed', tasks: completedTasks }
+  ];
 
   if (loading) {
     return (
@@ -765,78 +782,6 @@ const CountyDetail = () => {
           </div>
         </div>
 
-        {/* Task Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Total Tasks</p>
-                <p className="text-3xl font-bold text-blue-600">{taskStats.total}</p>
-              </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Pending</p>
-                <p className="text-3xl font-bold text-red-600">{taskStats.pending}</p>
-              </div>
-              <div className="p-3 bg-red-50 rounded-lg">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 border-l-4 border-yellow-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">In Progress</p>
-                <p className="text-3xl font-bold text-yellow-600">{taskStats.inProgress}</p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Completed</p>
-                <p className="text-3xl font-bold text-green-600">{taskStats.completed}</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 border-l-4 border-orange-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Overdue</p>
-                <p className="text-3xl font-bold text-orange-600">{taskStats.overdue}</p>
-              </div>
-              <div className="p-3 bg-orange-50 rounded-lg">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Search and Filter */}
@@ -875,26 +820,69 @@ const CountyDetail = () => {
               <option value="high">High</option>
             </select>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => setShowAddTask(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-            >
-              Add Task
-            </button>
-          )}
+          <button
+            onClick={() => setShowAddTask(true)}
+            title="Add a form"
+            aria-label="Add a form"
+            className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Tasks List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {filteredTasks.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No tasks found</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {filteredTasks.map((task) => {
+      {/* Tasks grouped into three sections */}
+      {filteredTasks.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-12">
+          <p className="text-gray-500">No tasks found</p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {taskSections.map((sec) => (
+            <div key={sec.key}>
+              <button
+                type="button"
+                onClick={() => setCollapsedSections((prev) => ({ ...prev, [sec.key]: !prev[sec.key] }))}
+                className="w-full flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 hover:text-gray-700 transition-colors"
+              >
+                {sec.key === 'soon' && (
+                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                  </svg>
+                )}
+                {sec.key === 'later' && (
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                  </svg>
+                )}
+                {sec.key === 'done' && (
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
+                  </svg>
+                )}
+                {sec.label}
+                <span className={`px-2 py-0.5 rounded-full text-[11px] ${sec.key === 'soon' ? 'bg-amber-100 text-amber-800' : sec.key === 'done' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                  {sec.tasks.length}
+                </span>
+                <svg
+                  className={`w-4 h-4 ml-1 text-gray-400 transition-transform ${collapsedSections[sec.key] ? '' : 'rotate-180'}`}
+                  fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {!collapsedSections[sec.key] && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                {sec.tasks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400 text-sm">Nothing in this section</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {sec.tasks.map((task) => {
               const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
               const urgency = getDeadlineUrgency(task.deadline, task.status);
               const timeRemaining = getTimeRemaining(task.deadline);
@@ -920,9 +908,11 @@ const CountyDetail = () => {
                               </span>
                             )}
                           </div>
-                          {task.description && (
-                            <p className="text-sm text-gray-600 mb-3">{task.description}</p>
-                          )}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              {task.description && (
+                                <p className="text-sm text-gray-600 mb-3">{task.description}</p>
+                              )}
                           <div className="flex flex-wrap items-center gap-4 text-sm">
                             <div className={`flex items-center gap-2 ${urgency.color}`}>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -946,10 +936,8 @@ const CountyDetail = () => {
                             )}
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Files Section */}
-                      <div className="mt-4 flex flex-wrap gap-3">
+                            {/* Actions — same level as the description's first line */}
+                            <div className="flex flex-wrap gap-2 justify-end shrink-0">
                         {/* Form File */}
                         {task.formFile ? (
                           <button
@@ -982,8 +970,8 @@ const CountyDetail = () => {
                             </label>
                           )
                         )}
-                        {/* Portal link: show when task has portalLink (and no form file, or in addition to form file) */}
-                        {task.portalLink && (
+                        {/* Secondary portal link for upload-type filings that also have a portal */}
+                        {task.formFile && task.portalLink && (
                           <button
                             type="button"
                             onClick={() => handleOpenPortalLink(task)}
@@ -992,25 +980,25 @@ const CountyDetail = () => {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
-                            {task.formFile ? 'Open form portal' : 'Fill form online'}
+                            Open form portal
                           </button>
                         )}
-                        
-                        {/* Filled Form File - only show when task has a PDF form (not portal-link-only) */}
-                        {task.formFile && (
-                          task.filledFormFile ? (
-                            <button
-                              onClick={() => handleDownloadFilledForm(task._id)}
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              View Submitted Form
-                              <span className="text-xs text-green-600">({task.filledFormFile.originalName})</span>
-                            </button>
-                          ) : (
-                            <label className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200 cursor-pointer">
+
+                        {/* Submission action: form filings get upload, everything else fills online */}
+                        {task.filledFormFile ? (
+                          <button
+                            onClick={() => handleDownloadFilledForm(task._id)}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            View submission
+                            <span className="text-xs text-green-600">({task.filledFormFile.originalName})</span>
+                          </button>
+                        ) : task.formFile ? (
+                          task.status !== 'completed' && (
+                            <label className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer">
                               <input
                                 type="file"
                                 className="hidden"
@@ -1024,8 +1012,21 @@ const CountyDetail = () => {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                               </svg>
-                              {uploadingFilledForm === task._id ? 'Uploading...' : 'Upload Filled Form'}
+                              {uploadingFilledForm === task._id ? 'Uploading...' : 'Upload filled form'}
                             </label>
+                          )
+                        ) : (
+                          task.status !== 'completed' && (
+                            <button
+                              type="button"
+                              onClick={() => (task.portalLink ? handleOpenPortalLink(task) : handleUpdateTaskStatus(task._id, 'in_progress'))}
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                              Fill form online
+                            </button>
                           )
                         )}
                         
@@ -1035,8 +1036,11 @@ const CountyDetail = () => {
                             Uploading...
                           </span>
                         )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      
+
                       {/* Comments Section */}
                       <div className="mt-4">
                         <button
@@ -1145,21 +1149,6 @@ const CountyDetail = () => {
                       </div>
                     </div>
                     
-                    {/* Status Update (for county users) */}
-                    {!isAdmin && (
-                      <div className="flex flex-col gap-2 lg:min-w-[200px]">
-                        <select
-                          value={task.status}
-                          onChange={(e) => handleUpdateTaskStatus(task._id, e.target.value)}
-                          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="completed">Completed</option>
-                        </select>
-                      </div>
-                    )}
-                    
                     {/* Admin Actions */}
                     {isAdmin && (
                       <div className="flex gap-2">
@@ -1186,10 +1175,15 @@ const CountyDetail = () => {
                   </div>
                 </div>
               );
-            })}
-          </div>
-        )}
-      </div>
+                    })}
+                  </div>
+                )}
+              </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Add Task Modal */}
       {showAddTask && (
