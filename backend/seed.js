@@ -392,6 +392,54 @@ const seedData = async () => {
       console.log(`\nCreated ${troupContacts.contacts.length} contacts for Troup County`);
     }
 
+    // Create dummy contacts for Gwinnett County
+    const gwinnettCounty = createdCounties.find(c => c.code === 'GWINNETT');
+    if (gwinnettCounty) {
+      const gwinnettContacts = new Contact({
+        countyId: gwinnettCounty._id,
+        contacts: [
+          {
+            role: 'County Administrator',
+            name: 'Glenn Stephens',
+            email: 'glenn.stephens@gwinnettcounty.com',
+            phone: '(770) 822-7000'
+          },
+          {
+            role: 'County Clerk',
+            name: 'Tonya Henderson',
+            email: 'tonya.henderson@gwinnettcounty.com',
+            phone: '(770) 822-7001'
+          },
+          {
+            role: 'Chief Financial Officer / Finance Director',
+            name: 'Buffy Alexzulian',
+            email: 'buffy.alexzulian@gwinnettcounty.com',
+            phone: '(770) 822-7002'
+          },
+          {
+            role: 'Budget Director',
+            name: 'Maria Woods',
+            email: 'maria.woods@gwinnettcounty.com',
+            phone: '(770) 822-7003'
+          },
+          {
+            role: 'Grants Manager / Coordinator',
+            name: 'Derrick Patterson',
+            email: 'derrick.patterson@gwinnettcounty.com',
+            phone: '(770) 822-7004'
+          },
+          {
+            role: 'County Attorney / Legal Counsel',
+            name: 'Karen Bynum',
+            email: 'karen.bynum@gwinnettcounty.com',
+            phone: '(770) 822-7005'
+          }
+        ]
+      });
+      await gwinnettContacts.save();
+      console.log(`\nCreated ${gwinnettContacts.contacts.length} contacts for Gwinnett County`);
+    }
+
     console.log('Seed data created successfully!');
     process.exit(0);
   } catch (error) {
