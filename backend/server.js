@@ -37,6 +37,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/chatbot', require('./routes/chatbot'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/civisight')

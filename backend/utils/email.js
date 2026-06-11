@@ -135,9 +135,53 @@ const sendFormUploadEmail = async (to, countyName, taskName, formName) => {
   }
 };
 
+// Send a support ticket email (raised from the chatbot)
+const sendTicketEmail = async (to, subject, details, raisedBy = {}) => {
+  if (!transporter) {
+    logger.warn('Email transporter not available. Skipping ticket email.');
+    return { success: false, message: 'Email not configured' };
+  }
+
+  const who = [
+    raisedBy.name ? `Name: ${raisedBy.name}` : null,
+    raisedBy.email ? `Email: ${raisedBy.email}` : null,
+    raisedBy.role ? `Role: ${raisedBy.role}` : null,
+    raisedBy.countyId ? `County ID: ${raisedBy.countyId}` : null
+  ].filter(Boolean);
+
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to,
+      subject: `New Support Ticket: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">New Support Ticket</h2>
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong style="color: #374151;">Subject:</strong> <span style="color: #111827;">${subject}</span></p>
+            <p style="margin: 10px 0;"><strong style="color: #374151;">Details:</strong></p>
+            <p style="margin: 6px 0; color: #111827; white-space: pre-wrap;">${details}</p>
+          </div>
+          ${who.length ? `<p style="color:#6b7280; font-size:14px;"><strong>Raised by</strong><br>${who.join('<br>')}</p>` : ''}
+          <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">Raised via the CiviSight chat assistant.</p>
+        </div>
+      `,
+      text: `New Support Ticket\n\nSubject: ${subject}\n\nDetails:\n${details}\n\n${who.join('\n')}\n\nRaised via the CiviSight chat assistant.`
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    logger.info('Ticket email sent successfully:', { messageId: info.messageId, to, subject });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    logger.error('Error sending ticket email:', { error, to, subject });
+    throw error;
+  }
+};
+
 module.exports = {
   sendReminderEmail,
   sendTaskAssignmentEmail,
-  sendFormUploadEmail
+  sendFormUploadEmail,
+  sendTicketEmail
 };
 

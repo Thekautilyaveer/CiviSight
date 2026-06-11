@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import api from '../utils/api';
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,14 +30,15 @@ const Chatbot = () => {
     }
   }, [isOpen]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    const text = inputMessage.trim();
+    if (!text) return;
 
     // Add user message
     const userMessage = {
-      id: messages.length + 1,
-      text: inputMessage,
+      id: Date.now(),
+      text,
       sender: 'user',
       timestamp: new Date()
     };
@@ -44,17 +46,24 @@ const Chatbot = () => {
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate bot response after a short delay
-    setTimeout(() => {
-      const botMessage = {
-        id: messages.length + 2,
-        text: "I'm currently under development and not fully available yet. My features are actively being built and tested, and I'll be ready to assist you very soon.",
+    try {
+      const res = await api.post('/chatbot/message', { message: text });
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        text: res.data.reply || "I'm not sure how to respond to that.",
         sender: 'bot',
         timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
+      }]);
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        text: "Sorry, I couldn't reach the assistant right now. Please try again in a moment.",
+        sender: 'bot',
+        timestamp: new Date()
+      }]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const formatTime = (date) => {
