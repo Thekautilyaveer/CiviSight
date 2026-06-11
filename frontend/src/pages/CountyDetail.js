@@ -49,6 +49,8 @@ const CountyDetail = () => {
   const [uploadingFilledForm, setUploadingFilledForm] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({ done: true }); // Completed starts collapsed
+  const [agencyFilter, setAgencyFilter] = useState('all');
+  const [infoTask, setInfoTask] = useState(null);
   const [taskComments, setTaskComments] = useState({});
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(null);
@@ -710,12 +712,25 @@ const CountyDetail = () => {
     high: 'bg-red-100 text-red-800 border border-red-200'
   };
 
+  // A destination is "Other" (not a specific state agency) when it's a publication
+  // requirement rather than an agency filing.
+  const isOtherDestination = (submittedTo) =>
+    !submittedTo || /newspaper|locally|website/i.test(submittedTo);
+
+  // State agencies present in this county's filings (for the filter dropdown).
+  const agencyOptions = [
+    ...new Set(tasks.map((t) => t.submittedTo).filter((s) => s && !isOtherDestination(s)))
+  ].sort((a, b) => a.localeCompare(b));
+  const hasOther = tasks.some((t) => isOtherDestination(t.submittedTo));
+
   const filteredTasks = tasks.filter((task) => {
     if (searchTerm) {
       const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.description.toLowerCase().includes(searchTerm.toLowerCase());
       if (!matchesSearch) return false;
     }
+    if (agencyFilter === 'other') return isOtherDestination(task.submittedTo);
+    if (agencyFilter !== 'all') return task.submittedTo === agencyFilter;
     return true;
   });
 
@@ -762,13 +777,25 @@ const CountyDetail = () => {
         )}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
-                {county?.name || 'County Details'}
-              </h1>
-              <p className="text-blue-100 text-lg">
-                {isAdmin ? 'Manage tasks for this county' : 'Your Task Management Dashboard'}
-              </p>
+            <div className="flex items-center gap-4">
+              {county?.code && (
+                <div className="bg-white rounded-xl p-2 shrink-0 shadow-sm">
+                  <img
+                    src={`/${county.code.toLowerCase()}_logo.png`}
+                    alt={`${county.name} logo`}
+                    className="h-14 w-14 object-contain"
+                    onError={(e) => { e.target.parentNode.style.display = 'none'; }}
+                  />
+                </div>
+              )}
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">
+                  {county?.name || 'County Details'}
+                </h1>
+                <p className="text-blue-100 text-lg">
+                  {isAdmin ? 'Manage tasks for this county' : 'Your Task Management Dashboard'}
+                </p>
+              </div>
             </div>
             <Link
               to={`/county/${id}/contacts`}
@@ -798,14 +825,15 @@ const CountyDetail = () => {
           </div>
           <div>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={agencyFilter}
+              onChange={(e) => setAgencyFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
+              <option value="all">All agencies</option>
+              {agencyOptions.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+              {hasOther && <option value="other">Other</option>}
             </select>
           </div>
           <div>
@@ -895,7 +923,18 @@ const CountyDetail = () => {
                       <div className="flex items-start gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                            <span className="inline-flex items-center gap-1.5">
+                              <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                              <button
+                                type="button"
+                                onClick={() => setInfoTask(task)}
+                                title="About this filing"
+                                aria-label="About this filing"
+                                className="shrink-0 w-5 h-5 inline-flex items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-[11px] font-bold leading-none"
+                              >
+                                i
+                              </button>
+                            </span>
                             <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${priorityColors[task.priority] || priorityColors.medium}`}>
                               {task.priority}
                             </span>
@@ -910,9 +949,9 @@ const CountyDetail = () => {
                           </div>
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              {task.description && (
-                                <p className="text-sm text-gray-600 mb-3">{task.description}</p>
-                              )}
+                              <p className="text-sm text-gray-600 mb-3">
+                                Submitted to <span className="font-medium text-gray-700">{task.submittedTo || '—'}</span>
+                              </p>
                           <div className="flex flex-wrap items-center gap-4 text-sm">
                             <div className={`flex items-center gap-2 ${urgency.color}`}>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -950,26 +989,7 @@ const CountyDetail = () => {
                             Download Form
                             <span className="text-xs text-blue-600">({task.formFile.originalName})</span>
                           </button>
-                        ) : (
-                          isAdmin && (
-                            <label className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors border border-blue-200 cursor-pointer">
-                              <input
-                                type="file"
-                                className="hidden"
-                                onChange={(e) => {
-                                  if (e.target.files[0]) {
-                                    handleUploadForm(task._id, e.target.files[0]);
-                                  }
-                                }}
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"
-                              />
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                              </svg>
-                              {uploadingForm === task._id ? 'Uploading...' : 'Upload Form'}
-                            </label>
-                          )
-                        )}
+                        ) : null}
                         {/* Secondary portal link for upload-type filings that also have a portal */}
                         {task.formFile && task.portalLink && (
                           <button
@@ -997,7 +1017,7 @@ const CountyDetail = () => {
                             <span className="text-xs text-green-600">({task.filledFormFile.originalName})</span>
                           </button>
                         ) : task.formFile ? (
-                          task.status !== 'completed' && (
+                          !isAdmin && task.status !== 'completed' && (
                             <label className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer">
                               <input
                                 type="file"
@@ -1016,7 +1036,7 @@ const CountyDetail = () => {
                             </label>
                           )
                         ) : (
-                          task.status !== 'completed' && (
+                          !isAdmin && task.status !== 'completed' && (
                             <button
                               type="button"
                               onClick={() => (task.portalLink ? handleOpenPortalLink(task) : handleUpdateTaskStatus(task._id, 'in_progress'))}
@@ -1698,6 +1718,38 @@ const CountyDetail = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Form info popup */}
+      {infoTask && (
+        <div
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 h-full w-full z-50 flex items-center justify-center p-4"
+          onClick={() => setInfoTask(null)}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h3 className="text-xl font-bold text-gray-900">{infoTask.title}</h3>
+              <button
+                onClick={() => setInfoTask(null)}
+                className="text-gray-400 hover:text-gray-600 shrink-0"
+                aria-label="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+              Submitted to {infoTask.submittedTo || '—'}
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {infoTask.description || 'No description available for this filing.'}
+            </p>
           </div>
         </div>
       )}
