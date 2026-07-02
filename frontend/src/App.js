@@ -15,6 +15,7 @@ import CreateTask from './pages/CreateTask';
 import Contacts from './pages/Contacts';
 import Users from './pages/Users';
 import FormPilot from './pages/FormPilot';
+import RlgfFormPage from './pages/RlgfFormPage';
 
 function App() {
   return (
@@ -79,6 +80,16 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <FormPilot />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/county/:id/rlgf/:taskId"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <RlgfFormPage />
                 </Layout>
               </PrivateRoute>
             }

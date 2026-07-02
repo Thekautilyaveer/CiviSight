@@ -1,0 +1,869 @@
+{
+  "version": "2020_UCOA_4th",
+  "codes": [
+    {
+      "code": "11.1100",
+      "label": "Cash (including cash equivalents)"
+    },
+    {
+      "code": "11.1300",
+      "label": "Investments - Current"
+    },
+    {
+      "code": "11.5200",
+      "label": "Investments - Long Term"
+    },
+    {
+      "code": "11.6100",
+      "label": "Restricted Cash"
+    },
+    {
+      "code": "11.6200",
+      "label": "Restricted Investments"
+    },
+    {
+      "code": "11.6300",
+      "label": "Restricted Customer Deposits"
+    },
+    {
+      "code": "11.7100",
+      "label": "Sites"
+    },
+    {
+      "code": "11.7200",
+      "label": "Site Improvements"
+    },
+    {
+      "code": "11.7210",
+      "label": "Site Improvements"
+    },
+    {
+      "code": "11.7300",
+      "label": "Infrastructure"
+    },
+    {
+      "code": "11.7310",
+      "label": "Infrastructure"
+    },
+    {
+      "code": "11.7400",
+      "label": "Buildings and Building Improvements"
+    },
+    {
+      "code": "11.7410",
+      "label": "Buildings and Building Improvements"
+    },
+    {
+      "code": "11.7500",
+      "label": "Machinery and Equipment"
+    },
+    {
+      "code": "11.7510",
+      "label": "Machinery and Equipment"
+    },
+    {
+      "code": "11.7600",
+      "label": "Construction in Progress"
+    },
+    {
+      "code": "11.7900",
+      "label": "Intangible Assets"
+    },
+    {
+      "code": "11.7910",
+      "label": "Intangible assets"
+    },
+    {
+      "code": "11.7950",
+      "label": "Other"
+    },
+    {
+      "code": "1100",
+      "label": "Administration Support - Legislative"
+    },
+    {
+      "code": "13.3100",
+      "label": "Net Investment in Capital Assets"
+    },
+    {
+      "code": "13.3200",
+      "label": "Restricted"
+    },
+    {
+      "code": "13.3400",
+      "label": "Unrestricted"
+    },
+    {
+      "code": "13.5100",
+      "label": "Nonspendable"
+    },
+    {
+      "code": "13.5200",
+      "label": "Restricted"
+    },
+    {
+      "code": "13.5300",
+      "label": "Committed"
+    },
+    {
+      "code": "13.5400",
+      "label": "Assigned"
+    },
+    {
+      "code": "13.5500",
+      "label": "Unassigned"
+    },
+    {
+      "code": "1300",
+      "label": "Administration Support - Executive"
+    },
+    {
+      "code": "1400",
+      "label": "Administration Support - Elections"
+    },
+    {
+      "code": "1510",
+      "label": "Administration - Financial"
+    },
+    {
+      "code": "1530",
+      "label": "Administration - Law"
+    },
+    {
+      "code": "1535",
+      "label": "Administration - Data Processing / MIS"
+    },
+    {
+      "code": "1540",
+      "label": "Administration - Human Resources"
+    },
+    {
+      "code": "1545",
+      "label": "Administration - Tax Commissioner"
+    },
+    {
+      "code": "1550",
+      "label": "Administration - Tax Assessor"
+    },
+    {
+      "code": "1555",
+      "label": "Administration - Risk Management"
+    },
+    {
+      "code": "1560",
+      "label": "Administration - Internal Audit"
+    },
+    {
+      "code": "1565",
+      "label": "Administration - Gen. Govmt Buildings & Plant"
+    },
+    {
+      "code": "1570",
+      "label": "Administration - Public Information"
+    },
+    {
+      "code": "1575",
+      "label": "Administration - General Engineering"
+    },
+    {
+      "code": "1580",
+      "label": "Administration - Records Management"
+    },
+    {
+      "code": "1590",
+      "label": "Administration - Customer Service"
+    },
+    {
+      "code": "1595",
+      "label": "Administration - General Administration Fees"
+    },
+    {
+      "code": "2100",
+      "label": "Judicial Administration"
+    },
+    {
+      "code": "2150",
+      "label": "Judicial Admin. - Superior Court"
+    },
+    {
+      "code": "2160",
+      "label": "Accountability Courts (Sub-accounts 2161-2165)"
+    },
+    {
+      "code": "2180",
+      "label": "Clerk of Courts (Superior)"
+    },
+    {
+      "code": "2200",
+      "label": "District Attorney"
+    },
+    {
+      "code": "2300",
+      "label": "State Court"
+    },
+    {
+      "code": "2400",
+      "label": "Magistrate Court"
+    },
+    {
+      "code": "2450",
+      "label": "Probate Court"
+    },
+    {
+      "code": "2500",
+      "label": "Recorder's Court"
+    },
+    {
+      "code": "2600",
+      "label": "Juvenile Court"
+    },
+    {
+      "code": "2650",
+      "label": "Municipal Court"
+    },
+    {
+      "code": "2700",
+      "label": "Grand Jury Administration"
+    },
+    {
+      "code": "2750",
+      "label": "Law Library"
+    },
+    {
+      "code": "2800",
+      "label": "Public Defender Administration"
+    },
+    {
+      "code": "31.1100",
+      "label": "Real Property Taxes, Current Year"
+    },
+    {
+      "code": "31.1110",
+      "label": "Real Property Taxes, Current Year -- Public Utility"
+    },
+    {
+      "code": "31.1120",
+      "label": "Real Property Taxes, Current Year -- Timber Taxes"
+    },
+    {
+      "code": "31.1190",
+      "label": "Real Property Taxes, Current Year -- Other"
+    },
+    {
+      "code": "31.1200",
+      "label": "Real Property Taxes - Prior Year"
+    },
+    {
+      "code": "31.1300",
+      "label": "Personal Property Taxes - Current Year"
+    },
+    {
+      "code": "31.1310",
+      "label": "Personal Property Tax, Current Year -- Motor Vehicle Taxes"
+    },
+    {
+      "code": "31.1315",
+      "label": "Personal Property Tax, Current Year -- Title Ad Valorem Tax (TAVT)"
+    },
+    {
+      "code": "31.1316",
+      "label": "Personal Property Tax, Current Year -- ALT. Apportioned Vehicles (AAVT)"
+    },
+    {
+      "code": "31.1320",
+      "label": "Personal Property Tax, Current Year -- Mobile Home Taxes"
+    },
+    {
+      "code": "31.1340",
+      "label": "Personal Property Tax, Current Year -- Intangibles (Recording Tax)"
+    },
+    {
+      "code": "31.1350",
+      "label": "Personal Property Tax, Current Year -- Railroad Equipment Tax"
+    },
+    {
+      "code": "31.1390",
+      "label": "Personal Property Tax, Current Year -- Other"
+    },
+    {
+      "code": "31.1400",
+      "label": "Personal Property Taxes - Prior Year"
+    },
+    {
+      "code": "31.1600",
+      "label": "Intangible - Real Estate Transfer Tax"
+    },
+    {
+      "code": "31.1710",
+      "label": "Franchise Taxes - Electric"
+    },
+    {
+      "code": "31.1720",
+      "label": "Franchise Taxes - Water"
+    },
+    {
+      "code": "31.1730",
+      "label": "Franchise Taxes - Natural Gas"
+    },
+    {
+      "code": "31.1740",
+      "label": "Franchise Taxes - Sanitation"
+    },
+    {
+      "code": "31.1750",
+      "label": "Franchise Taxes - Cable Television"
+    },
+    {
+      "code": "31.1760",
+      "label": "Franchise Taxes - Telephone"
+    },
+    {
+      "code": "31.1790",
+      "label": "Franchise Taxes - Other (Attach List on \"Attachments\" Page)"
+    },
+    {
+      "code": "31.3100",
+      "label": "Local Option Sales Tax (LOST)"
+    },
+    {
+      "code": "31.3200",
+      "label": "Special Purpose Local Option Sales Tax (SPLOST) - (For County Use Only)"
+    },
+    {
+      "code": "31.3300",
+      "label": "Local Option Sales Tax - Homestead (HOST)"
+    },
+    {
+      "code": "31.3400",
+      "label": "Special Purpose Local Option Sales Tax (TSPLOST1 - Regional/Multi-County)"
+    },
+    {
+      "code": "31.3500",
+      "label": "Special Purpose Local Option Sales Tax (TSPLOST2 - Single County)"
+    },
+    {
+      "code": "31.3900B",
+      "label": "Municipal Option Sales Tax (MOST) - (Atlanta City Only)"
+    },
+    {
+      "code": "31.3900C",
+      "label": "Local Option Sales Tax (O-LOST) - (Columbus/Muscogee Only)"
+    },
+    {
+      "code": "31.3900D",
+      "label": "MARTA Sales Tax (DeKalb/Fulton/Clayton Counties Only)"
+    },
+    {
+      "code": "31.4100",
+      "label": "Hotel/Motel Excise Tax"
+    },
+    {
+      "code": "31.4200",
+      "label": "Alcoholic Beverage Excise Taxes - Beer & Wine"
+    },
+    {
+      "code": "31.4250",
+      "label": "Alcoholic Beverage Excise Tax - Distilled Spirits"
+    },
+    {
+      "code": "31.4300A",
+      "label": "Alcoholic Beverage Excise 3% Taxes - Mixed Drinks - Private Clubs"
+    },
+    {
+      "code": "31.4300B",
+      "label": "Alcoholic Beverage Excise 3% Taxes - Mixed Drinks - Other"
+    },
+    {
+      "code": "31.4400",
+      "label": "Excise Tax on Rental Motor Vehicles"
+    },
+    {
+      "code": "31.4500",
+      "label": "Excise Tax on Energy Used in Manufacturing"
+    },
+    {
+      "code": "31.4900",
+      "label": "Other Selective Sales and Use Taxes (Attach List)"
+    },
+    {
+      "code": "31.6100",
+      "label": "Business and Occupation Taxes"
+    },
+    {
+      "code": "31.6200",
+      "label": "Insurance Premiums Tax"
+    },
+    {
+      "code": "31.6300",
+      "label": "Financial Institutions Taxes"
+    },
+    {
+      "code": "31.8000",
+      "label": "Other Taxes (Attach List)"
+    },
+    {
+      "code": "31.9000",
+      "label": "Penalties & Interest on Delinquent Taxes"
+    },
+    {
+      "code": "3100",
+      "label": "Public Safety Administration"
+    },
+    {
+      "code": "32.1100",
+      "label": "Alcoholic Beverage License Fees"
+    },
+    {
+      "code": "32.1200",
+      "label": "General Business Licenses"
+    },
+    {
+      "code": "32.2200",
+      "label": "Non-Business Licenses and Permits"
+    },
+    {
+      "code": "32.2900",
+      "label": "Non-Business Licenses - Other (Attach List)"
+    },
+    {
+      "code": "32.3100",
+      "label": "Regulatory Building Permits / Inspection Fees"
+    },
+    {
+      "code": "32.3900",
+      "label": "Regulatory Fees - Other (Attach List)"
+    },
+    {
+      "code": "32.4000",
+      "label": "Penalties and Interest on Delinquent Licenses and Permits"
+    },
+    {
+      "code": "3200",
+      "label": "Police Protection"
+    },
+    {
+      "code": "3226",
+      "label": "Prisoner Custody"
+    },
+    {
+      "code": "33.1000",
+      "label": "Community Development Block Grants"
+    },
+    {
+      "code": "33.4000",
+      "label": "Local Maintenance Improvement Grants (LMIG)"
+    },
+    {
+      "code": "33.5200",
+      "label": "Forest Land Protection (FLPA) Grants"
+    },
+    {
+      "code": "33.6000",
+      "label": "Water/Wastewater Grants"
+    },
+    {
+      "code": "33.7100",
+      "label": "SPLOST Distribution - Municipalities Only"
+    },
+    {
+      "code": "33.9999",
+      "label": "Other Intergovernmental Revenues - Attach List"
+    },
+    {
+      "code": "3300",
+      "label": "Sheriff's Office"
+    },
+    {
+      "code": "3326",
+      "label": "Jail Operations"
+    },
+    {
+      "code": "34.1100",
+      "label": "General Government - Court Fees and Charges"
+    },
+    {
+      "code": "34.1300",
+      "label": "General Government - Planning/Development Fees"
+    },
+    {
+      "code": "34.1400",
+      "label": "General Government - Other"
+    },
+    {
+      "code": "34.2100",
+      "label": "Public Safety - Police Protection Services"
+    },
+    {
+      "code": "34.2200",
+      "label": "Public Safety - Fire Protection Services"
+    },
+    {
+      "code": "34.2300",
+      "label": "Public Safety - Jail Detention & Correction Services"
+    },
+    {
+      "code": "34.2500",
+      "label": "Public Safety - E-911 Charges"
+    },
+    {
+      "code": "34.2510",
+      "label": "Public Safety - E-911 Prepaid Cellular Fees"
+    },
+    {
+      "code": "34.2600",
+      "label": "Public Safety - Ambulance Fees"
+    },
+    {
+      "code": "34.3000",
+      "label": "Streets and Public improvements"
+    },
+    {
+      "code": "34.3200",
+      "label": "Special Assessments"
+    },
+    {
+      "code": "34.3300",
+      "label": "State Road Maintenance"
+    },
+    {
+      "code": "34.3900",
+      "label": "Other Streets and Public Improvement Fees"
+    },
+    {
+      "code": "34.4110",
+      "label": "Sanitation Fees - Refuse Collection Charges"
+    },
+    {
+      "code": "34.4120",
+      "label": "Sale of Waste and Sludge"
+    },
+    {
+      "code": "34.4130",
+      "label": "Sale of Recycled Materials"
+    },
+    {
+      "code": "34.4150",
+      "label": "Sanitation Fees - Landfill Use Fees"
+    },
+    {
+      "code": "34.4160",
+      "label": "Sanitation Fees - Solid Waste Recycling Fees"
+    },
+    {
+      "code": "34.4210",
+      "label": "Water Charges"
+    },
+    {
+      "code": "34.4255",
+      "label": "Sewerage Charges"
+    },
+    {
+      "code": "34.4260",
+      "label": "Storm Water Utility Charges"
+    },
+    {
+      "code": "34.4300",
+      "label": "Electric Charges"
+    },
+    {
+      "code": "34.4400",
+      "label": "Natural Gas Charges"
+    },
+    {
+      "code": "34.4500",
+      "label": "Telephone Charges"
+    },
+    {
+      "code": "34.4600",
+      "label": "Television Cable Charges"
+    },
+    {
+      "code": "34.5200",
+      "label": "Golf Course Charges"
+    },
+    {
+      "code": "34.5300",
+      "label": "Airport Charges"
+    },
+    {
+      "code": "34.5400",
+      "label": "Parking Charges"
+    },
+    {
+      "code": "34.5500",
+      "label": "Transit Charges"
+    },
+    {
+      "code": "34.5600",
+      "label": "Telecommunication (Broadband) Charges"
+    },
+    {
+      "code": "34.6110",
+      "label": "Animal Control and Shelter Fees"
+    },
+    {
+      "code": "34.6510",
+      "label": "Substance Abuse Treatment Fees"
+    },
+    {
+      "code": "34.7000",
+      "label": "Culture and Recreation Fees and Charges"
+    },
+    {
+      "code": "34.9000",
+      "label": "Other Charges For Services"
+    },
+    {
+      "code": "3400",
+      "label": "Corrections"
+    },
+    {
+      "code": "35.1100",
+      "label": "Fines and Forfeitures - Court Fees"
+    },
+    {
+      "code": "35.1200",
+      "label": "Forfeitures - Bonds"
+    },
+    {
+      "code": "35.1300",
+      "label": "Forfeitures - Confiscations"
+    },
+    {
+      "code": "35.1400",
+      "label": "Fines and Forfeitures - Penalty Assessments"
+    },
+    {
+      "code": "35.1900",
+      "label": "Public Safety - Speeding Violation Fees (Req. SB-134)"
+    },
+    {
+      "code": "3500",
+      "label": "Fire Protection"
+    },
+    {
+      "code": "36.1000",
+      "label": "Interest Revenues"
+    },
+    {
+      "code": "36.2000",
+      "label": "Realized Gain (loss) on Investments"
+    },
+    {
+      "code": "36.3000",
+      "label": "Unrealized Gain (loss) on Investments"
+    },
+    {
+      "code": "3600",
+      "label": "EMS / Ambulance Service"
+    },
+    {
+      "code": "37.1000",
+      "label": "Contributions and Donations from Private Sources"
+    },
+    {
+      "code": "3700",
+      "label": "Coroner / Medical Examiner Services"
+    },
+    {
+      "code": "38.1000",
+      "label": "Rents and Royalties"
+    },
+    {
+      "code": "38.2000",
+      "label": "Telephone Commissions - Jail"
+    },
+    {
+      "code": "38.3000",
+      "label": "Reimbursement for Damaged Property"
+    },
+    {
+      "code": "3800",
+      "label": "E-911 Operations"
+    },
+    {
+      "code": "39.2000",
+      "label": "Proceeds of Capital Asset Disposition"
+    },
+    {
+      "code": "39.9999",
+      "label": "All Additional Revenues - Attach List"
+    },
+    {
+      "code": "3900",
+      "label": "Other Protections"
+    },
+    {
+      "code": "3910",
+      "label": "Animal Control"
+    },
+    {
+      "code": "4100",
+      "label": "Public Works Administration"
+    },
+    {
+      "code": "4200",
+      "label": "Roads, Streets, and Bridges"
+    },
+    {
+      "code": "4250",
+      "label": "Storm Drainage"
+    },
+    {
+      "code": "4300",
+      "label": "Wastewater"
+    },
+    {
+      "code": "4400",
+      "label": "Water"
+    },
+    {
+      "code": "4510",
+      "label": "Solid Waste and Recycling Administration"
+    },
+    {
+      "code": "4520",
+      "label": "Solid Waste Collection"
+    },
+    {
+      "code": "4530",
+      "label": "Solid Waste Disposal"
+    },
+    {
+      "code": "4540",
+      "label": "Recyclables Collection"
+    },
+    {
+      "code": "4550",
+      "label": "Recyclables Operations"
+    },
+    {
+      "code": "4560",
+      "label": "Closure and Post-closure Care"
+    },
+    {
+      "code": "4570",
+      "label": "Future Landfill/Cell Development"
+    },
+    {
+      "code": "4580",
+      "label": "Public Education"
+    },
+    {
+      "code": "4585",
+      "label": "Yard Trimmings Collection and Management"
+    },
+    {
+      "code": "4600",
+      "label": "Electric"
+    },
+    {
+      "code": "4700",
+      "label": "Natural Gas"
+    },
+    {
+      "code": "4750",
+      "label": "Telecommunications (Broadband)"
+    },
+    {
+      "code": "4800",
+      "label": "Cable Television"
+    },
+    {
+      "code": "4900",
+      "label": "Maintenance Shop"
+    },
+    {
+      "code": "4950",
+      "label": "Cemetery"
+    },
+    {
+      "code": "4960",
+      "label": "Intergovernmental Payments of SPLOST (Counties Only)"
+    },
+    {
+      "code": "5000",
+      "label": "Hospitals"
+    },
+    {
+      "code": "51.1000",
+      "label": "Salaries and Wages for Current Operations"
+    },
+    {
+      "code": "51.2000",
+      "label": "Employee Benefits (Health, FICA, Retirement, Workers Comp, etc.)"
+    },
+    {
+      "code": "5100",
+      "label": "Health"
+    },
+    {
+      "code": "5400",
+      "label": "Welfare"
+    },
+    {
+      "code": "5500",
+      "label": "Community Services"
+    },
+    {
+      "code": "5540",
+      "label": "Public Transportation"
+    },
+    {
+      "code": "5600",
+      "label": "Public Education"
+    },
+    {
+      "code": "58.3000",
+      "label": "OTHER DEBT COSTS"
+    },
+    {
+      "code": "58.4000",
+      "label": "OTHER DEBT COSTS"
+    },
+    {
+      "code": "58.5000",
+      "label": "OTHER DEBT COSTS"
+    },
+    {
+      "code": "6100",
+      "label": "Recreation"
+    },
+    {
+      "code": "6200",
+      "label": "Parks"
+    },
+    {
+      "code": "6500",
+      "label": "Libraries"
+    },
+    {
+      "code": "7100",
+      "label": "Conservation (includes County Extension Services)"
+    },
+    {
+      "code": "7200",
+      "label": "Protective Inspection"
+    },
+    {
+      "code": "7300",
+      "label": "Urban Redevelopment and Housing"
+    },
+    {
+      "code": "7400",
+      "label": "Planning and Zoning"
+    },
+    {
+      "code": "7500",
+      "label": "Economic Development and Resources"
+    },
+    {
+      "code": "7563",
+      "label": "Airport"
+    },
+    {
+      "code": "7600",
+      "label": "Economic Opportunity and Programs"
+    }
+  ]
+}

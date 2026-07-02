@@ -4,6 +4,10 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { DEPARTMENT_ROLES } from '../constants/departmentRoles';
 
+// Tasks whose title identifies the RLGF filing open the in-app schema-driven form
+// instead of the generic "fill online" stub.
+const isRlgfTask = (task) => /\brlgf\b|report of local government financ/i.test(task?.title || '');
+
 const CountyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1039,7 +1043,15 @@ const CountyDetail = () => {
                           !isAdmin && task.status !== 'completed' && (
                             <button
                               type="button"
-                              onClick={() => (task.portalLink ? handleOpenPortalLink(task) : handleUpdateTaskStatus(task._id, 'in_progress'))}
+                              onClick={() => {
+                                if (isRlgfTask(task)) {
+                                  navigate(`/county/${id}/rlgf/${task._id}`);
+                                } else if (task.portalLink) {
+                                  handleOpenPortalLink(task);
+                                } else {
+                                  handleUpdateTaskStatus(task._id, 'in_progress');
+                                }
+                              }}
                               className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

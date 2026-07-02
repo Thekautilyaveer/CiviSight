@@ -1,0 +1,2773 @@
+{
+  "version": "2020_UCOA_4th",
+  "entries": [
+    {
+      "gov_id": "2156001",
+      "name": "Abbeville City"
+    },
+    {
+      "gov_id": "2033001",
+      "name": "Acworth City"
+    },
+    {
+      "gov_id": "2008001",
+      "name": "Adairsville City"
+    },
+    {
+      "gov_id": "2037001",
+      "name": "Adel City"
+    },
+    {
+      "gov_id": "2083001",
+      "name": "Adrian City"
+    },
+    {
+      "gov_id": "2103001",
+      "name": "Ailey City"
+    },
+    {
+      "gov_id": "2153001",
+      "name": "Alamo Town"
+    },
+    {
+      "gov_id": "2010001",
+      "name": "Alapaha Town"
+    },
+    {
+      "gov_id": "2047001",
+      "name": "Albany City"
+    },
+    {
+      "gov_id": "2085001",
+      "name": "Aldora Town"
+    },
+    {
+      "gov_id": "2089801",
+      "name": "Allenhurst City"
+    },
+    {
+      "gov_id": "2158001",
+      "name": "Allentown City"
+    },
+    {
+      "gov_id": "2003001",
+      "name": "Alma City"
+    },
+    {
+      "gov_id": "2060001",
+      "name": "Alpharetta City"
+    },
+    {
+      "gov_id": "2103002",
+      "name": "Alston Town"
+    },
+    {
+      "gov_id": "2068001",
+      "name": "Alto Town"
+    },
+    {
+      "gov_id": "2034001",
+      "name": "Ambrose City"
+    },
+    {
+      "gov_id": "2129001",
+      "name": "Americus City"
+    },
+    {
+      "gov_id": "2129002",
+      "name": "Andersonville City"
+    },
+    {
+      "gov_id": "1001001",
+      "name": "Appling County"
+    },
+    {
+      "gov_id": "2040001",
+      "name": "Arabi Town"
+    },
+    {
+      "gov_id": "2115901",
+      "name": "Aragon City"
+    },
+    {
+      "gov_id": "2078001",
+      "name": "Arcade Town"
+    },
+    {
+      "gov_id": "2032001",
+      "name": "Argyle Town"
+    },
+    {
+      "gov_id": "2019004",
+      "name": "Arlington City"
+    },
+    {
+      "gov_id": "2109801",
+      "name": "Arnoldsville City"
+    },
+    {
+      "gov_id": "2142001",
+      "name": "Ashburn City"
+    },
+    {
+      "gov_id": "3029029",
+      "name": "Athens-Clarke Cons. Govt."
+    },
+    {
+      "gov_id": "1002002",
+      "name": "Atkinson County"
+    },
+    {
+      "gov_id": "2060002",
+      "name": "Atlanta City"
+    },
+    {
+      "gov_id": "2043001",
+      "name": "Attapulgus City"
+    },
+    {
+      "gov_id": "2007001",
+      "name": "Auburn City"
+    },
+    {
+      "gov_id": "3121121",
+      "name": "Augusta/Richmond Cons. Govt."
+    },
+    {
+      "gov_id": "2033002",
+      "name": "Austell City"
+    },
+    {
+      "gov_id": "2127501",
+      "name": "Avalon Town"
+    },
+    {
+      "gov_id": "2081001",
+      "name": "Avera City"
+    },
+    {
+      "gov_id": "2044001",
+      "name": "Avondale Estates City"
+    },
+    {
+      "gov_id": "1003003",
+      "name": "Bacon County"
+    },
+    {
+      "gov_id": "2101001",
+      "name": "Baconton City"
+    },
+    {
+      "gov_id": "2043002",
+      "name": "Bainbridge City"
+    },
+    {
+      "gov_id": "1004004",
+      "name": "Baker County"
+    },
+    {
+      "gov_id": "2068002",
+      "name": "Baldwin City"
+    },
+    {
+      "gov_id": "1005005",
+      "name": "Baldwin County"
+    },
+    {
+      "gov_id": "2028001",
+      "name": "Ball Ground City"
+    },
+    {
+      "gov_id": "1006006",
+      "name": "Banks County"
+    },
+    {
+      "gov_id": "2085002",
+      "name": "Barnesville City"
+    },
+    {
+      "gov_id": "1007007",
+      "name": "Barrow County"
+    },
+    {
+      "gov_id": "1008008",
+      "name": "Bartow County"
+    },
+    {
+      "gov_id": "2081002",
+      "name": "Bartow Town"
+    },
+    {
+      "gov_id": "2136001",
+      "name": "Barwick City"
+    },
+    {
+      "gov_id": "2001001",
+      "name": "Baxley City"
+    },
+    {
+      "gov_id": "2054701",
+      "name": "Bellville City"
+    },
+    {
+      "gov_id": "1009009",
+      "name": "Ben Hill County"
+    },
+    {
+      "gov_id": "2067001",
+      "name": "Berkeley Lake City"
+    },
+    {
+      "gov_id": "2035001",
+      "name": "Berlin City"
+    },
+    {
+      "gov_id": "1010010",
+      "name": "Berrien County"
+    },
+    {
+      "gov_id": "2007002",
+      "name": "Bethlehem Town"
+    },
+    {
+      "gov_id": "2147901",
+      "name": "Between Town"
+    },
+    {
+      "gov_id": "2108001",
+      "name": "Bishop Town"
+    },
+    {
+      "gov_id": "2113001",
+      "name": "Blackshear City"
+    },
+    {
+      "gov_id": "2144001",
+      "name": "Blairsville City"
+    },
+    {
+      "gov_id": "2049001",
+      "name": "Blakely City"
+    },
+    {
+      "gov_id": "1012012",
+      "name": "Bleckley County"
+    },
+    {
+      "gov_id": "2025901",
+      "name": "Bloomingdale City"
+    },
+    {
+      "gov_id": "2055001",
+      "name": "Blue Ridge City"
+    },
+    {
+      "gov_id": "2030001",
+      "name": "Bluffton Town"
+    },
+    {
+      "gov_id": "2121002",
+      "name": "Blythe Town"
+    },
+    {
+      "gov_id": "2108002",
+      "name": "Bogart City"
+    },
+    {
+      "gov_id": "2136002",
+      "name": "Boston City"
+    },
+    {
+      "gov_id": "2104001",
+      "name": "Bostwick City"
+    },
+    {
+      "gov_id": "2022001",
+      "name": "Bowdon City"
+    },
+    {
+      "gov_id": "2073001",
+      "name": "Bowersville Town"
+    },
+    {
+      "gov_id": "2052001",
+      "name": "Bowman City"
+    },
+    {
+      "gov_id": "1013013",
+      "name": "Brantley County"
+    },
+    {
+      "gov_id": "2078002",
+      "name": "Braselton Town"
+    },
+    {
+      "gov_id": "2110601",
+      "name": "Braswell Town"
+    },
+    {
+      "gov_id": "2071001",
+      "name": "Bremen City"
+    },
+    {
+      "gov_id": "2043003",
+      "name": "Brinson Town"
+    },
+    {
+      "gov_id": "2135001",
+      "name": "Bronwood City"
+    },
+    {
+      "gov_id": "2044011",
+      "name": "Brookhaven City"
+    },
+    {
+      "gov_id": "2016001",
+      "name": "Brooklet City"
+    },
+    {
+      "gov_id": "1014014",
+      "name": "Brooks County"
+    },
+    {
+      "gov_id": "2056501",
+      "name": "Brooks Town"
+    },
+    {
+      "gov_id": "2034002",
+      "name": "Broxton City"
+    },
+    {
+      "gov_id": "2063001",
+      "name": "Brunswick City"
+    },
+    {
+      "gov_id": "1015015",
+      "name": "Bryan County"
+    },
+    {
+      "gov_id": "2071002",
+      "name": "Buchanan City"
+    },
+    {
+      "gov_id": "2104002",
+      "name": "Buckhead Town"
+    },
+    {
+      "gov_id": "2098001",
+      "name": "Buena Vista City"
+    },
+    {
+      "gov_id": "2067002",
+      "name": "Buford City"
+    },
+    {
+      "gov_id": "1016016",
+      "name": "Bulloch County"
+    },
+    {
+      "gov_id": "1017017",
+      "name": "Burke County"
+    },
+    {
+      "gov_id": "2133001",
+      "name": "Butler City"
+    },
+    {
+      "gov_id": "1018018",
+      "name": "Butts County"
+    },
+    {
+      "gov_id": "2046001",
+      "name": "Byromville Town"
+    },
+    {
+      "gov_id": "2111001",
+      "name": "Byron City"
+    },
+    {
+      "gov_id": "2087001",
+      "name": "Cadwell Town"
+    },
+    {
+      "gov_id": "2065001",
+      "name": "Cairo City"
+    },
+    {
+      "gov_id": "2064001",
+      "name": "Calhoun City"
+    },
+    {
+      "gov_id": "1019019",
+      "name": "Calhoun County"
+    },
+    {
+      "gov_id": "2149001",
+      "name": "Camak Town"
+    },
+    {
+      "gov_id": "1020020",
+      "name": "Camden County"
+    },
+    {
+      "gov_id": "2101002",
+      "name": "Camilla City"
+    },
+    {
+      "gov_id": "1021021",
+      "name": "Candler County"
+    },
+    {
+      "gov_id": "2059001",
+      "name": "Canon City"
+    },
+    {
+      "gov_id": "2028002",
+      "name": "Canton City"
+    },
+    {
+      "gov_id": "2007003",
+      "name": "Carl Town"
+    },
+    {
+      "gov_id": "2097001",
+      "name": "Carlton City"
+    },
+    {
+      "gov_id": "2059002",
+      "name": "Carnesville City"
+    },
+    {
+      "gov_id": "1022022",
+      "name": "Carroll County"
+    },
+    {
+      "gov_id": "2022002",
+      "name": "Carrollton City"
+    },
+    {
+      "gov_id": "2008002",
+      "name": "Cartersville City"
+    },
+    {
+      "gov_id": "1023023",
+      "name": "Catoosa County"
+    },
+    {
+      "gov_id": "2057001",
+      "name": "Cave Spring City"
+    },
+    {
+      "gov_id": "2037002",
+      "name": "Cecil City"
+    },
+    {
+      "gov_id": "2115002",
+      "name": "Cedartown City"
+    },
+    {
+      "gov_id": "2076501",
+      "name": "Centerville City"
+    },
+    {
+      "gov_id": "2074001",
+      "name": "Centralhatchee Town"
+    },
+    {
+      "gov_id": "2044002",
+      "name": "Chamblee City"
+    },
+    {
+      "gov_id": "1024024",
+      "name": "Charlton County"
+    },
+    {
+      "gov_id": "1025025",
+      "name": "Chatham County"
+    },
+    {
+      "gov_id": "2105001",
+      "name": "Chatsworth City"
+    },
+    {
+      "gov_id": "2060504",
+      "name": "Chattahoochee Hills City"
+    },
+    {
+      "gov_id": "1027027",
+      "name": "Chattooga County"
+    },
+    {
+      "gov_id": "2045001",
+      "name": "Chauncey City"
+    },
+    {
+      "gov_id": "1028028",
+      "name": "Cherokee County"
+    },
+    {
+      "gov_id": "2045002",
+      "name": "Chester Town"
+    },
+    {
+      "gov_id": "2146001",
+      "name": "Chickamauga City"
+    },
+    {
+      "gov_id": "2068003",
+      "name": "Clarkesville City"
+    },
+    {
+      "gov_id": "2044003",
+      "name": "Clarkston City"
+    },
+    {
+      "gov_id": "2054001",
+      "name": "Claxton City"
+    },
+    {
+      "gov_id": "1030030",
+      "name": "Clay County"
+    },
+    {
+      "gov_id": "2119001",
+      "name": "Clayton City"
+    },
+    {
+      "gov_id": "1031031",
+      "name": "Clayton County"
+    },
+    {
+      "gov_id": "2069001",
+      "name": "Clermont Town"
+    },
+    {
+      "gov_id": "2154001",
+      "name": "Cleveland City"
+    },
+    {
+      "gov_id": "2043004",
+      "name": "Climax City"
+    },
+    {
+      "gov_id": "1032032",
+      "name": "Clinch County"
+    },
+    {
+      "gov_id": "1033033",
+      "name": "Cobb County"
+    },
+    {
+      "gov_id": "2132001",
+      "name": "Cobbtown City"
+    },
+    {
+      "gov_id": "2012001",
+      "name": "Cochran City"
+    },
+    {
+      "gov_id": "1034034",
+      "name": "Coffee County"
+    },
+    {
+      "gov_id": "2155801",
+      "name": "Cohutta City"
+    },
+    {
+      "gov_id": "2097002",
+      "name": "Colbert City"
+    },
+    {
+      "gov_id": "2060003",
+      "name": "College Park City"
+    },
+    {
+      "gov_id": "2132002",
+      "name": "Collins City"
+    },
+    {
+      "gov_id": "2100002",
+      "name": "Colquitt City"
+    },
+    {
+      "gov_id": "1035035",
+      "name": "Colquitt County"
+    },
+    {
+      "gov_id": "1036036",
+      "name": "Columbia County"
+    },
+    {
+      "gov_id": "3106002",
+      "name": "Columbus/Muscogee Cons. Govt."
+    },
+    {
+      "gov_id": "2097003",
+      "name": "Comer City"
+    },
+    {
+      "gov_id": "2078003",
+      "name": "Commerce City"
+    },
+    {
+      "gov_id": "2114001",
+      "name": "Concord City"
+    },
+    {
+      "gov_id": "2122001",
+      "name": "Conyers City"
+    },
+    {
+      "gov_id": "1037037",
+      "name": "Cook County"
+    },
+    {
+      "gov_id": "2136003",
+      "name": "Coolidge City"
+    },
+    {
+      "gov_id": "2040002",
+      "name": "Cordele City"
+    },
+    {
+      "gov_id": "2068004",
+      "name": "Cornelia City"
+    },
+    {
+      "gov_id": "2107001",
+      "name": "Covington City"
+    },
+    {
+      "gov_id": "1038038",
+      "name": "Coweta County"
+    },
+    {
+      "gov_id": "2109001",
+      "name": "Crawford City"
+    },
+    {
+      "gov_id": "1039039",
+      "name": "Crawford County"
+    },
+    {
+      "gov_id": "2131001",
+      "name": "Crawfordville City"
+    },
+    {
+      "gov_id": "1040040",
+      "name": "Crisp County"
+    },
+    {
+      "gov_id": "2102001",
+      "name": "Culloden City"
+    },
+    {
+      "gov_id": "2058001",
+      "name": "Cumming City"
+    },
+    {
+      "gov_id": "3026026",
+      "name": "Cusseta-Chattahoochee Cons. Govt.."
+    },
+    {
+      "gov_id": "2120003",
+      "name": "Cuthbert City"
+    },
+    {
+      "gov_id": "2067003",
+      "name": "Dacula City"
+    },
+    {
+      "gov_id": "1041041",
+      "name": "Dade County"
+    },
+    {
+      "gov_id": "2093001",
+      "name": "Dahlonega City"
+    },
+    {
+      "gov_id": "2054801",
+      "name": "Daisy City"
+    },
+    {
+      "gov_id": "2110001",
+      "name": "Dallas City"
+    },
+    {
+      "gov_id": "2155001",
+      "name": "Dalton City"
+    },
+    {
+      "gov_id": "2049002",
+      "name": "Damascus City"
+    },
+    {
+      "gov_id": "2097004",
+      "name": "Danielsville City"
+    },
+    {
+      "gov_id": "2158002",
+      "name": "Danville Town"
+    },
+    {
+      "gov_id": "2095001",
+      "name": "Darien City"
+    },
+    {
+      "gov_id": "2092801",
+      "name": "Dasher City"
+    },
+    {
+      "gov_id": "2150001",
+      "name": "Davisboro City"
+    },
+    {
+      "gov_id": "2135002",
+      "name": "Dawson City"
+    },
+    {
+      "gov_id": "1042042",
+      "name": "Dawson County"
+    },
+    {
+      "gov_id": "2042001",
+      "name": "Dawsonville City"
+    },
+    {
+      "gov_id": "2129003",
+      "name": "De Soto City"
+    },
+    {
+      "gov_id": "2094001",
+      "name": "Dearing Town"
+    },
+    {
+      "gov_id": "2044004",
+      "name": "Decatur City"
+    },
+    {
+      "gov_id": "1043043",
+      "name": "Decatur County"
+    },
+    {
+      "gov_id": "2150501",
+      "name": "Deepstep Town"
+    },
+    {
+      "gov_id": "1044044",
+      "name": "DeKalb County"
+    },
+    {
+      "gov_id": "2068005",
+      "name": "Demorest City"
+    },
+    {
+      "gov_id": "2080701",
+      "name": "Denton City"
+    },
+    {
+      "gov_id": "2087002",
+      "name": "Dexter Town"
+    },
+    {
+      "gov_id": "2119002",
+      "name": "Dillard City"
+    },
+    {
+      "gov_id": "1045045",
+      "name": "Dodge County"
+    },
+    {
+      "gov_id": "2035003",
+      "name": "Doerun City"
+    },
+    {
+      "gov_id": "2125001",
+      "name": "Donalsonville City"
+    },
+    {
+      "gov_id": "2046501",
+      "name": "Dooling Town"
+    },
+    {
+      "gov_id": "1046046",
+      "name": "Dooly County"
+    },
+    {
+      "gov_id": "2044005",
+      "name": "Doraville City"
+    },
+    {
+      "gov_id": "1047047",
+      "name": "Dougherty County"
+    },
+    {
+      "gov_id": "2034003",
+      "name": "Douglas City"
+    },
+    {
+      "gov_id": "1048048",
+      "name": "Douglas County"
+    },
+    {
+      "gov_id": "2048001",
+      "name": "Douglasville City"
+    },
+    {
+      "gov_id": "2087003",
+      "name": "Dublin City"
+    },
+    {
+      "gov_id": "2087004",
+      "name": "Dudley City"
+    },
+    {
+      "gov_id": "2067004",
+      "name": "Duluth City"
+    },
+    {
+      "gov_id": "2044010",
+      "name": "Dunwoody City"
+    },
+    {
+      "gov_id": "2032002",
+      "name": "DuPont Town"
+    },
+    {
+      "gov_id": "1049049",
+      "name": "Early County"
+    },
+    {
+      "gov_id": "2087005",
+      "name": "East Dublin City"
+    },
+    {
+      "gov_id": "2061001",
+      "name": "East Ellijay City"
+    },
+    {
+      "gov_id": "2060004",
+      "name": "East Point City"
+    },
+    {
+      "gov_id": "2045003",
+      "name": "Eastman City"
+    },
+    {
+      "gov_id": "2117001",
+      "name": "Eatonton City"
+    },
+    {
+      "gov_id": "3050050",
+      "name": "Echols County"
+    },
+    {
+      "gov_id": "2062001",
+      "name": "Edgehill City"
+    },
+    {
+      "gov_id": "2019001",
+      "name": "Edison City"
+    },
+    {
+      "gov_id": "1051051",
+      "name": "Effingham County"
+    },
+    {
+      "gov_id": "1052052",
+      "name": "Elbert County"
+    },
+    {
+      "gov_id": "2052002",
+      "name": "Elberton City"
+    },
+    {
+      "gov_id": "2123001",
+      "name": "Ellaville City"
+    },
+    {
+      "gov_id": "2035004",
+      "name": "Ellenton City"
+    },
+    {
+      "gov_id": "2061002",
+      "name": "Ellijay City"
+    },
+    {
+      "gov_id": "1053053",
+      "name": "Emanuel County"
+    },
+    {
+      "gov_id": "2008003",
+      "name": "Emerson City"
+    },
+    {
+      "gov_id": "2010002",
+      "name": "Enigma City"
+    },
+    {
+      "gov_id": "2074801",
+      "name": "Ephesus City"
+    },
+    {
+      "gov_id": "2105003",
+      "name": "Eton City"
+    },
+    {
+      "gov_id": "2008601",
+      "name": "Euharlee City"
+    },
+    {
+      "gov_id": "1054054",
+      "name": "Evans County"
+    },
+    {
+      "gov_id": "2060005",
+      "name": "Fairburn City"
+    },
+    {
+      "gov_id": "2064002",
+      "name": "Fairmount City"
+    },
+    {
+      "gov_id": "1055055",
+      "name": "Fannin County"
+    },
+    {
+      "gov_id": "2032501",
+      "name": "Fargo City"
+    },
+    {
+      "gov_id": "1056056",
+      "name": "Fayette County"
+    },
+    {
+      "gov_id": "2056001",
+      "name": "Fayetteville City"
+    },
+    {
+      "gov_id": "2009001",
+      "name": "Fitzgerald City"
+    },
+    {
+      "gov_id": "2089501",
+      "name": "Flemington City"
+    },
+    {
+      "gov_id": "2018001",
+      "name": "Flovilla City"
+    },
+    {
+      "gov_id": "2069002",
+      "name": "Flowery Branch City"
+    },
+    {
+      "gov_id": "1057057",
+      "name": "Floyd County"
+    },
+    {
+      "gov_id": "2024001",
+      "name": "Folkston City"
+    },
+    {
+      "gov_id": "2031001",
+      "name": "Forest Park City"
+    },
+    {
+      "gov_id": "2102002",
+      "name": "Forsyth City"
+    },
+    {
+      "gov_id": "1058058",
+      "name": "Forsyth County"
+    },
+    {
+      "gov_id": "2030002",
+      "name": "Fort Gaines City"
+    },
+    {
+      "gov_id": "2023001",
+      "name": "Fort Oglethorpe City"
+    },
+    {
+      "gov_id": "2111002",
+      "name": "Fort Valley City"
+    },
+    {
+      "gov_id": "2074003",
+      "name": "Franklin City"
+    },
+    {
+      "gov_id": "1059059",
+      "name": "Franklin County"
+    },
+    {
+      "gov_id": "2059003",
+      "name": "Franklin Springs City"
+    },
+    {
+      "gov_id": "1060060",
+      "name": "Fulton County"
+    },
+    {
+      "gov_id": "2035005",
+      "name": "Funston City"
+    },
+    {
+      "gov_id": "2069003",
+      "name": "Gainesville City"
+    },
+    {
+      "gov_id": "2025001",
+      "name": "Garden City"
+    },
+    {
+      "gov_id": "2053001",
+      "name": "Garfield City"
+    },
+    {
+      "gov_id": "2099001",
+      "name": "Gay Town"
+    },
+    {
+      "gov_id": "2130001",
+      "name": "Geneva Town"
+    },
+    {
+      "gov_id": "3118118",
+      "name": "Georgetown-Quitman Cons. Gov."
+    },
+    {
+      "gov_id": "2062002",
+      "name": "Gibson City"
+    },
+    {
+      "gov_id": "2069004",
+      "name": "Gillsville City"
+    },
+    {
+      "gov_id": "1061061",
+      "name": "Gilmer County"
+    },
+    {
+      "gov_id": "2017001",
+      "name": "Girard Town"
+    },
+    {
+      "gov_id": "1062062",
+      "name": "Glascock County"
+    },
+    {
+      "gov_id": "2132003",
+      "name": "Glennville City"
+    },
+    {
+      "gov_id": "2153002",
+      "name": "Glenwood City"
+    },
+    {
+      "gov_id": "1063063",
+      "name": "Glynn County"
+    },
+    {
+      "gov_id": "2147001",
+      "name": "Good Hope City"
+    },
+    {
+      "gov_id": "2158003",
+      "name": "Gordon City"
+    },
+    {
+      "gov_id": "1064064",
+      "name": "Gordon County"
+    },
+    {
+      "gov_id": "1065065",
+      "name": "Grady County"
+    },
+    {
+      "gov_id": "2001501",
+      "name": "Graham City"
+    },
+    {
+      "gov_id": "2038001",
+      "name": "Grantville City"
+    },
+    {
+      "gov_id": "2084001",
+      "name": "Gray City"
+    },
+    {
+      "gov_id": "2067501",
+      "name": "Grayson City"
+    },
+    {
+      "gov_id": "1066066",
+      "name": "Greene County"
+    },
+    {
+      "gov_id": "2066001",
+      "name": "Greensboro City"
+    },
+    {
+      "gov_id": "2099002",
+      "name": "Greenville City"
+    },
+    {
+      "gov_id": "2126001",
+      "name": "Griffin City"
+    },
+    {
+      "gov_id": "2036002",
+      "name": "Grovetown City"
+    },
+    {
+      "gov_id": "2089601",
+      "name": "Gum Branch City"
+    },
+    {
+      "gov_id": "2051001",
+      "name": "Guyton City"
+    },
+    {
+      "gov_id": "1067067",
+      "name": "Gwinnett County"
+    },
+    {
+      "gov_id": "1068068",
+      "name": "Habersham County"
+    },
+    {
+      "gov_id": "2054002",
+      "name": "Hagan City"
+    },
+    {
+      "gov_id": "2092001",
+      "name": "Hahira City"
+    },
+    {
+      "gov_id": "1069069",
+      "name": "Hall County"
+    },
+    {
+      "gov_id": "2072002",
+      "name": "Hamilton City"
+    },
+    {
+      "gov_id": "2075001",
+      "name": "Hampton City"
+    },
+    {
+      "gov_id": "1070070",
+      "name": "Hancock County"
+    },
+    {
+      "gov_id": "2060006",
+      "name": "Hapeville City"
+    },
+    {
+      "gov_id": "1071071",
+      "name": "Haralson County"
+    },
+    {
+      "gov_id": "2038002",
+      "name": "Haralson Town"
+    },
+    {
+      "gov_id": "2036001",
+      "name": "Harlem City"
+    },
+    {
+      "gov_id": "1072072",
+      "name": "Harris County"
+    },
+    {
+      "gov_id": "2150002",
+      "name": "Harrison Town"
+    },
+    {
+      "gov_id": "1073073",
+      "name": "Hart County"
+    },
+    {
+      "gov_id": "2073002",
+      "name": "Hartwell City"
+    },
+    {
+      "gov_id": "2116001",
+      "name": "Hawkinsville City"
+    },
+    {
+      "gov_id": "2080001",
+      "name": "Hazlehurst City"
+    },
+    {
+      "gov_id": "1074074",
+      "name": "Heard County"
+    },
+    {
+      "gov_id": "2154002",
+      "name": "Helen City"
+    },
+    {
+      "gov_id": "1075075",
+      "name": "Henry County"
+    },
+    {
+      "gov_id": "2121003",
+      "name": "Hephzibah City"
+    },
+    {
+      "gov_id": "2139001",
+      "name": "Hiawassee City"
+    },
+    {
+      "gov_id": "2103701",
+      "name": "Higgston Town"
+    },
+    {
+      "gov_id": "2124001",
+      "name": "Hiltonia City"
+    },
+    {
+      "gov_id": "2089001",
+      "name": "Hinesville City"
+    },
+    {
+      "gov_id": "2110002",
+      "name": "Hiram City"
+    },
+    {
+      "gov_id": "2013001",
+      "name": "Hoboken City"
+    },
+    {
+      "gov_id": "2141001",
+      "name": "Hogansville City"
+    },
+    {
+      "gov_id": "2028003",
+      "name": "Holly Springs City"
+    },
+    {
+      "gov_id": "2024002",
+      "name": "Homeland City"
+    },
+    {
+      "gov_id": "2006001",
+      "name": "Homer Town"
+    },
+    {
+      "gov_id": "2032003",
+      "name": "Homerville City"
+    },
+    {
+      "gov_id": "2078004",
+      "name": "Hoschton City"
+    },
+    {
+      "gov_id": "1076076",
+      "name": "Houston County"
+    },
+    {
+      "gov_id": "2097005",
+      "name": "Hull Town"
+    },
+    {
+      "gov_id": "2096001",
+      "name": "Ideal City"
+    },
+    {
+      "gov_id": "2097006",
+      "name": "Ila City"
+    },
+    {
+      "gov_id": "2125002",
+      "name": "Iron City"
+    },
+    {
+      "gov_id": "1077077",
+      "name": "Irwin County"
+    },
+    {
+      "gov_id": "2158004",
+      "name": "Irwinton City"
+    },
+    {
+      "gov_id": "2158005",
+      "name": "Ivey City"
+    },
+    {
+      "gov_id": "2018002",
+      "name": "Jackson City"
+    },
+    {
+      "gov_id": "1078078",
+      "name": "Jackson County"
+    },
+    {
+      "gov_id": "2134002",
+      "name": "Jacksonville City"
+    },
+    {
+      "gov_id": "2049003",
+      "name": "Jakin City"
+    },
+    {
+      "gov_id": "2112001",
+      "name": "Jasper City"
+    },
+    {
+      "gov_id": "1079079",
+      "name": "Jasper County"
+    },
+    {
+      "gov_id": "1080080",
+      "name": "Jeff Davis County"
+    },
+    {
+      "gov_id": "2078005",
+      "name": "Jefferson City"
+    },
+    {
+      "gov_id": "1081081",
+      "name": "Jefferson County"
+    },
+    {
+      "gov_id": "2143001",
+      "name": "Jeffersonville City"
+    },
+    {
+      "gov_id": "1082082",
+      "name": "Jenkins County"
+    },
+    {
+      "gov_id": "2018003",
+      "name": "Jenkinsburg Town"
+    },
+    {
+      "gov_id": "2147002",
+      "name": "Jersey City"
+    },
+    {
+      "gov_id": "2151001",
+      "name": "Jesup City"
+    },
+    {
+      "gov_id": "2060502",
+      "name": "Johns Creek City"
+    },
+    {
+      "gov_id": "1083083",
+      "name": "Johnson County"
+    },
+    {
+      "gov_id": "1084084",
+      "name": "Jones County"
+    },
+    {
+      "gov_id": "2031002",
+      "name": "Jonesboro City"
+    },
+    {
+      "gov_id": "2130002",
+      "name": "Junction City"
+    },
+    {
+      "gov_id": "2033003",
+      "name": "Kennesaw City"
+    },
+    {
+      "gov_id": "2017005",
+      "name": "Keysville City"
+    },
+    {
+      "gov_id": "2020001",
+      "name": "Kingsland City"
+    },
+    {
+      "gov_id": "2008004",
+      "name": "Kingston City"
+    },
+    {
+      "gov_id": "2083002",
+      "name": "Kite City"
+    },
+    {
+      "gov_id": "2146002",
+      "name": "LaFayette City"
+    },
+    {
+      "gov_id": "2141002",
+      "name": "LaGrange City"
+    },
+    {
+      "gov_id": "2031003",
+      "name": "Lake City"
+    },
+    {
+      "gov_id": "2092002",
+      "name": "Lake Park City"
+    },
+    {
+      "gov_id": "2086001",
+      "name": "Lakeland City"
+    },
+    {
+      "gov_id": "1085085",
+      "name": "Lamar County"
+    },
+    {
+      "gov_id": "1086086",
+      "name": "Lanier County"
+    },
+    {
+      "gov_id": "1087087",
+      "name": "Laurens County"
+    },
+    {
+      "gov_id": "2059004",
+      "name": "Lavonia City"
+    },
+    {
+      "gov_id": "2067005",
+      "name": "Lawrenceville City"
+    },
+    {
+      "gov_id": "2019002",
+      "name": "Leary City"
+    },
+    {
+      "gov_id": "1088088",
+      "name": "Lee County"
+    },
+    {
+      "gov_id": "2088001",
+      "name": "Leesburg City"
+    },
+    {
+      "gov_id": "2037003",
+      "name": "Lenox Town"
+    },
+    {
+      "gov_id": "2129004",
+      "name": "Leslie City"
+    },
+    {
+      "gov_id": "2109002",
+      "name": "Lexington City"
+    },
+    {
+      "gov_id": "1089089",
+      "name": "Liberty County"
+    },
+    {
+      "gov_id": "2067006",
+      "name": "Lilburn City"
+    },
+    {
+      "gov_id": "2046002",
+      "name": "Lilly City"
+    },
+    {
+      "gov_id": "1090090",
+      "name": "Lincoln County"
+    },
+    {
+      "gov_id": "2090001",
+      "name": "Lincolnton City"
+    },
+    {
+      "gov_id": "2044006",
+      "name": "Lithonia City"
+    },
+    {
+      "gov_id": "2075002",
+      "name": "Locust Grove City"
+    },
+    {
+      "gov_id": "2147005",
+      "name": "Loganville City"
+    },
+    {
+      "gov_id": "2099003",
+      "name": "Lone Oak Town"
+    },
+    {
+      "gov_id": "1091091",
+      "name": "Long County"
+    },
+    {
+      "gov_id": "2146801",
+      "name": "Lookout Mountain City"
+    },
+    {
+      "gov_id": "2081003",
+      "name": "Louisville City"
+    },
+    {
+      "gov_id": "2031901",
+      "name": "Lovejoy City"
+    },
+    {
+      "gov_id": "1092092",
+      "name": "Lowndes County"
+    },
+    {
+      "gov_id": "2091001",
+      "name": "Ludowici City"
+    },
+    {
+      "gov_id": "2069005",
+      "name": "Lula City"
+    },
+    {
+      "gov_id": "2134003",
+      "name": "Lumber City"
+    },
+    {
+      "gov_id": "2128001",
+      "name": "Lumpkin City"
+    },
+    {
+      "gov_id": "1093093",
+      "name": "Lumpkin County"
+    },
+    {
+      "gov_id": "2099004",
+      "name": "Luthersville Town"
+    },
+    {
+      "gov_id": "2027001",
+      "name": "Lyerly Town"
+    },
+    {
+      "gov_id": "2138001",
+      "name": "Lyons City"
+    },
+    {
+      "gov_id": "1096096",
+      "name": "Macon County"
+    },
+    {
+      "gov_id": "3011011",
+      "name": "Macon-Bibb County"
+    },
+    {
+      "gov_id": "2033007",
+      "name": "Mableton City"
+    },
+    {
+      "gov_id": "2104003",
+      "name": "Madison City"
+    },
+    {
+      "gov_id": "1097097",
+      "name": "Madison County"
+    },
+    {
+      "gov_id": "2132004",
+      "name": "Manassas City"
+    },
+    {
+      "gov_id": "2099005",
+      "name": "Manchester City"
+    },
+    {
+      "gov_id": "2107002",
+      "name": "Mansfield City"
+    },
+    {
+      "gov_id": "2033004",
+      "name": "Marietta City"
+    },
+    {
+      "gov_id": "1098098",
+      "name": "Marion County"
+    },
+    {
+      "gov_id": "2096002",
+      "name": "Marshallville City"
+    },
+    {
+      "gov_id": "2127001",
+      "name": "Martin Town"
+    },
+    {
+      "gov_id": "2109003",
+      "name": "Maxeys Town"
+    },
+    {
+      "gov_id": "2006002",
+      "name": "Maysville Town"
+    },
+    {
+      "gov_id": "2055002",
+      "name": "McCaysville City"
+    },
+    {
+      "gov_id": "2075003",
+      "name": "McDonough City"
+    },
+    {
+      "gov_id": "1094094",
+      "name": "McDuffie County"
+    },
+    {
+      "gov_id": "1095095",
+      "name": "McIntosh County"
+    },
+    {
+      "gov_id": "2158006",
+      "name": "McIntyre Town"
+    },
+    {
+      "gov_id": "2134007",
+      "name": "McRae-Helena City"
+    },
+    {
+      "gov_id": "2114002",
+      "name": "Meansville City"
+    },
+    {
+      "gov_id": "2136004",
+      "name": "Meigs City"
+    },
+    {
+      "gov_id": "2027002",
+      "name": "Menlo City"
+    },
+    {
+      "gov_id": "1099099",
+      "name": "Meriwether County"
+    },
+    {
+      "gov_id": "2021001",
+      "name": "Metter City"
+    },
+    {
+      "gov_id": "2017002",
+      "name": "Midville City"
+    },
+    {
+      "gov_id": "2089002",
+      "name": "Midway City"
+    },
+    {
+      "gov_id": "2134005",
+      "name": "Milan City"
+    },
+    {
+      "gov_id": "2005001",
+      "name": "Milledgeville City"
+    },
+    {
+      "gov_id": "2082001",
+      "name": "Millen City"
+    },
+    {
+      "gov_id": "1100100",
+      "name": "Miller County"
+    },
+    {
+      "gov_id": "2085003",
+      "name": "Milner City"
+    },
+    {
+      "gov_id": "2060503",
+      "name": "Milton City"
+    },
+    {
+      "gov_id": "1101101",
+      "name": "Mitchell County"
+    },
+    {
+      "gov_id": "2062003",
+      "name": "Mitchell Town"
+    },
+    {
+      "gov_id": "2114003",
+      "name": "Molena City"
+    },
+    {
+      "gov_id": "2147003",
+      "name": "Monroe City"
+    },
+    {
+      "gov_id": "1102102",
+      "name": "Monroe County"
+    },
+    {
+      "gov_id": "2096003",
+      "name": "Montezuma City"
+    },
+    {
+      "gov_id": "1103103",
+      "name": "Montgomery County"
+    },
+    {
+      "gov_id": "2079001",
+      "name": "Monticello City"
+    },
+    {
+      "gov_id": "2087006",
+      "name": "Montrose Town"
+    },
+    {
+      "gov_id": "2038003",
+      "name": "Moreland Town"
+    },
+    {
+      "gov_id": "2019003",
+      "name": "Morgan City"
+    },
+    {
+      "gov_id": "1104104",
+      "name": "Morgan County"
+    },
+    {
+      "gov_id": "2055004",
+      "name": "Morganton City"
+    },
+    {
+      "gov_id": "2031004",
+      "name": "Morrow City"
+    },
+    {
+      "gov_id": "2014001",
+      "name": "Morven City"
+    },
+    {
+      "gov_id": "2035006",
+      "name": "Moultrie City"
+    },
+    {
+      "gov_id": "2068006",
+      "name": "Mount Airy Town"
+    },
+    {
+      "gov_id": "2103004",
+      "name": "Mount Vernon City"
+    },
+    {
+      "gov_id": "2022003",
+      "name": "Mount Zion City"
+    },
+    {
+      "gov_id": "2119003",
+      "name": "Mountain City"
+    },
+    {
+      "gov_id": "2060007",
+      "name": "Mountain Park City"
+    },
+    {
+      "gov_id": "1105105",
+      "name": "Murray County"
+    },
+    {
+      "gov_id": "2013002",
+      "name": "Nahunta City"
+    },
+    {
+      "gov_id": "2010003",
+      "name": "Nashville City"
+    },
+    {
+      "gov_id": "2112002",
+      "name": "Nelson City"
+    },
+    {
+      "gov_id": "2107003",
+      "name": "Newborn Town"
+    },
+    {
+      "gov_id": "2124002",
+      "name": "Newington Town"
+    },
+    {
+      "gov_id": "2038004",
+      "name": "Newnan City"
+    },
+    {
+      "gov_id": "2004001",
+      "name": "Newton City"
+    },
+    {
+      "gov_id": "1107107",
+      "name": "Newton County"
+    },
+    {
+      "gov_id": "2034004",
+      "name": "Nicholls City"
+    },
+    {
+      "gov_id": "2078502",
+      "name": "Nicholson Town"
+    },
+    {
+      "gov_id": "2067007",
+      "name": "Norcross City"
+    },
+    {
+      "gov_id": "2035007",
+      "name": "Norman Park City"
+    },
+    {
+      "gov_id": "2108005",
+      "name": "North High Shoals Town"
+    },
+    {
+      "gov_id": "2149002",
+      "name": "Norwood City"
+    },
+    {
+      "gov_id": "2053002",
+      "name": "Nunez City"
+    },
+    {
+      "gov_id": "2053003",
+      "name": "Oak Park Town"
+    },
+    {
+      "gov_id": "2069006",
+      "name": "Oakwood City"
+    },
+    {
+      "gov_id": "2136005",
+      "name": "Ochlocknee Town"
+    },
+    {
+      "gov_id": "2077001",
+      "name": "Ocilla City"
+    },
+    {
+      "gov_id": "2150801",
+      "name": "Oconee City"
+    },
+    {
+      "gov_id": "1108108",
+      "name": "Oconee County"
+    },
+    {
+      "gov_id": "2151002",
+      "name": "Odum City"
+    },
+    {
+      "gov_id": "2113501",
+      "name": "Offerman City"
+    },
+    {
+      "gov_id": "2096004",
+      "name": "Oglethorpe City"
+    },
+    {
+      "gov_id": "1109109",
+      "name": "Oglethorpe County"
+    },
+    {
+      "gov_id": "2124501",
+      "name": "Oliver City"
+    },
+    {
+      "gov_id": "2137001",
+      "name": "Omega City"
+    },
+    {
+      "gov_id": "2126901",
+      "name": "Orchard Hill Town"
+    },
+    {
+      "gov_id": "2107004",
+      "name": "Oxford City"
+    },
+    {
+      "gov_id": "2060008",
+      "name": "Palmetto City"
+    },
+    {
+      "gov_id": "2135003",
+      "name": "Parrott Town"
+    },
+    {
+      "gov_id": "2113002",
+      "name": "Patterson City"
+    },
+    {
+      "gov_id": "1110110",
+      "name": "Paulding County"
+    },
+    {
+      "gov_id": "2136006",
+      "name": "Pavo City"
+    },
+    {
+      "gov_id": "2011002",
+      "name": "Payne City"
+    },
+    {
+      "gov_id": "1111111",
+      "name": "Peach County"
+    },
+    {
+      "gov_id": "2056701",
+      "name": "Peachtree City"
+    },
+    {
+      "gov_id": "2067502",
+      "name": "Peachtree Corners City"
+    },
+    {
+      "gov_id": "2002001",
+      "name": "Pearson City"
+    },
+    {
+      "gov_id": "2101003",
+      "name": "Pelham City"
+    },
+    {
+      "gov_id": "2015001",
+      "name": "Pembroke City"
+    },
+    {
+      "gov_id": "2078006",
+      "name": "Pendergrass Town"
+    },
+    {
+      "gov_id": "2076001",
+      "name": "Perry City"
+    },
+    {
+      "gov_id": "1112112",
+      "name": "Pickens County"
+    },
+    {
+      "gov_id": "1113113",
+      "name": "Pierce County"
+    },
+    {
+      "gov_id": "1114114",
+      "name": "Pike County"
+    },
+    {
+      "gov_id": "2044008",
+      "name": "Pine Lake City"
+    },
+    {
+      "gov_id": "2072501",
+      "name": "Pine Mountain Town"
+    },
+    {
+      "gov_id": "2046003",
+      "name": "Pinehurst City"
+    },
+    {
+      "gov_id": "2156002",
+      "name": "Pineview Town"
+    },
+    {
+      "gov_id": "2156003",
+      "name": "Pitts City"
+    },
+    {
+      "gov_id": "2129005",
+      "name": "Plains City"
+    },
+    {
+      "gov_id": "2064003",
+      "name": "Plainville City"
+    },
+    {
+      "gov_id": "1115115",
+      "name": "Polk County"
+    },
+    {
+      "gov_id": "2025002",
+      "name": "Pooler City"
+    },
+    {
+      "gov_id": "2025501",
+      "name": "Port Wentworth City"
+    },
+    {
+      "gov_id": "2016002",
+      "name": "Portal Town"
+    },
+    {
+      "gov_id": "2107005",
+      "name": "Porterdale Town"
+    },
+    {
+      "gov_id": "2159001",
+      "name": "Poulan City"
+    },
+    {
+      "gov_id": "2033005",
+      "name": "Powder Springs City"
+    },
+    {
+      "gov_id": "1116116",
+      "name": "Pulaski County"
+    },
+    {
+      "gov_id": "2021002",
+      "name": "Pulaski Town"
+    },
+    {
+      "gov_id": "1117117",
+      "name": "Putnam County"
+    },
+    {
+      "gov_id": "2014002",
+      "name": "Quitman City"
+    },
+    {
+      "gov_id": "1118118",
+      "name": "Quitman County"
+    },
+    {
+      "gov_id": "1119119",
+      "name": "Rabun County"
+    },
+    {
+      "gov_id": "1120120",
+      "name": "Randolph County"
+    },
+    {
+      "gov_id": "2064902",
+      "name": "Ranger Town"
+    },
+    {
+      "gov_id": "2010004",
+      "name": "Ray City"
+    },
+    {
+      "gov_id": "2157801",
+      "name": "Rayle Town"
+    },
+    {
+      "gov_id": "2142002",
+      "name": "Rebecca Town"
+    },
+    {
+      "gov_id": "2016601",
+      "name": "Register Town"
+    },
+    {
+      "gov_id": "2132005",
+      "name": "Reidsville City"
+    },
+    {
+      "gov_id": "2092003",
+      "name": "Remerton City"
+    },
+    {
+      "gov_id": "2087007",
+      "name": "Rentz City"
+    },
+    {
+      "gov_id": "2064601",
+      "name": "Resaca Town"
+    },
+    {
+      "gov_id": "2067008",
+      "name": "Rest Haven City"
+    },
+    {
+      "gov_id": "2133002",
+      "name": "Reynolds City"
+    },
+    {
+      "gov_id": "2045004",
+      "name": "Rhine Town"
+    },
+    {
+      "gov_id": "2089502",
+      "name": "Riceboro City"
+    },
+    {
+      "gov_id": "2128002",
+      "name": "Richland City"
+    },
+    {
+      "gov_id": "2015801",
+      "name": "Richmond Hill City"
+    },
+    {
+      "gov_id": "2150003",
+      "name": "Riddleville Town"
+    },
+    {
+      "gov_id": "2051002",
+      "name": "Rincon Town"
+    },
+    {
+      "gov_id": "2023002",
+      "name": "Ringgold City"
+    },
+    {
+      "gov_id": "2031006",
+      "name": "Riverdale City"
+    },
+    {
+      "gov_id": "2035008",
+      "name": "Riverside Town"
+    },
+    {
+      "gov_id": "2039001",
+      "name": "Roberta City"
+    },
+    {
+      "gov_id": "2156004",
+      "name": "Rochelle City"
+    },
+    {
+      "gov_id": "1122122",
+      "name": "Rockdale County"
+    },
+    {
+      "gov_id": "2115001",
+      "name": "Rockmart City"
+    },
+    {
+      "gov_id": "2124003",
+      "name": "Rocky Ford City"
+    },
+    {
+      "gov_id": "2057002",
+      "name": "Rome City"
+    },
+    {
+      "gov_id": "2022004",
+      "name": "Roopville Town"
+    },
+    {
+      "gov_id": "2146004",
+      "name": "Rossville City"
+    },
+    {
+      "gov_id": "2060009",
+      "name": "Roswell City"
+    },
+    {
+      "gov_id": "2059005",
+      "name": "Royston City"
+    },
+    {
+      "gov_id": "2104004",
+      "name": "Rutledge City"
+    },
+    {
+      "gov_id": "2101004",
+      "name": "Sale City"
+    },
+    {
+      "gov_id": "2150004",
+      "name": "Sandersville City"
+    },
+    {
+      "gov_id": "2060501",
+      "name": "Sandy Springs City"
+    },
+    {
+      "gov_id": "2138504",
+      "name": "Santa Claus City"
+    },
+    {
+      "gov_id": "2017003",
+      "name": "Sardis City"
+    },
+    {
+      "gov_id": "2135004",
+      "name": "Sasser Town"
+    },
+    {
+      "gov_id": "2025003",
+      "name": "Savannah City"
+    },
+    {
+      "gov_id": "1123123",
+      "name": "Schley County"
+    },
+    {
+      "gov_id": "2134006",
+      "name": "Scotland City"
+    },
+    {
+      "gov_id": "2151003",
+      "name": "Screven City"
+    },
+    {
+      "gov_id": "1124124",
+      "name": "Screven County"
+    },
+    {
+      "gov_id": "1125125",
+      "name": "Seminole County"
+    },
+    {
+      "gov_id": "2038005",
+      "name": "Senoia City"
+    },
+    {
+      "gov_id": "2079002",
+      "name": "Shady Dale City"
+    },
+    {
+      "gov_id": "2131002",
+      "name": "Sharon City"
+    },
+    {
+      "gov_id": "2038006",
+      "name": "Sharpsburg Town"
+    },
+    {
+      "gov_id": "2120004",
+      "name": "Shellman City"
+    },
+    {
+      "gov_id": "2072502",
+      "name": "Shiloh City"
+    },
+    {
+      "gov_id": "2066002",
+      "name": "Siloam Town"
+    },
+    {
+      "gov_id": "2119601",
+      "name": "Sky Valley City"
+    },
+    {
+      "gov_id": "2088002",
+      "name": "Smithville City"
+    },
+    {
+      "gov_id": "2033006",
+      "name": "Smyrna City"
+    },
+    {
+      "gov_id": "2067009",
+      "name": "Snellville City"
+    },
+    {
+      "gov_id": "2147004",
+      "name": "Social Circle City"
+    },
+    {
+      "gov_id": "2140001",
+      "name": "Soperton City"
+    },
+    {
+      "gov_id": "2060505",
+      "name": "South Fulton City"
+    },
+    {
+      "gov_id": "1126126",
+      "name": "Spalding County"
+    },
+    {
+      "gov_id": "2037004",
+      "name": "Sparks Town"
+    },
+    {
+      "gov_id": "2070001",
+      "name": "Sparta City"
+    },
+    {
+      "gov_id": "2051003",
+      "name": "Springfield City"
+    },
+    {
+      "gov_id": "2020002",
+      "name": "St. Marys City"
+    },
+    {
+      "gov_id": "2081004",
+      "name": "Stapleton City"
+    },
+    {
+      "gov_id": "2016003",
+      "name": "Statesboro City"
+    },
+    {
+      "gov_id": "2007005",
+      "name": "Statham City"
+    },
+    {
+      "gov_id": "1127127",
+      "name": "Stephens County"
+    },
+    {
+      "gov_id": "1128128",
+      "name": "Stewart County"
+    },
+    {
+      "gov_id": "2053004",
+      "name": "Stillmore City"
+    },
+    {
+      "gov_id": "2075004",
+      "name": "Stockbridge City"
+    },
+    {
+      "gov_id": "2044009",
+      "name": "Stone Mountain City"
+    },
+    {
+      "gov_id": "2044013",
+      "name": "Stonecrest City"
+    },
+    {
+      "gov_id": "2067010",
+      "name": "Sugar Hill City"
+    },
+    {
+      "gov_id": "2053801",
+      "name": "Summertown City"
+    },
+    {
+      "gov_id": "2027003",
+      "name": "Summerville City"
+    },
+    {
+      "gov_id": "2159002",
+      "name": "Sumner Town"
+    },
+    {
+      "gov_id": "1129129",
+      "name": "Sumter County"
+    },
+    {
+      "gov_id": "2126003",
+      "name": "Sunny Side City"
+    },
+    {
+      "gov_id": "2001002",
+      "name": "Surrency Town"
+    },
+    {
+      "gov_id": "2067011",
+      "name": "Suwanee City"
+    },
+    {
+      "gov_id": "2053005",
+      "name": "Swainsboro City"
+    },
+    {
+      "gov_id": "2142003",
+      "name": "Sycamore City"
+    },
+    {
+      "gov_id": "2124004",
+      "name": "Sylvania City"
+    },
+    {
+      "gov_id": "2159003",
+      "name": "Sylvester City"
+    },
+    {
+      "gov_id": "1130130",
+      "name": "Talbot County"
+    },
+    {
+      "gov_id": "2130003",
+      "name": "Talbotton City"
+    },
+    {
+      "gov_id": "1131131",
+      "name": "Taliaferro County"
+    },
+    {
+      "gov_id": "2112003",
+      "name": "Talking Rock Town"
+    },
+    {
+      "gov_id": "2071003",
+      "name": "Tallapoosa City"
+    },
+    {
+      "gov_id": "2068501",
+      "name": "Tallulah Falls Town"
+    },
+    {
+      "gov_id": "2078007",
+      "name": "Talmo Town"
+    },
+    {
+      "gov_id": "2103005",
+      "name": "Tarrytown City"
+    },
+    {
+      "gov_id": "1132132",
+      "name": "Tattnall County"
+    },
+    {
+      "gov_id": "1133133",
+      "name": "Taylor County"
+    },
+    {
+      "gov_id": "2008005",
+      "name": "Taylorsville Town"
+    },
+    {
+      "gov_id": "1134134",
+      "name": "Telfair County"
+    },
+    {
+      "gov_id": "2022005",
+      "name": "Temple City"
+    },
+    {
+      "gov_id": "2150005",
+      "name": "Tennille City"
+    },
+    {
+      "gov_id": "1135135",
+      "name": "Terrell County"
+    },
+    {
+      "gov_id": "1136136",
+      "name": "Thomas County"
+    },
+    {
+      "gov_id": "2145004",
+      "name": "Thomaston City"
+    },
+    {
+      "gov_id": "2136007",
+      "name": "Thomasville City"
+    },
+    {
+      "gov_id": "2094002",
+      "name": "Thomson City"
+    },
+    {
+      "gov_id": "2025005",
+      "name": "Thunderbolt Town"
+    },
+    {
+      "gov_id": "1137137",
+      "name": "Tift County"
+    },
+    {
+      "gov_id": "2137002",
+      "name": "Tifton City"
+    },
+    {
+      "gov_id": "2119005",
+      "name": "Tiger Town"
+    },
+    {
+      "gov_id": "2157001",
+      "name": "Tignall Town"
+    },
+    {
+      "gov_id": "2127002",
+      "name": "Toccoa City"
+    },
+    {
+      "gov_id": "1138138",
+      "name": "Toombs County"
+    },
+    {
+      "gov_id": "2158007",
+      "name": "Toomsboro City"
+    },
+    {
+      "gov_id": "1139139",
+      "name": "Towns County"
+    },
+    {
+      "gov_id": "2041001",
+      "name": "Trenton City"
+    },
+    {
+      "gov_id": "1140140",
+      "name": "Treutlen County"
+    },
+    {
+      "gov_id": "2027004",
+      "name": "Trion Town"
+    },
+    {
+      "gov_id": "1141141",
+      "name": "Troup County"
+    },
+    {
+      "gov_id": "2044012",
+      "name": "Tucker City"
+    },
+    {
+      "gov_id": "2155802",
+      "name": "Tunnel Hill City"
+    },
+    {
+      "gov_id": "2038007",
+      "name": "Turin Town"
+    },
+    {
+      "gov_id": "1142142",
+      "name": "Turner County"
+    },
+    {
+      "gov_id": "1143143",
+      "name": "Twiggs County"
+    },
+    {
+      "gov_id": "2053006",
+      "name": "Twin City"
+    },
+    {
+      "gov_id": "2137003",
+      "name": "Ty Ty City"
+    },
+    {
+      "gov_id": "2025004",
+      "name": "Tybee Island City"
+    },
+    {
+      "gov_id": "2056002",
+      "name": "Tyrone Town"
+    },
+    {
+      "gov_id": "2046004",
+      "name": "Unadilla City"
+    },
+    {
+      "gov_id": "2060010",
+      "name": "Union City"
+    },
+    {
+      "gov_id": "1144144",
+      "name": "Union County"
+    },
+    {
+      "gov_id": "2066003",
+      "name": "Union Point City"
+    },
+    {
+      "gov_id": "1145145",
+      "name": "Upson County"
+    },
+    {
+      "gov_id": "2103006",
+      "name": "Uvalda City"
+    },
+    {
+      "gov_id": "2092004",
+      "name": "Valdosta City"
+    },
+    {
+      "gov_id": "2155803",
+      "name": "Varnell City"
+    },
+    {
+      "gov_id": "2025502",
+      "name": "Vernonburg Town"
+    },
+    {
+      "gov_id": "2138002",
+      "name": "Vidalia City"
+    },
+    {
+      "gov_id": "2017501",
+      "name": "Vidette Town"
+    },
+    {
+      "gov_id": "2046005",
+      "name": "Vienna City"
+    },
+    {
+      "gov_id": "2022006",
+      "name": "Villa Rica City"
+    },
+    {
+      "gov_id": "2071004",
+      "name": "Waco Town"
+    },
+    {
+      "gov_id": "2081006",
+      "name": "Wadley City"
+    },
+    {
+      "gov_id": "2028004",
+      "name": "Waleska City"
+    },
+    {
+      "gov_id": "1146146",
+      "name": "Walker County"
+    },
+    {
+      "gov_id": "2147504",
+      "name": "Walnut Grove City"
+    },
+    {
+      "gov_id": "2089901",
+      "name": "Walthourville City"
+    },
+    {
+      "gov_id": "1147147",
+      "name": "Walton County"
+    },
+    {
+      "gov_id": "1148148",
+      "name": "Ware County"
+    },
+    {
+      "gov_id": "2099006",
+      "name": "Warm Springs City"
+    },
+    {
+      "gov_id": "2076002",
+      "name": "Warner Robins City"
+    },
+    {
+      "gov_id": "1149149",
+      "name": "Warren County"
+    },
+    {
+      "gov_id": "2149003",
+      "name": "Warrenton City"
+    },
+    {
+      "gov_id": "2159004",
+      "name": "Warwick City"
+    },
+    {
+      "gov_id": "2157002",
+      "name": "Washington City"
+    },
+    {
+      "gov_id": "1150150",
+      "name": "Washington County"
+    },
+    {
+      "gov_id": "2108006",
+      "name": "Watkinsville City"
+    },
+    {
+      "gov_id": "2072003",
+      "name": "Waverly Hall Town"
+    },
+    {
+      "gov_id": "2148001",
+      "name": "Waycross City"
+    },
+    {
+      "gov_id": "1151151",
+      "name": "Wayne County"
+    },
+    {
+      "gov_id": "2017004",
+      "name": "Waynesboro City"
+    },
+    {
+      "gov_id": "3152152",
+      "name": "Webster Unified Govmt."
+    },
+    {
+      "gov_id": "2141003",
+      "name": "West Point City"
+    },
+    {
+      "gov_id": "1153153",
+      "name": "Wheeler County"
+    },
+    {
+      "gov_id": "2065002",
+      "name": "Whigham City"
+    },
+    {
+      "gov_id": "2008006",
+      "name": "White City"
+    },
+    {
+      "gov_id": "1154154",
+      "name": "White County"
+    },
+    {
+      "gov_id": "2066004",
+      "name": "White Plains City"
+    },
+    {
+      "gov_id": "2022007",
+      "name": "Whitesburg City"
+    },
+    {
+      "gov_id": "1155155",
+      "name": "Whitfield County"
+    },
+    {
+      "gov_id": "1156156",
+      "name": "Wilcox County"
+    },
+    {
+      "gov_id": "1157157",
+      "name": "Wilkes County"
+    },
+    {
+      "gov_id": "1158158",
+      "name": "Wilkinson County"
+    },
+    {
+      "gov_id": "2002002",
+      "name": "Willacoochee City"
+    },
+    {
+      "gov_id": "2114004",
+      "name": "Williamson City"
+    },
+    {
+      "gov_id": "2007006",
+      "name": "Winder City"
+    },
+    {
+      "gov_id": "2029002",
+      "name": "Winterville City"
+    },
+    {
+      "gov_id": "2020003",
+      "name": "Woodbine City"
+    },
+    {
+      "gov_id": "2099007",
+      "name": "Woodbury City"
+    },
+    {
+      "gov_id": "2130004",
+      "name": "Woodland City"
+    },
+    {
+      "gov_id": "2028005",
+      "name": "Woodstock City"
+    },
+    {
+      "gov_id": "2066005",
+      "name": "Woodville City"
+    },
+    {
+      "gov_id": "2056901",
+      "name": "Woolsey Town"
+    },
+    {
+      "gov_id": "1159159",
+      "name": "Worth County"
+    },
+    {
+      "gov_id": "2081007",
+      "name": "Wrens City"
+    },
+    {
+      "gov_id": "2083003",
+      "name": "Wrightsville City"
+    },
+    {
+      "gov_id": "2145005",
+      "name": "Yatesville Town"
+    },
+    {
+      "gov_id": "2139002",
+      "name": "Young Harris City"
+    }
+  ]
+}
