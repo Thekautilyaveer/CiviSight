@@ -122,7 +122,12 @@ const deadlineFor = (form, county) => {
 // filings already past their deadline are mostly completed (counties filed them),
 // only a few counties are genuinely behind, and upcoming filings are a mix of
 // not-started and in-progress. This keeps the attention list meaningful.
-const statusFor = (deadline, countyIdx, formIdx, now) => {
+const isRlgfForm = (form) => form.title === 'Report of Local Government Finances';
+
+const statusFor = (form, deadline, countyIdx, formIdx, now) => {
+  if (isRlgfForm(form)) {
+    return (countyIdx + formIdx) % 4 === 0 ? 'in_progress' : 'pending';
+  }
   const past = deadline.getTime() < now;
   // Anything already past its deadline is treated as filed (completed) — no overdue.
   if (past) return 'completed';
@@ -224,7 +229,7 @@ const seedData = async () => {
     createdCounties.forEach((county, i) => {
       FORMS.forEach((form, f) => {
         const deadline = deadlineFor(form, county);
-        const status = statusFor(deadline, i, f, now);
+        const status = statusFor(form, deadline, i, f, now);
         allTasks.push({
           title: form.title,
           description: form.description,

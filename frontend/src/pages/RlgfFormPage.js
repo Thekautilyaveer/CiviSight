@@ -7,8 +7,10 @@ import RlgfForm from '../forms/rlgf/RlgfForm';
 // so the CiviSight header/logo stays on top; the schema-driven form fills the
 // area below, exactly as rendered standalone.
 const RlgfFormPage = () => {
-  const { id } = useParams();
+  const { id, taskId } = useParams();
   const [countyName, setCountyName] = useState('');
+  const [task, setTask] = useState(null);
+  const [submission, setSubmission] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -17,8 +19,31 @@ const RlgfFormPage = () => {
       .get(`/counties/${id}`)
       .then((res) => { if (active) setCountyName(res.data?.name || ''); })
       .catch(() => {});
+    if (taskId) {
+      api
+        .get(`/tasks/${taskId}`)
+        .then((res) => { if (active) setTask(res.data || null); })
+        .catch(() => {});
+      api
+        .get(`/submissions?taskId=${taskId}`)
+        .then((res) => { if (active) setSubmission(res.data?.[0] || null); })
+        .catch(() => {});
+    }
     return () => { active = false; };
-  }, [id]);
+  }, [id, taskId]);
+
+  const handleSubmit = async (payload) => {
+    const res = await api.post(`/tasks/${taskId}/submit-online`, {
+      ...payload,
+      formName: task?.title || 'Report of Local Government Finance',
+      metadata: {
+        ...(payload.metadata || {}),
+        submittedFrom: 'rlgf_form'
+      }
+    });
+    setSubmission(res.data?.submission || null);
+    return res.data?.submission;
+  };
 
   return (
     <div>
@@ -40,7 +65,31 @@ const RlgfFormPage = () => {
         </div>
       </div>
 
-      <RlgfForm subtitle={countyName ? `${countyName} · Report of Local Government Finance` : 'Report of Local Government Finance'} />
+      {submission?.comments?.length > 0 && (
+        <section className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold">Agency review comments</h2>
+            <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold">{submission.comments.length}</span>
+          </div>
+          <div className="mt-2 space-y-2">
+            {submission.comments.map((comment, index) => (
+              <div key={`${comment.createdAt || 'comment'}-${index}`} className="border-t border-amber-200 pt-2 text-sm">
+                <div className="font-semibold">{submission.metadata?.fields?.[comment.fieldId]?.label || comment.fieldId}</div>
+                <div className="mt-0.5">{comment.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      <RlgfForm
+        subtitle={countyName ? `${countyName} · Report of Local Government Finance` : 'Report of Local Government Finance'}
+        onSubmit={handleSubmit}
+        fieldComments={(submission?.comments || []).reduce((grouped, comment) => {
+          if (!grouped[comment.fieldId]) grouped[comment.fieldId] = [];
+          grouped[comment.fieldId].push(comment);
+          return grouped;
+        }, {})}
+      />
     </div>
   );
 };

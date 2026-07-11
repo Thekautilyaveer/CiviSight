@@ -7,6 +7,7 @@ const Task = require('../models/Task');
 const County = require('../models/County');
 const Contact = require('../models/Contact');
 const Notification = require('../models/Notification');
+const Submission = require('../models/Submission');
 const { body, validationResult } = require('express-validator');
 const { uploadForm, uploadFilledForm, getSignedUrl, deleteFile } = require('../middleware/upload');
 const { sendReminderEmail, sendTaskAssignmentEmail, sendFormUploadEmail } = require('../utils/email');
@@ -723,6 +724,26 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
 
     await task.save();
 
+    await Submission.create({
+      taskId: task._id,
+      countyId: task.countyId,
+      agency: task.submittedTo || '',
+      formName: task.title,
+      formType: 'file',
+      status: 'submitted',
+      submittedBy: req.user._id,
+      submittedAt: new Date(),
+      file: {
+        originalName: req.file.originalname,
+        fileName: req.file.filename,
+        filePath: relativePath,
+        uploadedAt: new Date()
+      },
+      metadata: {
+        source: 'filled_form_upload'
+      }
+    });
+
     const populatedTask = await Task.findById(task._id)
       .populate('countyId', 'name code')
       .populate('assignedBy', 'username email');
@@ -731,6 +752,66 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
   } catch (error) {
     logger.error('Error uploading filled form:', error);
     res.status(500).json({ message: error.message || 'Server error' });
+  }
+});
+
+// @route   POST /api/tasks/:id/submit-online
+// @desc    Submit an online form payload to the receiving agency
+// @access  Private
+router.post('/:id/submit-online', auth, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const answers = req.body.answers && typeof req.body.answers === 'object' ? req.body.answers : {};
+    const metadata = req.body.metadata && typeof req.body.metadata === 'object' ? req.body.metadata : {};
+    const answerCount = Object.keys(answers).length;
+
+    if (answerCount === 0) {
+      return res.status(400).json({ message: 'Submission must include at least one answer' });
+    }
+
+    const submission = await Submission.create({
+      taskId: task._id,
+      countyId: task.countyId,
+      agency: task.submittedTo || '',
+      formName: req.body.formName || task.title,
+      formType: 'online',
+      status: 'submitted',
+      submittedBy: req.user._id,
+      submittedAt: new Date(),
+      answers,
+      metadata: {
+        ...metadata,
+        source: 'online_form',
+        form: req.body.form,
+        version: req.body.version,
+        answerCount
+      }
+    });
+
+    task.status = 'completed';
+    task.completedAt = new Date();
+    await task.save();
+
+    const populatedSubmission = await Submission.findById(submission._id)
+      .populate('taskId', 'title deadline status submittedTo')
+      .populate('countyId', 'name code')
+      .populate('submittedBy', 'username email role');
+
+    res.status(201).json({
+      message: 'Form submitted to agency successfully',
+      submission: populatedSubmission
+    });
+  } catch (error) {
+    logger.error('Error submitting online form:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

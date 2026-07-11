@@ -2,11 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import RlgfForm from '../forms/rlgf/RlgfForm';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const Dashboard = () => {
   const [tasks, setTasks] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [reviewingSubmission, setReviewingSubmission] = useState(null);
+  const [commentingField, setCommentingField] = useState(null);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [addingComment, setAddingComment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [agency, setAgency] = useState('all');
@@ -24,8 +31,12 @@ const Dashboard = () => {
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/tasks');
-        setTasks(res.data || []);
+        const [taskRes, submissionRes] = await Promise.all([
+          api.get('/tasks'),
+          api.get('/submissions')
+        ]);
+        setTasks(taskRes.data || []);
+        setSubmissions(submissionRes.data || []);
       } catch (error) {
         console.error('Error fetching tasks:', error);
       } finally {
@@ -34,6 +45,46 @@ const Dashboard = () => {
     };
     fetchTasks();
   }, [isAdmin, user, navigate]);
+
+  const refreshSubmissions = async () => {
+    const submissionRes = await api.get('/submissions');
+    setSubmissions(submissionRes.data || []);
+  };
+
+  const commentsByField = (submission) => (submission?.comments || []).reduce((grouped, comment) => {
+    if (!grouped[comment.fieldId]) grouped[comment.fieldId] = [];
+    grouped[comment.fieldId].push(comment);
+    return grouped;
+  }, {});
+
+  const startFieldComment = (fieldId) => {
+    setCommentingField(fieldId);
+    setCommentDraft('');
+  };
+
+  const updateCommentDraft = (fieldId, text) => {
+    setCommentingField(fieldId);
+    setCommentDraft(text);
+  };
+
+  const addFieldComment = async (fieldId) => {
+    if (!selectedSubmission || !commentDraft.trim()) return;
+    try {
+      setAddingComment(true);
+      const res = await api.post(`/submissions/${selectedSubmission._id}/comments`, {
+        fieldId,
+        text: commentDraft.trim()
+      });
+      setSelectedSubmission(res.data.submission);
+      setCommentingField(null);
+      setCommentDraft('');
+      await refreshSubmissions();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error sending comment to county');
+    } finally {
+      setAddingComment(false);
+    }
+  };
 
   const urgencyFor = (deadline) => {
     if (!deadline) return { level: 'todo', text: 'Not done' };
@@ -70,13 +121,27 @@ const Dashboard = () => {
       });
     });
     const now = Date.now();
+    const submissionsByForm = new Map();
+    submissions.forEach((submission) => {
+      const key = submission.formName || submission.taskId?.title;
+      if (!key) return;
+      if (!submissionsByForm.has(key)) submissionsByForm.set(key, []);
+      submissionsByForm.get(key).push(submission);
+    });
+
     const arr = [...map.values()].map((f) => {
       const done = f.counties.filter((c) => c.status === 'completed');
       const notDone = f.counties
         .filter((c) => c.status !== 'completed')
         .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
       const overdueCount = notDone.filter((c) => new Date(c.deadline).getTime() < now).length;
-      return { ...f, total: f.counties.length, done, notDone, overdueCount };
+      const received = submissionsByForm.get(f.title) || [];
+      const statusCounts = received.reduce((counts, submission) => {
+        const status = submission.status || 'submitted';
+        counts[status] = (counts[status] || 0) + 1;
+        return counts;
+      }, { submitted: 0, under_review: 0, accepted: 0, needs_correction: 0 });
+      return { ...f, total: f.counties.length, done, notDone, overdueCount, submissions: received, statusCounts };
     });
     // Most-attention-needed first: by overdue count, then by how many are still outstanding.
     arr.sort(
@@ -86,7 +151,7 @@ const Dashboard = () => {
         a.title.localeCompare(b.title)
     );
     return arr;
-  }, [tasks]);
+  }, [tasks, submissions]);
 
   // Distinct submitting agencies for the filter strip.
   const agencies = useMemo(
@@ -99,8 +164,8 @@ const Dashboard = () => {
       f.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (agency === 'all' || f.submittedTo === agency)
   );
-  const attention = filtered.filter((f) => f.notDone.length > 0);
-  const complete = filtered.filter((f) => f.notDone.length === 0);
+  const attention = [];
+  const complete = filtered;
 
   if (loading || !isAdmin) {
     return (
@@ -112,15 +177,79 @@ const Dashboard = () => {
 
   const toggle = (title) => setExpanded((cur) => (cur === title ? null : title));
 
+  const statusLabel = (status) => {
+    switch (status) {
+      case 'under_review': return 'Under review';
+      case 'accepted': return 'Accepted';
+      case 'needs_correction': return 'Needs correction';
+      default: return 'Received';
+    }
+  };
+
+  const reviewSubmission = async (submission, status) => {
+    try {
+      setReviewingSubmission(submission._id);
+      const res = await api.put(`/submissions/${submission._id}/review`, { status });
+      setSelectedSubmission((cur) => (cur?._id === submission._id ? res.data : cur));
+      await refreshSubmissions();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error updating submission review');
+    } finally {
+      setReviewingSubmission(null);
+    }
+  };
+
+  const submittedAnswerRows = (submission) => {
+    const labels = submission?.metadata?.fields || {};
+    return Object.entries(submission?.answers || {}).map(([key, value]) => ({
+      key,
+      value,
+      label: labels[key]?.label || key,
+      cell: labels[key]?.cell || '',
+      page: labels[key]?.page || '',
+      type: labels[key]?.type || '',
+      needsReview: Boolean(labels[key]?.needsReview),
+      derived: Boolean(labels[key]?.derived)
+    }));
+  };
+
+  const downloadSubmissionExcel = async (submission) => {
+    try {
+      const response = await api.get(`/submissions/${submission._id}/export`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(submission.formName || 'submitted-form').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'submitted-form'}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error exporting submitted form');
+    }
+  };
+
   const FilingCard = ({ filing }) => {
     const isOpen = expanded === filing.title;
-    const { total, done, notDone, overdueCount } = filing;
+    const { total, done, notDone, overdueCount, submissions: filingSubmissions, statusCounts } = filing;
     const accent =
       overdueCount > 0
         ? 'border-l-red-500'
         : notDone.length > 0
         ? 'border-l-amber-500'
         : 'border-l-green-500';
+    const openCounty = (county) => {
+      const submittedForm = filingSubmissions.find(
+        (submission) => String(submission.countyId?._id || submission.countyId) === String(county.id)
+      );
+      if (submittedForm) {
+        setSelectedSubmission(submittedForm);
+        setCommentingField(null);
+        setCommentDraft('');
+      } else {
+        navigate(`/county/${county.id}`);
+      }
+    };
     return (
       <div className={`rounded-lg border border-gray-200 dark:border-gray-700 border-l-[3px] ${accent} bg-white dark:bg-gray-800 overflow-hidden`}>
         {/* Header */}
@@ -135,6 +264,20 @@ const Dashboard = () => {
               {overdueCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold"> · {overdueCount} overdue</span>}
               {filing.submittedTo && <span className="hidden sm:inline"> · {filing.submittedTo}</span>}
             </div>
+            {filingSubmissions.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {[
+                  ['submitted', 'Received', 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'],
+                  ['under_review', 'Under review', 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'],
+                  ['accepted', 'Accepted', 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'],
+                  ['needs_correction', 'Needs correction', 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300']
+                ].filter(([key]) => statusCounts[key] > 0).map(([key, label, classes]) => (
+                  <span key={key} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${classes}`}>
+                    {statusCounts[key]} {label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {overdueCount > 0 ? (
@@ -169,7 +312,7 @@ const Dashboard = () => {
                     return (
                       <button
                         key={c.id}
-                        onClick={() => navigate(`/county/${c.id}`)}
+                        onClick={() => openCounty(c)}
                         className={`text-left flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-all hover:shadow-sm ${
                           u.level === 'over'
                             ? 'border-red-200 dark:border-red-900/50 bg-red-50/60 dark:bg-red-900/10'
@@ -219,7 +362,7 @@ const Dashboard = () => {
                   {done.map((c) => (
                     <button
                       key={c.id}
-                      onClick={() => navigate(`/county/${c.id}`)}
+                      onClick={() => openCounty(c)}
                       className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1.5 text-sm font-semibold hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all"
                       title={
                         c.assignedContacts?.length > 0
@@ -236,6 +379,7 @@ const Dashboard = () => {
                 </div>
               </div>
             )}
+
           </div>
         )}
       </div>
@@ -321,7 +465,7 @@ const Dashboard = () => {
                 <svg className="w-4 h-4 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
                 </svg>
-                Completed by every county
+                Filings
                 <span className="px-2 py-0.5 rounded-full text-[11px] bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
                   {complete.length}
                 </span>
@@ -334,6 +478,112 @@ const Dashboard = () => {
             </section>
           )}
         </>
+      )}
+
+      {selectedSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/45 p-4">
+          <div className="flex h-[92vh] max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-gray-800">
+            <div className="flex flex-none items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+              <div>
+                <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">{selectedSubmission.formName}</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {selectedSubmission.countyId?.name || 'Unknown county'} · {selectedSubmission.agency || selectedSubmission.taskId?.submittedTo || 'Unassigned agency'}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSubmission(null)}
+                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white"
+                aria-label="Close submission"
+              >
+                ×
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
+                  <div className="text-xs text-gray-500">Answers</div>
+                  <div className="mt-1 font-semibold text-gray-900 dark:text-white">{Object.keys(selectedSubmission.answers || {}).length}</div>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
+                  <div className="text-xs text-gray-500">Submitted</div>
+                  <div className="mt-1 font-semibold text-gray-900 dark:text-white">{new Date(selectedSubmission.submittedAt).toLocaleDateString()}</div>
+                </div>
+              </div>
+
+              {selectedSubmission.formType === 'online' ? (
+                (selectedSubmission.metadata?.form === 'Report of Local Government Finances' || /Report of Local Government Finance/i.test(selectedSubmission.formName || '')) ? (
+                  <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <RlgfForm
+                      subtitle={`${selectedSubmission.countyId?.name || 'County'} · Submitted form`}
+                      initialValues={selectedSubmission.answers || {}}
+                      readOnly
+                      fieldComments={commentsByField(selectedSubmission)}
+                      commentingField={commentingField}
+                      commentDraft={commentDraft}
+                      onStartComment={startFieldComment}
+                      onCommentDraftChange={updateCommentDraft}
+                      onAddComment={addFieldComment}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900">
+                      Submitted answers
+                    </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                      {submittedAnswerRows(selectedSubmission).slice(0, 120).map((answer) => (
+                        <div key={answer.key} className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-4 px-3 py-2.5 text-sm">
+                          <div className="min-w-0">
+                            <div className="break-words font-semibold text-gray-900 dark:text-gray-100">{answer.label}</div>
+                            <div className="mt-1 flex flex-wrap gap-1 text-[10.5px] font-semibold uppercase tracking-wide text-gray-500">
+                              {answer.cell && <span>{answer.cell}</span>}
+                              {answer.page && <span>{answer.page}</span>}
+                              {answer.type && <span>{answer.type}</span>}
+                              {answer.derived && <span>derived</span>}
+                              {answer.needsReview && <span className="text-amber-700 dark:text-amber-300">review</span>}
+                            </div>
+                          </div>
+                          <span className="break-words text-gray-900 dark:text-gray-100">{String(answer.value ?? '')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{selectedSubmission.file?.originalName || 'Submitted file'}</div>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">The uploaded form is stored with the task submission record.</p>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-none flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Submitted by {selectedSubmission.submittedBy?.email || selectedSubmission.submittedBy?.username || 'county user'}
+              </div>
+              <div className="flex gap-2">
+                {selectedSubmission.formType === 'online' && (
+                  <button
+                    onClick={() => downloadSubmissionExcel(selectedSubmission)}
+                    disabled={addingComment}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Download Excel
+                  </button>
+                )}
+                {['under_review', 'accepted', 'needs_correction'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => reviewSubmission(selectedSubmission, status)}
+                    disabled={reviewingSubmission === selectedSubmission._id}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    {statusLabel(status)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

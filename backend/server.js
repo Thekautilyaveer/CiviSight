@@ -38,6 +38,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/chatbot', require('./routes/chatbot'));
+app.use('/api/submissions', require('./routes/submissions'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/civisight')
@@ -67,4 +68,3 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
 });
-

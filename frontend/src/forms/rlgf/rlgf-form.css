@@ -270,6 +270,15 @@
   box-shadow: 0 2px 8px rgba(16, 53, 39, 0.25); transition: transform 0.1s, box-shadow 0.15s;
 }
 .rlgf-root .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16, 53, 39, 0.3); }
+.rlgf-root .submit-btn:disabled { opacity: 0.65; cursor: wait; transform: none; }
+.rlgf-root .submit-error {
+  margin-left: auto;
+  max-width: 420px;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
 .rlgf-root .submit-success-overlay {
   position: fixed;
   inset: 0;
@@ -383,6 +392,17 @@
 .rlgf-root .submit-success-close:hover { background: var(--pine-deep); transform: translateY(-1px); }
 @keyframes rlgf-pop { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
 @keyframes rlgf-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.rlgf-root .field-comments { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.rlgf-root .field-comment { display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; border-left: 3px solid var(--gold); border-radius: 5px; background: var(--gold-soft); color: var(--ink-soft); font-size: 11px; line-height: 1.35; }
+.rlgf-root .field-comment b { color: var(--ink); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.rlgf-root .field-comment-trigger { margin-top: 7px; border: 0; background: transparent; color: var(--pine); cursor: pointer; font-size: 11px; font-weight: 700; padding: 0; text-align: left; }
+.rlgf-root .field-comment-trigger:hover { color: var(--pine-deep); text-decoration: underline; }
+.rlgf-root .field-comment-compose { margin-top: 8px; }
+.rlgf-root .field-comment-compose textarea { width: 100%; border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 8px; background: var(--card); color: var(--ink); font: 11px var(--sans); resize: vertical; }
+.rlgf-root .field-comment-actions { display: flex; gap: 7px; margin-top: 5px; }
+.rlgf-root .field-comment-actions button { border: 0; border-radius: 5px; padding: 5px 8px; background: var(--pine); color: #fff; cursor: pointer; font: 700 10px var(--sans); }
+.rlgf-root .field-comment-actions button:last-child { background: transparent; color: var(--muted); }
+.rlgf-root .field-comment-actions button:disabled { cursor: not-allowed; opacity: .5; }
 @media (max-width: 860px) {
   .rlgf-root .shell { grid-template-columns: 1fr; height: auto; overflow: visible; }
   .rlgf-root .main { overflow: visible; }
