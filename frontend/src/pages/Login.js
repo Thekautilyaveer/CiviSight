@@ -42,11 +42,8 @@ const Login = () => {
           <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
             CiviSight
           </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Association of County Commissioners of Georgia
-          </p>
           <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-            This tool is not the only requirement counties must follow. CiviSight is intended to help counties stay on track by ACCG; it is not the official source of compliance requirements.
+            This tool is not the only requirement counties must follow. CiviSight is intended to help counties stay on track; it is not the official source of compliance requirements.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -105,4 +102,3 @@ const Login = () => {
 };
 
 export default Login;
-

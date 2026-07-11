@@ -14,9 +14,13 @@ const CountyDetail = () => {
   const { isAdmin, user } = useAuth();
   const [county, setCounty] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showEditTask, setShowEditTask] = useState(null);
+  const [showOwnerTask, setShowOwnerTask] = useState(null);
+  const [ownerContactIds, setOwnerContactIds] = useState([]);
+  const [savingOwners, setSavingOwners] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -41,7 +45,8 @@ const CountyDetail = () => {
     submittedToSelect: '',
     submittedToOther: '',
     portalLink: '',
-    assignedRoles: []
+    assignedRoles: [],
+    assignedContactIds: []
   });
   const [showAddRoleDropdown, setShowAddRoleDropdown] = useState(false);
   const [showEditRoleDropdown, setShowEditRoleDropdown] = useState(false);
@@ -63,6 +68,7 @@ const CountyDetail = () => {
 
   useEffect(() => {
     fetchCounty();
+    fetchContacts();
     loadFiltersFromStorage();
   }, [id]);
 
@@ -124,6 +130,16 @@ const CountyDetail = () => {
     }
   };
 
+  const fetchContacts = async () => {
+    try {
+      const res = await api.get(`/contacts/${id}`);
+      setContacts(Array.isArray(res.data?.contacts) ? res.data.contacts : []);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+      setContacts([]);
+    }
+  };
+
   const fetchTasks = async () => {
     try {
       const params = new URLSearchParams();
@@ -167,7 +183,8 @@ const CountyDetail = () => {
         countyId: id,
         submittedTo: finalSubmittedTo,
         portalLink: (taskForm.portalLink && taskForm.portalLink.trim()) || undefined,
-        assignedRoles: Array.isArray(taskForm.assignedRoles) ? taskForm.assignedRoles : []
+        assignedRoles: Array.isArray(taskForm.assignedRoles) ? taskForm.assignedRoles : [],
+        assignedContactIds: Array.isArray(taskForm.assignedContactIds) ? taskForm.assignedContactIds : []
       };
       if (useFiscalPreset) {
         payload.deadlineType = 'fiscal_year_offset';
@@ -193,7 +210,8 @@ const CountyDetail = () => {
         submittedToSelect: '',
         submittedToOther: '',
         portalLink: '',
-        assignedRoles: []
+        assignedRoles: [],
+        assignedContactIds: []
       });
       setDeadlineMode('date');
       setDeadlinePreset(null);
@@ -221,7 +239,8 @@ const CountyDetail = () => {
         submittedTo: finalSubmittedTo,
         deadline: new Date(taskForm.deadline).toISOString(),
         portalLink: (taskForm.portalLink && taskForm.portalLink.trim()) || '',
-        assignedRoles: Array.isArray(taskForm.assignedRoles) ? taskForm.assignedRoles : []
+        assignedRoles: Array.isArray(taskForm.assignedRoles) ? taskForm.assignedRoles : [],
+        assignedContactIds: Array.isArray(taskForm.assignedContactIds) ? taskForm.assignedContactIds : []
       });
       
       if (formFile) {
@@ -238,7 +257,8 @@ const CountyDetail = () => {
         submittedToSelect: '',
         submittedToOther: '',
         portalLink: '',
-        assignedRoles: []
+        assignedRoles: [],
+        assignedContactIds: []
       });
       setDeadlineMode('date');
       setDeadlinePreset(null);
@@ -663,6 +683,48 @@ const CountyDetail = () => {
     return !createdByAdmin && !readByAdmin;
   };
 
+  const getContactDisplayName = (contact) => {
+    if (!contact) return 'Contact';
+    const name = contact.name?.trim();
+    const role = contact.role?.trim();
+    if (name && role) return `${name} · ${role}`;
+    return name || role || contact.email || 'Contact';
+  };
+
+  const openOwnerModal = (task) => {
+    setShowOwnerTask(task);
+    setOwnerContactIds(
+      Array.isArray(task.assignedContacts)
+        ? task.assignedContacts.map((contact) => String(contact.contactId || contact._id || '')).filter(Boolean)
+        : []
+    );
+  };
+
+  const toggleOwnerContact = (contactId, checked) => {
+    setOwnerContactIds((prev) => (
+      checked
+        ? [...new Set([...prev, contactId])]
+        : prev.filter((id) => id !== contactId)
+    ));
+  };
+
+  const handleSaveOwners = async () => {
+    if (!showOwnerTask) return;
+    setSavingOwners(true);
+    try {
+      await api.put(`/tasks/${showOwnerTask._id}`, {
+        assignedContactIds: ownerContactIds
+      });
+      setShowOwnerTask(null);
+      setOwnerContactIds([]);
+      fetchTasks();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error updating form owners');
+    } finally {
+      setSavingOwners(false);
+    }
+  };
+
   const openEditModal = (task) => {
     setShowEditTask(task);
     const isPredefinedSubmittedTo = submittedToOptions.includes(task.submittedTo);
@@ -679,7 +741,10 @@ const CountyDetail = () => {
         : '',
       submittedToOther: isPredefinedSubmittedTo ? '' : (task.submittedTo || ''),
       portalLink: task.portalLink || '',
-      assignedRoles: Array.isArray(task.assignedRoles) ? [...task.assignedRoles] : []
+      assignedRoles: Array.isArray(task.assignedRoles) ? [...task.assignedRoles] : [],
+      assignedContactIds: Array.isArray(task.assignedContacts)
+        ? task.assignedContacts.map((contact) => String(contact.contactId || contact._id || '')).filter(Boolean)
+        : []
     });
   };
 
@@ -737,6 +802,21 @@ const CountyDetail = () => {
     if (agencyFilter !== 'all') return task.submittedTo === agencyFilter;
     return true;
   });
+
+  const currentUserEmail = (user?.email || '').trim().toLowerCase();
+  const contactMatchesCurrentUser = (contact) =>
+    Boolean(currentUserEmail && (contact?.email || '').trim().toLowerCase() === currentUserEmail);
+  const taskAssignedToCurrentUser = (task) =>
+    Array.isArray(task.assignedContacts) && task.assignedContacts.some(contactMatchesCurrentUser);
+  const myAssignedTasks = !isAdmin && currentUserEmail
+    ? filteredTasks
+        .filter(taskAssignedToCurrentUser)
+        .sort((a, b) => {
+          if (a.status === 'completed' && b.status !== 'completed') return 1;
+          if (a.status !== 'completed' && b.status === 'completed') return -1;
+          return new Date(a.deadline) - new Date(b.deadline);
+        })
+    : [];
 
   // Group filings into three sections: due within 90 days, due later, completed.
   const DAY_MS = 24 * 60 * 60 * 1000;
@@ -864,6 +944,84 @@ const CountyDetail = () => {
           </button>
         </div>
       </div>
+
+      {!isAdmin && currentUserEmail && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 1115 0" />
+            </svg>
+            My assigned forms
+            <span className="px-2 py-0.5 rounded-full text-[11px] bg-blue-100 text-blue-800">
+              {myAssignedTasks.length}
+            </span>
+          </div>
+          {myAssignedTasks.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-4">
+              <p className="text-sm text-gray-500">
+                No forms are assigned to {user?.email}. Use <span className="font-medium text-gray-700">Add form owners</span> on a form to assign yourself.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-200 overflow-hidden">
+              {myAssignedTasks.map((task) => {
+                const urgency = getDeadlineUrgency(task.deadline, task.status);
+                return (
+                  <div key={task._id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-semibold text-gray-900">{task.title}</h3>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(task.status)}`}>
+                          {task.status.replace('_', ' ')}
+                        </span>
+                        {urgency.label && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${urgency.bg} ${urgency.color} border ${urgency.border}`}>
+                            {urgency.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Due {new Date(task.deadline).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                        {task.submittedTo && <span> · {task.submittedTo}</span>}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 md:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => openOwnerModal(task)}
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-300"
+                      >
+                        Edit form owners
+                      </button>
+                      {task.status !== 'completed' && !task.formFile && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isRlgfTask(task)) {
+                              navigate(`/county/${id}/rlgf/${task._id}`);
+                            } else if (task.portalLink) {
+                              handleOpenPortalLink(task);
+                            } else {
+                              handleUpdateTaskStatus(task._id, 'in_progress');
+                            }
+                          }}
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Fill form online
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Tasks grouped into three sections */}
       {filteredTasks.length === 0 ? (
@@ -1068,6 +1226,31 @@ const CountyDetail = () => {
                             Uploading...
                           </span>
                         )}
+                        <div className="basis-full flex flex-col items-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => openOwnerModal(task)}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-300"
+                          >
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 18.72a9.094 9.094 0 003.75.78 8.963 8.963 0 00-3.06-6.76M15 11.25a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 0115 0" />
+                            </svg>
+                            {task.assignedContacts?.length > 0 ? 'Edit form owners' : 'Add form owners'}
+                          </button>
+                          {task.assignedContacts?.length > 0 && (
+                            <div className="flex flex-wrap justify-end gap-1.5 max-w-sm">
+                              {task.assignedContacts.map((contact, idx) => (
+                                <span
+                                  key={`${contact.contactId || contact.email || contact.role || idx}`}
+                                  className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800"
+                                  title={[contact.name, contact.role, contact.email].filter(Boolean).join(' · ')}
+                                >
+                                  {contact.name || contact.role || contact.email || 'Contact'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                             </div>
                           </div>
                         </div>
@@ -1473,7 +1656,8 @@ const CountyDetail = () => {
                       submittedToSelect: '',
                       submittedToOther: '',
                       portalLink: '',
-                      assignedRoles: []
+                      assignedRoles: [],
+                      assignedContactIds: []
                     });
                     setDeadlineMode('date');
                     setDeadlinePreset(null);
@@ -1498,7 +1682,7 @@ const CountyDetail = () => {
               <button
                 onClick={() => {
                   setShowEditTask(null);
-                  setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium', submittedToSelect: '', submittedToOther: '', portalLink: '', assignedRoles: [] });
+                  setTaskForm({ title: '', description: '', deadline: '', status: 'pending', priority: 'medium', submittedToSelect: '', submittedToOther: '', portalLink: '', assignedRoles: [], assignedContactIds: [] });
                   setFormFile(null);
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -1720,7 +1904,8 @@ const CountyDetail = () => {
                       submittedToSelect: '',
                       submittedToOther: '',
                       portalLink: '',
-                      assignedRoles: []
+                      assignedRoles: [],
+                      assignedContactIds: []
                     });
                     setFormFile(null);
                   }}
@@ -1730,6 +1915,117 @@ const CountyDetail = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Form owners modal */}
+      {showOwnerTask && (
+        <div
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 h-full w-full z-50 flex items-center justify-center p-4"
+          onClick={() => {
+            if (!savingOwners) {
+              setShowOwnerTask(null);
+              setOwnerContactIds([]);
+            }
+          }}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Form owners</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Choose the people responsible for this form.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (!savingOwners) {
+                    setShowOwnerTask(null);
+                    setOwnerContactIds([]);
+                  }
+                }}
+                className="text-gray-400 hover:text-gray-600 shrink-0"
+                aria-label="Close"
+                disabled={savingOwners}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">{showOwnerTask.title}</p>
+              <p className="mt-1 text-xs text-gray-500">
+                {ownerContactIds.length} owner{ownerContactIds.length === 1 ? '' : 's'} selected
+              </p>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg max-h-72 overflow-y-auto bg-white">
+              {contacts.length === 0 ? (
+                <div className="px-4 py-6 text-center text-sm text-gray-500">
+                  No contacts are available for this county yet.
+                </div>
+              ) : (
+                contacts.map((contact) => {
+                  const checked = ownerContactIds.includes(contact._id);
+                  return (
+                    <label
+                      key={contact._id}
+                      className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => toggleOwnerContact(contact._id, e.target.checked)}
+                        className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-gray-900">
+                          {getContactDisplayName(contact)}
+                          {contactMatchesCurrentUser(contact) && (
+                            <span className="ml-2 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                              You
+                            </span>
+                          )}
+                        </span>
+                        {(contact.email || contact.phone) && (
+                          <span className="block text-xs text-gray-500 truncate">
+                            {[contact.email, contact.phone].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-5 mt-5 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={handleSaveOwners}
+                disabled={savingOwners}
+                className="flex-1 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingOwners ? 'Saving...' : 'Save owners'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOwnerTask(null);
+                  setOwnerContactIds([]);
+                }}
+                disabled={savingOwners}
+                className="flex-1 bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg hover:bg-gray-200 font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -65,7 +65,8 @@ const Dashboard = () => {
         name: t.countyId?.name || 'Unknown county',
         code: t.countyId?.code || '',
         status: t.status,
-        deadline: t.deadline
+        deadline: t.deadline,
+        assignedContacts: Array.isArray(t.assignedContacts) ? t.assignedContacts : []
       });
     });
     const now = Date.now();
@@ -175,11 +176,26 @@ const Dashboard = () => {
                             : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                         }`}
                       >
-                        <span className="font-semibold text-gray-900 dark:text-white text-sm truncate">
-                          {c.name}
-                          {c.status === 'in_progress' && (
-                            <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                              in progress
+                        <span className="min-w-0">
+                          <span className="font-semibold text-gray-900 dark:text-white text-sm truncate block">
+                            {c.name}
+                            {c.status === 'in_progress' && (
+                              <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                                in progress
+                              </span>
+                            )}
+                          </span>
+                          {c.assignedContacts.length > 0 && (
+                            <span className="mt-1 flex flex-wrap gap-1">
+                              {c.assignedContacts.map((contact, idx) => (
+                                <span
+                                  key={`${contact.contactId || contact.email || contact.role || idx}`}
+                                  className="inline-flex rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 px-2 py-0.5 text-[10.5px] font-semibold text-blue-700 dark:text-blue-300"
+                                  title={[contact.name, contact.role, contact.email].filter(Boolean).join(' · ')}
+                                >
+                                  {contact.name || contact.role || contact.email || 'Form owner'}
+                                </span>
+                              ))}
                             </span>
                           )}
                         </span>
@@ -205,6 +221,11 @@ const Dashboard = () => {
                       key={c.id}
                       onClick={() => navigate(`/county/${c.id}`)}
                       className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1.5 text-sm font-semibold hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+                      title={
+                        c.assignedContacts?.length > 0
+                          ? `Form owners: ${c.assignedContacts.map((contact) => contact.name || contact.role || contact.email).filter(Boolean).join(', ')}`
+                          : undefined
+                      }
                     >
                       <svg className="w-3.5 h-3.5 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />

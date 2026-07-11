@@ -27,6 +27,7 @@
   color: var(--ink);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  min-height: 0;
 }
 .rlgf-root *, .rlgf-root *::before, .rlgf-root *::after { box-sizing: border-box; }
 .rlgf-root ::selection { background: var(--pine); color: #fff; }
@@ -45,12 +46,15 @@
   border-radius: 14px;
   overflow: hidden;
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 /* ---------------- Sidebar ---------------- */
 .rlgf-root .sidebar {
   height: 100%;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -113,10 +117,17 @@
 .rlgf-root .panel-foot .muted { color: #8ba297; font-family: var(--mono); font-size: 10.5px; }
 
 /* ---------------- Main ---------------- */
-.rlgf-root .main { height: 100%; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+.rlgf-root .main {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
 .rlgf-root .page-head {
-  position: sticky; top: 0; z-index: 5;
+  flex: 0 0 auto;
   padding: 22px 32px 14px;
   background: linear-gradient(180deg, var(--paper) 74%, rgba(244, 239, 228, 0));
   backdrop-filter: blur(4px);
@@ -153,6 +164,15 @@
 .rlgf-root .showing { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
 /* ---------------- Sheet / rows ---------------- */
+.rlgf-root .questions-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  padding-bottom: 8px;
+}
 .rlgf-root .sheet {
   margin: 4px 32px 0;
   background: var(--card);
@@ -170,6 +190,7 @@
 .rlgf-root .row:hover { background: rgba(28, 90, 68, 0.035); }
 .rlgf-root .row.is-derived { background: rgba(23, 37, 31, 0.028); }
 .rlgf-root .row.is-flagged { box-shadow: inset 3px 0 0 var(--gold); }
+.rlgf-root .row.is-invalid { box-shadow: inset 3px 0 0 var(--red); background: rgba(164, 50, 42, 0.03); }
 @keyframes rlgf-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 .rlgf-root .row-main { min-width: 0; }
@@ -183,6 +204,7 @@
 .rlgf-root .chip-review { color: var(--gold); background: var(--gold-soft); font-weight: 600; letter-spacing: 0.03em; font-family: var(--sans); text-transform: uppercase; font-size: 9.5px; }
 
 .rlgf-root .row-widget { display: flex; justify-content: flex-end; }
+.rlgf-root .widget-wrap { width: 100%; max-width: 280px; }
 .rlgf-root .money-wrap, .rlgf-root .select-wrap { width: 100%; }
 .rlgf-root .money-wrap { position: relative; display: flex; align-items: center; }
 .rlgf-root .money-wrap .adorn { position: absolute; left: 11px; color: var(--muted); font-family: var(--mono); font-size: 13px; }
@@ -196,6 +218,13 @@
 .rlgf-root input:focus, .rlgf-root select:focus { border-color: var(--pine); box-shadow: 0 0 0 3px rgba(28, 90, 68, 0.12); }
 .rlgf-root input::placeholder { color: #b9c1bb; }
 .rlgf-root .select-wrap.unresolved select { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.rlgf-root .field-error {
+  margin-top: 6px;
+  color: var(--red);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 600;
+}
 
 .rlgf-root .derived {
   display: flex; align-items: center; justify-content: flex-end; gap: 8px;
@@ -223,9 +252,9 @@
 .rlgf-root .pager button:hover:not(:disabled) { background: #fff; transform: translateY(-1px); }
 .rlgf-root .pager button:disabled { opacity: 0.4; cursor: default; }
 
-/* Sticky footer INSIDE the scrolling main column (not viewport-fixed). */
 .rlgf-root .submit-bar {
-  position: sticky; bottom: 0; margin-top: auto; z-index: 6;
+  flex: 0 0 auto;
+  z-index: 6;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
   padding: 14px 32px;
   background: rgba(251, 248, 241, 0.94);
@@ -241,14 +270,128 @@
   box-shadow: 0 2px 8px rgba(16, 53, 39, 0.25); transition: transform 0.1s, box-shadow 0.15s;
 }
 .rlgf-root .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16, 53, 39, 0.3); }
-.rlgf-root .submit-ok { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--pine-deep); font-weight: 500; }
-.rlgf-root .submit-ok b { font-family: var(--mono); }
-.rlgf-root .link { border: 0; background: transparent; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
-
+.rlgf-root .submit-success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(16, 25, 21, 0.34);
+  backdrop-filter: blur(3px);
+}
+.rlgf-root .submit-success-dialog {
+  width: min(100%, 520px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid rgba(28, 90, 68, 0.18);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.94), rgba(240,226,191,0.55)),
+    var(--card);
+  box-shadow: 0 24px 70px -34px rgba(16, 25, 21, 0.55);
+  animation: rlgf-pop 260ms ease-out both;
+}
+.rlgf-root .submit-success-icon {
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--pine-bright), var(--pine));
+  box-shadow: 0 8px 20px -10px rgba(16, 53, 39, 0.45);
+  animation: rlgf-pulse 1.6s ease-in-out infinite;
+}
+.rlgf-root .submit-success-dialog h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.rlgf-root .submit-success-kicker {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pine);
+  font-weight: 700;
+}
+.rlgf-root .submit-success-dialog p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 42ch;
+}
+.rlgf-root .submit-success-stats {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+}
+.rlgf-root .submit-success-stats div {
+  min-width: 96px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(23,37,31,0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+.rlgf-root .submit-success-stats b {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--pine);
+}
+.rlgf-root .submit-success-stats span {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.rlgf-root .submit-success-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.rlgf-root .submit-success-time { color: var(--muted); font-family: var(--mono); }
+.rlgf-root .submit-success-close {
+  border: 0;
+  border-radius: 8px;
+  background: var(--pine);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  transition: background 0.15s, transform 0.1s;
+}
+.rlgf-root .submit-success-close:hover { background: var(--pine-deep); transform: translateY(-1px); }
+@keyframes rlgf-pop { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes rlgf-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @media (max-width: 860px) {
-  .rlgf-root .shell { grid-template-columns: 1fr; height: auto; }
+  .rlgf-root .shell { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .rlgf-root .main { overflow: visible; }
   .rlgf-root .sidebar { height: auto; }
+  .rlgf-root .questions-scroll { overflow: visible; }
   .rlgf-root .nav { flex-direction: row; flex-wrap: wrap; }
   .rlgf-root .row { grid-template-columns: 1fr; gap: 8px; }
   .rlgf-root .row-widget { justify-content: stretch; }
+  .rlgf-root .widget-wrap { max-width: none; }
+  .rlgf-root .submit-success-dialog { padding: 24px 18px; }
+  .rlgf-root .submit-success-stats { flex-wrap: wrap; }
 }

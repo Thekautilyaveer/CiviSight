@@ -5,6 +5,7 @@ const fs = require('fs');
 const { auth, adminOnly } = require('../middleware/auth');
 const Task = require('../models/Task');
 const County = require('../models/County');
+const Contact = require('../models/Contact');
 const Notification = require('../models/Notification');
 const { body, validationResult } = require('express-validator');
 const { uploadForm, uploadFilledForm, getSignedUrl, deleteFile } = require('../middleware/upload');
@@ -19,6 +20,45 @@ function parseAssignedRoles(arr) {
   if (!Array.isArray(arr)) return [];
   const valid = arr.filter((s) => typeof s === 'string' && DEPARTMENT_ROLE_SLUGS.includes(s.trim()));
   return [...new Set(valid)];
+}
+
+async function resolveAssignedContacts(countyId, assignedContactIds) {
+  if (!Array.isArray(assignedContactIds) || assignedContactIds.length === 0) return [];
+
+  const requestedIds = [...new Set(
+    assignedContactIds
+      .map((id) => String(id || '').trim())
+      .filter(Boolean)
+  )];
+  if (requestedIds.length === 0) return [];
+
+  const contactDoc = await Contact.findOne({ countyId });
+  if (!contactDoc) {
+    const error = new Error('Contacts have not been set up for this county');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const contactsById = new Map(
+    contactDoc.contacts.map((contact) => [contact._id.toString(), contact])
+  );
+  const missingIds = requestedIds.filter((id) => !contactsById.has(id));
+  if (missingIds.length > 0) {
+    const error = new Error('One or more assigned contacts do not belong to this county');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return requestedIds.map((id) => {
+    const contact = contactsById.get(id);
+    return {
+      contactId: contact._id,
+      role: contact.role || '',
+      name: contact.name || '',
+      email: contact.email || '',
+      phone: contact.phone || ''
+    };
+  });
 }
 
 function usersToNotifyForTask(countyUsers, assignedRoles) {
@@ -182,6 +222,7 @@ router.post('/', auth, adminOnly, [
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
     }
+    const assignedContacts = await resolveAssignedContacts(countyId, req.body.assignedContactIds);
 
     let resolvedDeadline;
     if (deadline) {
@@ -202,7 +243,8 @@ router.post('/', auth, adminOnly, [
       priority: req.body.priority || 'medium',
       deadline: resolvedDeadline,
       assignedBy: req.user._id,
-      assignedRoles
+      assignedRoles,
+      assignedContacts
     });
 
     await task.save();
@@ -250,7 +292,7 @@ router.post('/', auth, adminOnly, [
     res.status(201).json(populatedTask);
   } catch (error) {
     logger.error('Error creating task:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : 'Server error' });
   }
 });
 
@@ -285,6 +327,14 @@ router.post('/bulk', auth, adminOnly, [
     }
 
     const portalLinkVal = (portalLink && String(portalLink).trim()) || '';
+    const contactsByCountyId = new Map();
+    if (Array.isArray(req.body.assignedContactsByCounty)) {
+      for (const entry of req.body.assignedContactsByCounty) {
+        if (entry?.countyId) {
+          contactsByCountyId.set(String(entry.countyId), await resolveAssignedContacts(entry.countyId, entry.assignedContactIds));
+        }
+      }
+    }
 
     const tasks = countyIds.map(countyId => {
       const county = counties.find(c => c._id.toString() === countyId.toString());
@@ -301,7 +351,8 @@ router.post('/bulk', auth, adminOnly, [
         priority: priority || 'medium',
         deadline: taskDeadline,
         assignedBy: req.user._id,
-        assignedRoles
+        assignedRoles,
+        assignedContacts: contactsByCountyId.get(String(countyId)) || []
       };
     });
 
@@ -353,7 +404,7 @@ router.post('/bulk', auth, adminOnly, [
     });
   } catch (error) {
     logger.error('Error creating bulk tasks:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : 'Server error' });
   }
 });
 
@@ -390,6 +441,9 @@ router.put('/:id', auth, [
     if (submittedTo !== undefined) task.submittedTo = submittedTo;
     if (portalLink !== undefined) task.portalLink = (portalLink && String(portalLink).trim()) || '';
     if (req.body.assignedRoles !== undefined) task.assignedRoles = parseAssignedRoles(req.body.assignedRoles);
+    if (req.body.assignedContactIds !== undefined) {
+      task.assignedContacts = await resolveAssignedContacts(task.countyId, req.body.assignedContactIds);
+    }
 
     await task.save();
 
@@ -400,7 +454,7 @@ router.put('/:id', auth, [
     res.json(populatedTask);
   } catch (error) {
     logger.error('Error updating task:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : 'Server error' });
   }
 });
 
@@ -871,4 +925,3 @@ router.post('/:taskId/comments/:commentIndex/mark-read', auth, adminOnly, async 
 });
 
 module.exports = router;
-

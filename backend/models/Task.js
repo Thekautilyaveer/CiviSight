@@ -49,6 +49,32 @@ const taskSchema = new mongoose.Schema({
     type: String,
     enum: DEPARTMENT_ROLE_SLUGS
   }],
+  assignedContacts: [{
+    contactId: {
+      type: mongoose.Schema.Types.ObjectId
+    },
+    role: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    name: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: ''
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  }],
   reminders: [{
     sentAt: {
       type: Date,
@@ -118,9 +144,9 @@ taskSchema.index({ status: 1, deadline: 1 }); // For reminder scheduler queries
 taskSchema.index({ countyId: 1, priority: 1 }); // County + priority filtering
 taskSchema.index({ countyId: 1, createdAt: 1 }); // County + assigned date filtering
 taskSchema.index({ countyId: 1, assignedRoles: 1 }); // Role-based visibility
+taskSchema.index({ countyId: 1, 'assignedContacts.contactId': 1 }); // Contact assignments
 
 // Text search index for title and description searches
 taskSchema.index({ title: 'text', description: 'text' });
 
 module.exports = mongoose.model('Task', taskSchema);
-

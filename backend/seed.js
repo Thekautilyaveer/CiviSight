@@ -63,31 +63,25 @@ const FORMS = [
     description: 'Independent external audit of the county\'s financial statements under Government Auditing Standards (O.C.G.A. § 36-81-7). Due within 180 days of fiscal year-end. Agreed-Upon Procedures may substitute if expenditures are under $550K.' },
   { title: 'Audit Corrective-Action Plan', submittedTo: 'Dept. of Audits & Accounts (DOAA)', priority: 'medium', rule: { type: 'fyOffset', days: 210 },
     description: 'Corrective-action plan addressing any findings in the annual audit (O.C.G.A. § 36-81-7). Due 30 days after the audit due date.' },
-  { title: 'Report of Local Government Finances (RLGF)', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'high', rule: { type: 'fyOffset', days: 270 },
+  { title: 'Report of Local Government Finances', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'high', rule: { type: 'fyOffset', days: 270 },
     description: 'Standardized report of county revenues, expenditures, debt, and fund balances filed through the DCA survey window (O.C.G.A. § 36-81-8).' },
-  { title: 'County Property Tax Digest + Submission Package', submittedTo: 'Dept. of Revenue (DOR), Local Govt. Services', priority: 'high', rule: { type: 'fixed', month: 9, day: 1 },
+  { title: 'County Property Tax Digest Submission', submittedTo: 'Dept. of Revenue (DOR), Local Govt. Services', priority: 'high', rule: { type: 'fixed', month: 9, day: 1 },
     description: 'Annual property tax digest and supporting submission package to the Department of Revenue (O.C.G.A. Title 48, Ch. 5). Due September 1.' },
-  { title: 'Millage Rate / 5-Year History + Rollback Advertisement', submittedTo: 'Published in local newspaper', priority: 'medium', rule: { type: 'fixed', month: 8, day: 31 },
+  { title: 'Millage Rate / 5-Year History / Rollback Process', submittedTo: 'Published in local newspaper', priority: 'medium', rule: { type: 'fixed', month: 8, day: 31 },
     description: 'Five-year tax history and rollback-rate advertisement published when the millage rate is set (O.C.G.A. § 48-5-32). Satisfied by public newspaper publication.' },
   { title: 'SPLOST Annual Report', submittedTo: 'Newspaper + county website', priority: 'medium', rule: { type: 'fixed', month: 12, day: 31 },
     description: 'Annual SPLOST / ESPLOST / TSPLOST report on project-level revenues and expenditures (O.C.G.A. § 48-8-122). Due not later than December 31.' },
   { title: 'Hotel-Motel Tax Report', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'medium', rule: { type: 'fyOffset', days: 180 },
     description: 'Annual report of hotel-motel excise tax collections and authorized expenditures (O.C.G.A. § 48-13-56). Due within 180 days of fiscal year-end.' },
-  { title: 'Local Retirement / Pension Report', submittedTo: 'State Auditor (DOAA)', priority: 'medium', rule: { type: 'fyOffset', days: 180 },
-    description: 'Annual actuarial and financial report on the county\'s local retirement/pension plans (O.C.G.A. § 47-20-1 et seq.), per the DOAA schedule.' },
   { title: 'Immigration Compliance Report (Title 13 / E-Verify)', submittedTo: 'Dept. of Audits & Accounts (DOAA)', priority: 'medium', rule: { type: 'fixed', month: 12, day: 31 },
     description: 'Annual attestation of E-Verify and immigration-compliance requirements (O.C.G.A. § 13-10-91). Due December 31.' },
-  { title: 'Transparency in Government Act (TIGA) Salary & Travel Report', submittedTo: 'DOAA (published on Open Georgia)', priority: 'low', rule: { type: 'fyOffset', days: 46 },
-    description: 'Annual salary and travel report published on Open Georgia (O.C.G.A. § 50-6-32). Due roughly 45 days after fiscal year-end (~August 15 for June 30 FY-ends).' },
-  { title: 'Solid Waste Management Survey & Full Cost Report', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'low', rule: { type: 'fixed', month: 9, day: 30 },
+  { title: 'Solid Waste Survey and Full Cost Report', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'low', rule: { type: 'fixed', month: 9, day: 30 },
     description: 'Annual solid waste management survey and full-cost accounting report (O.C.G.A. § 12-8-31.1(d)). Mailed out by July 15; due September 30.' },
-  { title: 'Local Victim Assistance (5%) Fine Report', submittedTo: 'GSCCCA (funds to county / DA)', priority: 'medium', rule: { type: 'monthly' },
+  { title: 'Local Victim Assistance 5% Report', submittedTo: 'GSCCCA (funds to county / DA)', priority: 'medium', rule: { type: 'monthly' },
     description: 'Monthly remittance and report of the 5% victim-assistance add-on collected on fines and bonds (O.C.G.A. § 15-21-131/132).' },
-  { title: 'Annual Budget Adoption + Advertisement', submittedTo: 'Adopted / published locally', priority: 'high', rule: { type: 'beforeFYStart' },
+  { title: 'Annual Budget Adoption and Advertisement', submittedTo: 'Adopted / published locally', priority: 'high', rule: { type: 'beforeFYStart' },
     description: 'Adoption and public advertisement of the annual operating budget before the start of the fiscal year (O.C.G.A. § 36-81-5).' },
-  { title: 'Annual Authority Registration & Financials (AARF)', submittedTo: 'Dept. of Community Affairs (DCA)', priority: 'medium', rule: { type: 'fyOffset', days: 180 },
-    description: 'Registration and financial filing for county authorities, due within 6 months of the authority\'s fiscal year-end (HB 257, 2018).' },
-  { title: 'Single Audit + SF-SAC Form', submittedTo: 'Federal Audit Clearinghouse (FAC)', priority: 'high', rule: { type: 'fyOffset', days: 270 },
+  { title: 'Single Audit and SF-SAC', submittedTo: 'Federal Audit Clearinghouse (FAC)', priority: 'high', rule: { type: 'fyOffset', days: 270 },
     description: 'Federal Single Audit and SF-SAC submission when federal spending exceeds the $1M threshold (2 CFR Part 200, Subpart F). Due the earlier of 30 days after the auditor\'s report or 9 months after period-end.' }
 ];
 
@@ -401,38 +395,44 @@ const seedData = async () => {
           {
             role: 'County Administrator',
             name: 'Glenn Stephens',
-            email: 'glenn.stephens@gwinnettcounty.com',
-            phone: '(770) 822-7000'
+            email: 'Glenn.Stephens@GwinnettCounty.com',
+            phone: '770-822-7000'
           },
           {
-            role: 'County Clerk',
-            name: 'Tonya Henderson',
-            email: 'tonya.henderson@gwinnettcounty.com',
-            phone: '(770) 822-7001'
+            role: 'County Clerk to the Commission',
+            name: 'Tammy Gibson',
+            email: 'Tammy.Gibson@GwinnettCounty.com',
+            phone: '770-822-7000'
           },
           {
-            role: 'Chief Financial Officer / Finance Director',
-            name: 'Buffy Alexzulian',
-            email: 'buffy.alexzulian@gwinnettcounty.com',
-            phone: '(770) 822-7002'
+            role: 'Deputy County Administrator / Chief Financial Officer',
+            name: 'Buffy Rainey',
+            email: 'Buffy.Rainey@GwinnettCounty.com',
+            phone: '770-822-7000'
           },
           {
             role: 'Budget Director',
-            name: 'Maria Woods',
-            email: 'maria.woods@gwinnettcounty.com',
-            phone: '(770) 822-7003'
+            name: 'Joe Johnson',
+            email: 'Joseph.Johnson@GwinnettCounty.com',
+            phone: '770-822-7832'
           },
           {
-            role: 'Grants Manager / Coordinator',
-            name: 'Derrick Patterson',
-            email: 'derrick.patterson@gwinnettcounty.com',
-            phone: '(770) 822-7004'
+            role: 'Grants Manager / Director',
+            name: 'Dr. Nde Phinda "Phinda" Hillmon',
+            email: 'NdePhinda.Hillmon@GwinnettCounty.com',
+            phone: '770-822-5079'
           },
           {
             role: 'County Attorney / Legal Counsel',
-            name: 'Karen Bynum',
-            email: 'karen.bynum@gwinnettcounty.com',
-            phone: '(770) 822-7005'
+            name: 'Mike Ludwiczak',
+            email: 'Mike.Ludwiczak@GwinnettCounty.com',
+            phone: '770-822-8700'
+          },
+          {
+            role: 'District 2 County Commissioner',
+            name: 'Ben Ku',
+            email: 'Ben.Ku@GwinnettCounty.com',
+            phone: '770-822-7002'
           }
         ]
       });

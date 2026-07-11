@@ -12,6 +12,7 @@ const RlgfFormPage = () => {
 
   useEffect(() => {
     let active = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     api
       .get(`/counties/${id}`)
       .then((res) => { if (active) setCountyName(res.data?.name || ''); })

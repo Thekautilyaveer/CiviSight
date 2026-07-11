@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import schema from './rlgf_schema.json';
 import jurisdictions from './jurisdiction_table.json';
 import ucoa from './ucoa_codes.json';
@@ -16,6 +16,32 @@ const money = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 const fmtMoney = (n) => (n === null || n === undefined ? '—' : money.format(n));
+
+const presentationOverrides = {
+  'Page 1:F12': { hidden: true },
+  'Page 1:F16': { hidden: true },
+  'Page 1:F18': { hidden: true },
+  'Page 1:D15': {
+    label: 'Fiscal year-end month changed from the previous report?',
+  },
+  'Page 1:F15': {
+    label: 'Fiscal year-end month',
+    options_source: 'inline:January 31,February 28,March 31,April 30,May 31,June 30,July 31,August 31,September 30,October 31,November 30,December 31',
+  },
+  'Page 1:D17': {
+    label: 'Fiscal period length',
+  },
+  'Page 1:F17': {
+    label: 'Fiscal year reported',
+    options_source: 'inline:2020,2021,2022,2023,2024,2025',
+  },
+};
+
+function displayField(field) {
+  const override = presentationOverrides[`${field.page}:${field.cell}`];
+  if (!override) return field;
+  return { ...field, ...override };
+}
 
 function resolveOptions(field) {
   const src = field.options_source || '';
@@ -52,7 +78,7 @@ function subTitle(p) {
   return t.replace(/^Part\s+[IVXLC]+\s*[–-]*\s*/i, '').replace(/--/g, '—').trim();
 }
 
-function FieldRow({ field, value, derivedValue, isUnhandled, onChange, index }) {
+function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorText, onChange, index }) {
   const { id, cell, label, type, is_derived, needs_review, ucoa_code } = field;
 
   let widget;
@@ -86,13 +112,13 @@ function FieldRow({ field, value, derivedValue, isUnhandled, onChange, index }) 
     widget = (
       <div className="money-wrap">
         <span className="adorn">$</span>
-        <input type="number" min="0" step="any" inputMode="decimal"
+        <input type="text" inputMode="decimal" autoComplete="off"
           value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} placeholder="0" />
       </div>
     );
   } else if (type === 'integer') {
     widget = (
-      <input className="num" type="number" min="0" step="1" inputMode="numeric"
+      <input className="num" type="text" inputMode="numeric" autoComplete="off"
         value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} placeholder="0" />
     );
   } else {
@@ -104,7 +130,12 @@ function FieldRow({ field, value, derivedValue, isUnhandled, onChange, index }) 
 
   return (
     <div
-      className={'row' + (is_derived ? ' is-derived' : '') + (needs_review ? ' is-flagged' : '')}
+      className={
+        'row' +
+        (is_derived ? ' is-derived' : '') +
+        (needs_review ? ' is-flagged' : '') +
+        (isInvalid ? ' is-invalid' : '')
+      }
       style={{ animationDelay: `${Math.min(index * 12, 400)}ms` }}
     >
       <div className="row-main">
@@ -118,7 +149,12 @@ function FieldRow({ field, value, derivedValue, isUnhandled, onChange, index }) 
           {needs_review && <span className="chip chip-review">needs review</span>}
         </div>
       </div>
-      <div className="row-widget">{widget}</div>
+      <div className="row-widget">
+        <div className="widget-wrap">
+          {widget}
+          {isInvalid && errorText && <div className="field-error">{errorText}</div>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -138,8 +174,18 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
   const [query, setQuery] = useState('');
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [submitted, setSubmitted] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const questionsRef = useRef(null);
 
-  const onChange = (id, v) => setValues((prev) => ({ ...prev, [id]: v }));
+  const onChange = (id, v) => {
+    setValues((prev) => ({ ...prev, [id]: v }));
+    setFieldErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
 
   const { evaluators, derivedById, unhandledCount } = useMemo(() => {
     const evs = schema.pages.map((p) => makeEvaluator(p, values));
@@ -168,8 +214,13 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
   }, []);
 
   const page = schema.pages[pageIdx];
+  useEffect(() => {
+    questionsRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pageIdx]);
+
   const q = query.trim().toLowerCase();
-  const visibleFields = page.fields.filter((f) => {
+  const visibleFields = page.fields.map(displayField).filter((f) => {
+    if (f.hidden) return false;
     if (onlyFlagged && !f.needs_review) return false;
     if (!q) return true;
     return (
@@ -179,7 +230,42 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
     );
   });
 
+  const validateForm = () => {
+    const errors = {};
+    schema.pages.forEach((p) => {
+      p.fields.forEach((f) => {
+        if (f.is_derived) return;
+        const raw = values[f.id];
+        const text = raw === null || raw === undefined ? '' : String(raw).trim();
+        const validation = f.validation || {};
+        if (validation.required && !text) {
+          errors[f.id] = 'This field is required.';
+          return;
+        }
+        if ((f.type === 'dollar' || f.type === 'integer') && text) {
+          const parsed = Number(text);
+          const integerOk = f.type !== 'integer' || Number.isInteger(parsed);
+          if (Number.isNaN(parsed) || !Number.isFinite(parsed) || !integerOk) {
+            errors[f.id] = f.type === 'integer'
+              ? 'Enter a whole number.'
+              : 'Enter a valid number.';
+          }
+        }
+      });
+    });
+    return errors;
+  };
+
   const handleSubmit = () => {
+    const errors = validateForm();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const firstId = Object.keys(errors)[0];
+      const firstPage = schema.pages.findIndex((p) => p.fields.some((f) => f.id === firstId));
+      if (firstPage >= 0) setPageIdx(firstPage);
+      return;
+    }
+
     const payload = { form: schema.form, version: schema.version, answers: {} };
     schema.pages.forEach((p, i) => {
       p.fields.forEach((f) => {
@@ -190,8 +276,15 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
     // eslint-disable-next-line no-console
     console.log('RLGF submit payload:', payload);
     if (onSubmit) onSubmit(payload);
-    setSubmitted(Object.keys(payload.answers).length);
+    setSubmitted({
+      answers: Object.keys(payload.answers).length,
+      flags: schema.pages.flatMap((p) => p.fields).filter((f) => f.needs_review).length,
+      pages: schema.pages.length,
+      timestamp: new Date(),
+    });
   };
+
+  const filledCount = Object.values(values).filter((v) => v !== null && v !== undefined && String(v).trim() !== '').length;
 
   return (
     <div className="rlgf-root">
@@ -261,45 +354,75 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
             </div>
           </header>
 
-          <section className="sheet" key={pageIdx}>
-            {visibleFields.length === 0 ? (
-              <div className="empty">No fields match your filter.</div>
-            ) : (
-              visibleFields.map((f, idx) => (
-                <FieldRow key={f.id} field={f} value={values[f.id]}
-                  derivedValue={derivedById[f.id]}
-                  isUnhandled={evaluators[pageIdx].unhandledIds.has(f.id)}
-                  onChange={onChange} index={idx} />
-              ))
-            )}
-          </section>
+          <div className="questions-scroll" ref={questionsRef}>
+            <section className="sheet" key={pageIdx}>
+              {visibleFields.length === 0 ? (
+                <div className="empty">No fields match your filter.</div>
+              ) : (
+                visibleFields.map((f, idx) => (
+                  <FieldRow key={f.id} field={f} value={values[f.id]}
+                    derivedValue={derivedById[f.id]}
+                    isUnhandled={evaluators[pageIdx].unhandledIds.has(f.id)}
+                    isInvalid={Boolean(fieldErrors[f.id])}
+                    errorText={fieldErrors[f.id]}
+                    onChange={onChange} index={idx}
+                  />
+                ))
+              )}
+            </section>
 
-          <div className="pager">
-            <button disabled={pageIdx === 0} onClick={() => setPageIdx((i) => Math.max(0, i - 1))}>← Previous</button>
-            <span>{shortTitle(page)}</span>
-            <button disabled={pageIdx === schema.pages.length - 1}
-              onClick={() => setPageIdx((i) => Math.min(schema.pages.length - 1, i + 1))}>Next →</button>
+            <div className="pager">
+              <button disabled={pageIdx === 0} onClick={() => setPageIdx((i) => Math.max(0, i - 1))}>← Previous</button>
+              <span>{shortTitle(page)}</span>
+              <button disabled={pageIdx === schema.pages.length - 1}
+                onClick={() => setPageIdx((i) => Math.min(schema.pages.length - 1, i + 1))}>Next →</button>
+            </div>
           </div>
 
           <footer className="submit-bar">
-            {submitted !== null ? (
-              <div className="submit-ok">
-                ✓ Submitted — payload with <b>{submitted}</b> answers logged to console.
-                <button className="link" onClick={() => setSubmitted(null)}>dismiss</button>
-              </div>
-            ) : (
-              <>
-                <div className="sb-meta">
-                  <span>This page: <b>{page.fields.filter((f) => !f.is_derived && f.type !== 'dropdown').length}</b> inputs</span>
-                  <span><b>{page.fields.filter((f) => f.is_derived).length}</b> computed</span>
-                  <span><b>{page.fields.filter((f) => f.needs_review).length}</b> flagged</span>
-                </div>
-                <button className="submit-btn" onClick={handleSubmit}>Submit form</button>
-              </>
-            )}
+            <div className="sb-meta">
+              <span>This page: <b>{page.fields.filter((f) => !f.is_derived && f.type !== 'dropdown').length}</b> inputs</span>
+              <span><b>{page.fields.filter((f) => f.is_derived).length}</b> computed</span>
+              <span><b>{page.fields.filter((f) => f.needs_review).length}</b> flagged</span>
+            </div>
+            <button type="button" className="submit-btn" onClick={handleSubmit}>
+              Submit form
+            </button>
           </footer>
         </main>
       </div>
+      {submitted !== null && (
+        <div className="submit-success-overlay" role="presentation">
+          <div
+            className="submit-success-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rlgf-submit-title"
+          >
+            <div className="submit-success-icon" aria-hidden>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M20 7L10 17l-5-5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="submit-success-kicker">Submission complete</div>
+            <h2 id="rlgf-submit-title">RLGF form submitted</h2>
+            <p>
+              {submitted.answers} answers were captured successfully. The form is ready for review and the next workflow step.
+            </p>
+            <div className="submit-success-stats">
+              <div><b>{filledCount}</b><span>filled</span></div>
+              <div><b>{submitted.flags}</b><span>review</span></div>
+              <div><b>{submitted.pages}</b><span>pages</span></div>
+            </div>
+            <div className="submit-success-actions">
+              <span className="submit-success-time">
+                Submitted {submitted.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </span>
+              <button className="submit-success-close" onClick={() => setSubmitted(null)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
