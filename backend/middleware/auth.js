@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { hasAdminPowers } = require('../utils/roles');
 
 const auth = async (req, res, next) => {
   try {
@@ -23,8 +24,10 @@ const auth = async (req, res, next) => {
   }
 };
 
+// Gates admin-only endpoints. Both ACCG ('accg') and DCA ('dca') pass — DCA has
+// all the backend powers ACCG has.
 const adminOnly = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (!hasAdminPowers(req.user)) {
     return res.status(403).json({ message: 'Access denied. Admin only.' });
   }
   next();

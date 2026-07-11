@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth, adminOnly } = require('../middleware/auth');
+const { hasAdminPowers } = require('../utils/roles');
 const County = require('../models/County');
 const Task = require('../models/Task');
 const User = require('../models/User');
@@ -13,7 +14,7 @@ router.get('/', auth, async (req, res) => {
   try {
     let counties;
     
-    if (req.user.role === 'admin') {
+    if (hasAdminPowers(req.user)) {
       counties = await County.find().sort({ name: 1 });
     } else {
       // County users only see their own county
@@ -34,7 +35,7 @@ router.get('/', auth, async (req, res) => {
         
         // Count unread comments for admin (only if user is admin)
         let unreadComments = 0;
-        if (req.user.role === 'admin') {
+        if (hasAdminPowers(req.user)) {
           unreadComments = tasks.reduce((sum, task) => {
             if (!task.comments || task.comments.length === 0) return sum;
             const unread = task.comments.filter(comment => {
@@ -86,7 +87,7 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // Check if user has access (admin or county user for their county)
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== req.params.id) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== req.params.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
       setIsAuthenticated(true);
-      return { success: true };
+      return { success: true, user: res.data.user };
     } catch (error) {
       return {
         success: false,
@@ -60,7 +60,10 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  const isAdmin = user?.role === 'admin';
+  // ACCG only. DCA is a separate agency operator — keep each face (ACCG / DCA /
+  // county) distinct on the front end.
+  const isAccg = user?.role === 'accg';
+  const isDca = user?.role === 'dca';
 
   return (
     <AuthContext.Provider
@@ -68,7 +71,8 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         isAuthenticated,
-        isAdmin,
+        isAccg,
+        isDca,
         login,
         logout,
       }}

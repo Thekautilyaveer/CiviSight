@@ -9,7 +9,7 @@ const Contacts = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { isAdmin, user } = useAuth();
+  const { isAccg, user } = useAuth();
 
   useEffect(() => {
     fetchContacts();

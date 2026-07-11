@@ -11,12 +11,12 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [agency, setAgency] = useState('all');
   const [expanded, setExpanded] = useState(null);
-  const { isAdmin, user } = useAuth();
+  const { isAccg, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     // County users don't track all counties — send them to their own county page.
-    if (!isAdmin) {
+    if (!isAccg) {
       if (user?.countyId) navigate(`/county/${user.countyId}`);
       setLoading(false);
       return;
@@ -33,7 +33,7 @@ const Dashboard = () => {
       }
     };
     fetchTasks();
-  }, [isAdmin, user, navigate]);
+  }, [isAccg, user, navigate]);
 
   const urgencyFor = (deadline) => {
     if (!deadline) return { level: 'todo', text: 'Not done' };
@@ -102,7 +102,7 @@ const Dashboard = () => {
   const attention = filtered.filter((f) => f.notDone.length > 0);
   const complete = filtered.filter((f) => f.notDone.length === 0);
 
-  if (loading || !isAdmin) {
+  if (loading || !isAccg) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

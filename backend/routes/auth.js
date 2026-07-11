@@ -29,7 +29,7 @@ router.post('/register', auth, adminOnly, [
     .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'),
-  body('role').isIn(['admin', 'county_user']).withMessage('Invalid role'),
+  body('role').isIn(['accg', 'dca', 'county_user']).withMessage('Invalid role'),
   body('countyId')
     .optional({ values: 'falsy' })
     .custom((value) => {
@@ -47,7 +47,7 @@ router.post('/register', auth, adminOnly, [
     const { username, email, password, role, countyId } = req.body;
     
     // Clean up countyId - remove if empty string or null for admin users
-    const cleanCountyId = (role === 'admin' || !countyId || countyId === '') ? null : countyId;
+    const cleanCountyId = (role === 'accg' || role === 'dca' || !countyId || countyId === '') ? null : countyId;
 
     // Check if user exists
     let user = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });

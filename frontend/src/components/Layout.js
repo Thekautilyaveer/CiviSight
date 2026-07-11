@@ -5,7 +5,7 @@ import api from '../utils/api';
 import Chatbot from './Chatbot';
 
 const Layout = ({ children }) => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAccg } = useAuth();
   const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,7 +113,7 @@ const Layout = ({ children }) => {
                 </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                {isAdmin ? (
+                {isAccg ? (
                   <>
                     <Link
                       to="/dashboard"
@@ -163,7 +163,7 @@ const Layout = ({ children }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {isAdmin && (
+              {isAccg && (
                 <>
                   <button
                     onClick={() => navigate('/users')}
@@ -194,7 +194,7 @@ const Layout = ({ children }) => {
               )}
               <div className="flex-shrink-0">
                 <span className="text-sm text-gray-700 dark:text-gray-300 mr-4">
-                  {user?.username} ({user?.role === 'admin' ? 'Admin' : 'County User'})
+                  {user?.username} ({user?.role === 'accg' ? 'ACCG' : 'County User'})
                 </span>
                 <button
                   onClick={handleLogout}

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
+const { hasAdminPowers } = require('../utils/roles');
 const Contact = require('../models/Contact');
 const County = require('../models/County');
 const logger = require('../utils/logger');
@@ -35,7 +36,7 @@ router.get('/:countyId', auth, async (req, res) => {
     const { countyId } = req.params;
 
     // Check if user has access to this county
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== countyId) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== countyId) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -94,7 +95,7 @@ router.put('/:countyId', auth, async (req, res) => {
     const { contacts } = req.body;
 
     // Check if user has access to this county
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== countyId) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== countyId) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

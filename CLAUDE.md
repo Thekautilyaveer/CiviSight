@@ -40,7 +40,7 @@ Backend requires a `backend/.env` (see `backend/env.example`). `server.js` **fai
 
 Frontend talks to the API via `REACT_APP_API_URL` (defaults to `http://localhost:5001/api`).
 
-Default seeded credentials — admin: `admin@civisight.org` / `admin123`; county user: `county@civisight.org` / `county123`.
+Default seeded credentials — ACCG: `accg@civisight.org` / `accg123`; DCA: `dca@civisight.org` / `dca123`; county user: `county@civisight.org` / `county123`.
 
 ## Architecture
 
@@ -62,7 +62,7 @@ Default seeded credentials — admin: `admin@civisight.org` / `admin123`; county
 
 ### Cross-cutting: roles & permissions
 Two orthogonal concepts — keep them distinct:
-1. **Account role** (`User.role`): `admin` | `county_user`. Controls API access (via `adminOnly`) and route visibility (via `PrivateRoute adminOnly`). County users only ever see data for their own `countyId`.
+1. **Account role** (`User.role`): `accg` (Association of County Commissioners of Georgia) | `dca` (Georgia Dept. of Community Affairs — a separate agency operator) | `county_user`. `accg` and `dca` are both agency operators with full admin-equivalent API powers — see `hasAdminPowers()` in `utils/roles.js`, applied by `adminOnly` and throughout the routes. County users only ever see data for their own `countyId`. Controls API access (via `adminOnly`) and route visibility (via `PrivateRoute adminOnly`).
 2. **Department roles** (`User.departmentRoles`, `Task.assignedRoles`): a fixed enum in `backend/constants/departmentRoles.js` (mirrored in `frontend/src/constants/departmentRoles.js` — **keep these two in sync**). Used for task visibility/notification filtering: a task with no `assignedRoles` is visible to all county users; otherwise only to users whose `departmentRoles` overlap (a county user with no department roles sees everything). See the query-building in `routes/tasks.js` GET `/` and `usersToNotifyForTask`.
 
 Tasks can derive deadlines from a county's fiscal-year-end (`fiscalYearEndMonth`/`Day` on `County`) plus offsets in `FISCAL_OFFSET_DAYS` (`routes/tasks.js`).

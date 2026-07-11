@@ -26,7 +26,7 @@ router.get('/', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.get('/admins', auth, adminOnly, async (req, res) => {
   try {
-    const admins = await User.find({ role: 'admin' })
+    const admins = await User.find({ role: 'accg' })
       .select('-password')
       .sort({ createdAt: -1 });
     

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
+const { hasAdminPowers } = require('../utils/roles');
 const Notification = require('../models/Notification');
 const Task = require('../models/Task');
 const logger = require('../utils/logger');
@@ -30,7 +31,7 @@ router.get('/upcoming', auth, async (req, res) => {
     let query = {};
     
     // County users only see tasks for their county
-    if (req.user.role !== 'admin') {
+    if (!hasAdminPowers(req.user)) {
       if (!req.user.countyId) {
         return res.json([]);
       }

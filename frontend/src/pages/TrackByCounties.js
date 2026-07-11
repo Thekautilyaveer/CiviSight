@@ -19,16 +19,16 @@ const TrackByCounties = () => {
   });
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingCounty, setDeletingCounty] = useState(null);
-  const { isAdmin, user } = useAuth();
+  const { isAccg, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAccg) {
       fetchData();
     } else {
       fetchUserCounty();
     }
-  }, [isAdmin, user]);
+  }, [isAccg, user]);
 
   const fetchData = async () => {
     try {
@@ -147,7 +147,7 @@ const TrackByCounties = () => {
   }
 
   // County users are redirected to their own county page.
-  if (!isAdmin) {
+  if (!isAccg) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

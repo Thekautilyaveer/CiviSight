@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const { auth, adminOnly } = require('../middleware/auth');
+const { hasAdminPowers } = require('../utils/roles');
 const Task = require('../models/Task');
 const County = require('../models/County');
 const Contact = require('../models/Contact');
@@ -87,7 +88,7 @@ router.get('/', auth, async (req, res) => {
     let query = {};
     
     // County users only see tasks for their county
-    if (req.user.role !== 'admin') {
+    if (!hasAdminPowers(req.user)) {
       if (!req.user.countyId) {
         return res.json([]);
       }
@@ -179,7 +180,7 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // Check if user has access (county)
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId._id.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -427,7 +428,7 @@ router.put('/:id', auth, [
     }
 
     // Check if user has access (admin or county user for their county)
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -687,7 +688,7 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
     }
 
     // Check if user has access
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -745,7 +746,7 @@ router.get('/:id/download-form', auth, async (req, res) => {
     }
 
     // Check if user has access
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -782,7 +783,7 @@ router.get('/:id/download-filled-form', auth, async (req, res) => {
     }
 
     // Check if user has access
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -826,7 +827,7 @@ router.post('/:id/comments', auth, [
     }
 
     // Check if user has access
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== task.countyId.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -871,7 +872,7 @@ router.get('/:id/comments', auth, async (req, res) => {
     }
 
     // Check if user has access
-    if (req.user.role !== 'admin') {
+    if (!hasAdminPowers(req.user)) {
       // For county users, verify they belong to the task's county
       const fullTask = await Task.findById(req.params.id).select('countyId');
       if (!fullTask || req.user.countyId?.toString() !== fullTask.countyId.toString()) {
