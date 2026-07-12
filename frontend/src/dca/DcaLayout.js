@@ -14,7 +14,7 @@ const NAV_LINKS = [
 const DcaLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { openModal, showToast } = useDcaUI();
+  const { showToast } = useDcaUI();
   const [chatOpen, setChatOpen] = useState(false);
 
   const getLinkClasses = (path) => {
@@ -59,9 +59,9 @@ const DcaLayout = ({ children }) => {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => openModal('contacts', {})}
-                title="Contacts"
-                aria-label="Contacts"
+                onClick={() => navigate('/dca/users')}
+                title="User management"
+                aria-label="User management"
                 className="hidden md:inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">

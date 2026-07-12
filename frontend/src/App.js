@@ -160,6 +160,8 @@ function App() {
             <Route path="reminders" element={<DcaReminders />} />
             {/* Add Report reuses the existing ACCG Add Task flow (real create endpoint). */}
             <Route path="add-report" element={<CreateTask />} />
+            {/* User management reuses the ACCG Users page (DCA has the same admin powers). */}
+            <Route path="users" element={<Users />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
