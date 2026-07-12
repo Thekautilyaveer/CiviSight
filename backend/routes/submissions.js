@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { auth, adminOnly } = require('../middleware/auth');
+const { auth, adminOnly, agencyOnly } = require('../middleware/auth');
 const { hasAdminPowers } = require('../utils/roles');
 const store = require('../db/store');
 const logger = require('../utils/logger');
@@ -93,8 +93,8 @@ router.get('/', auth, async (req, res) => {
 
 // @route   POST /api/submissions/:id/comments
 // @desc    Add a field-level review comment to a submitted form
-// @access  Private (Admin only)
-router.post('/:id/comments', auth, adminOnly, async (req, res) => {
+// @access  Private (reviewing agency only — ACCG is a mediator and cannot review)
+router.post('/:id/comments', auth, agencyOnly, async (req, res) => {
   try {
     const fieldId = String(req.body.fieldId || '').trim();
     const text = String(req.body.text || '').trim();
@@ -197,8 +197,8 @@ router.get('/:id', auth, async (req, res) => {
 
 // @route   PUT /api/submissions/:id/review
 // @desc    Update state-agency review status
-// @access  Private (Admin only)
-router.put('/:id/review', auth, adminOnly, async (req, res) => {
+// @access  Private (reviewing agency only — ACCG is a mediator and cannot review)
+router.put('/:id/review', auth, agencyOnly, async (req, res) => {
   try {
     const allowed = ['submitted', 'under_review', 'accepted', 'needs_correction'];
     const { status, reviewNote } = req.body;

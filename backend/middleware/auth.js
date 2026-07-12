@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const store = require('../db/store');
-const { hasAdminPowers } = require('../utils/roles');
+const { hasAdminPowers, isReviewingAgency } = require('../utils/roles');
 
 const auth = async (req, res, next) => {
   try {
@@ -33,5 +33,14 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, adminOnly };
+// Gates submission-review actions to reviewing agencies (DCA) only. ACCG is a mediator
+// and cannot review — reviewing belongs to the receiving state agency.
+const agencyOnly = (req, res, next) => {
+  if (!isReviewingAgency(req.user)) {
+    return res.status(403).json({ message: 'Access denied. Only the reviewing agency can review submissions.' });
+  }
+  next();
+};
+
+module.exports = { auth, adminOnly, agencyOnly };
 
