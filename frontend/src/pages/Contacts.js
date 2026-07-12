@@ -3,8 +3,9 @@ import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
-const Contacts = () => {
-  const { id: countyId } = useParams();
+const Contacts = ({ countyId: propCountyId }) => {
+  const { id: paramId } = useParams();
+  const countyId = propCountyId || paramId; // prop wins (used by the DCA modal); else URL param (ACCG route)
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -58,7 +59,7 @@ const Contacts = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
