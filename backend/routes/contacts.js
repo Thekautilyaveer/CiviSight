@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const { hasAdminPowers } = require('../utils/roles');
-const Contact = require('../models/Contact');
-const County = require('../models/County');
+const store = require('../db/store');
 const logger = require('../utils/logger');
 
 // Default contact roles
@@ -41,41 +40,32 @@ router.get('/:countyId', auth, async (req, res) => {
     }
 
     // Verify county exists
-    const county = await County.findById(countyId);
+    const county = await store.counties.findById(countyId);
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
     }
 
     // Get or create contact document
-    let contact = await Contact.findOne({ countyId });
+    let contact = await store.contacts.findByCountyId(countyId);
 
     if (!contact) {
       // Create contact document with default roles
-      contact = new Contact({
+      contact = await store.contacts.create(
         countyId,
-        contacts: DEFAULT_CONTACT_ROLES.map(role => ({
-          role,
-          name: '',
-          email: '',
-          phone: ''
-        }))
-      });
-      await contact.save();
+        DEFAULT_CONTACT_ROLES.map(role => ({ role, name: '', email: '', phone: '' }))
+      );
     } else {
       // Ensure all default roles exist
-      const existingRoles = contact.contacts.map(c => c.role);
+      const existing = contact.contacts.map(c => (typeof c.toObject === 'function' ? c.toObject() : c));
+      const existingRoles = existing.map(c => c.role);
       const missingRoles = DEFAULT_CONTACT_ROLES.filter(role => !existingRoles.includes(role));
-      
+
       if (missingRoles.length > 0) {
-        missingRoles.forEach(role => {
-          contact.contacts.push({
-            role,
-            name: '',
-            email: '',
-            phone: ''
-          });
-        });
-        await contact.save();
+        const merged = [
+          ...existing,
+          ...missingRoles.map(role => ({ role, name: '', email: '', phone: '' }))
+        ];
+        contact = await store.contacts.updateContacts(countyId, merged);
       }
     }
 
@@ -100,7 +90,7 @@ router.put('/:countyId', auth, async (req, res) => {
     }
 
     // Verify county exists
-    const county = await County.findById(countyId);
+    const county = await store.counties.findById(countyId);
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
     }
@@ -111,17 +101,13 @@ router.put('/:countyId', auth, async (req, res) => {
     }
 
     // Update or create contact document
-    let contact = await Contact.findOne({ countyId });
+    let contact = await store.contacts.findByCountyId(countyId);
 
     if (!contact) {
-      contact = new Contact({
-        countyId,
-        contacts: []
-      });
+      contact = await store.contacts.create(countyId, contacts);
+    } else {
+      contact = await store.contacts.updateContacts(countyId, contacts);
     }
-
-    contact.contacts = contacts;
-    await contact.save();
 
     res.json(contact);
   } catch (error) {

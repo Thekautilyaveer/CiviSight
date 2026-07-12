@@ -145,6 +145,10 @@ async function deleteById(id) {
   return rows[0] ? m.task(rows[0]) : null;
 }
 
+async function deleteByCountyId(countyId) {
+  await query(`delete from tasks where county_id = $1`, [countyId]);
+}
+
 // --- Reminders: append {sentAt, sentBy, _id} to the jsonb array ---
 async function pushReminder(id, { sentAt, sentBy }) {
   const el = { sentAt: m.iso(sentAt) || new Date().toISOString(), sentBy: sentBy || null, _id: m.newId() };
@@ -251,6 +255,7 @@ module.exports = {
   insertMany,
   updateFields,
   deleteById,
+  deleteByCountyId,
   pushReminder,
   setFormFile,
   setFilledFormFile,

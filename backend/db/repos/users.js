@@ -5,7 +5,7 @@ const { query } = require('../pool');
 const m = require('../mapper');
 
 const COLS = `id,username,email,role,county_id,department_roles,created_at,updated_at`;
-const COLS_PW = `${COLS},password`;
+const COLS_PW = `id,username,email,role,county_id,department_roles,created_at,updated_at,password`;
 
 function dupError() {
   const e = new Error('duplicate key');
@@ -23,11 +23,12 @@ async function findById(id) {
   return rows[0] ? m.user(rows[0]) : null;
 }
 
-// Login: needs the password hash. Returns { user: shaped, password } or null.
-async function findByEmailWithPassword(email) {
+// Login: verify email+password. Returns the shaped user (no password) or null.
+async function verifyCredentials(email, password) {
   const { rows } = await query(`select ${COLS_PW} from users where email = $1`, [(email || '').toLowerCase()]);
   if (!rows[0]) return null;
-  return { user: m.user(rows[0]), password: rows[0].password };
+  const ok = await bcrypt.compare(password, rows[0].password);
+  return ok ? m.user(rows[0]) : null;
 }
 
 // Register duplicate check (email OR username).
@@ -113,7 +114,7 @@ async function findRefsByIds(ids) {
 
 module.exports = {
   findById,
-  findByEmailWithPassword,
+  verifyCredentials,
   findByEmailOrUsername,
   comparePassword,
   create,

@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -7,12 +6,15 @@ const logger = require('./utils/logger');
 
 dotenv.config();
 
-// Validate required environment variables
+// Data driver: 'supabase' (default) or 'mongo' (rollback). Selects the backing store.
+const DATA_DRIVER = (process.env.DATA_DRIVER || 'supabase').toLowerCase();
+
+// Validate required environment variables (driver-specific connection string included)
 const requiredEnvVars = [
-  'JWT_SECRET', 
-  'MONGODB_URI', 
-  'EMAIL_USER', 
-  'EMAIL_PASSWORD'
+  'JWT_SECRET',
+  'EMAIL_USER',
+  'EMAIL_PASSWORD',
+  DATA_DRIVER === 'mongo' ? 'MONGODB_URI' : 'SUPABASE_DB_URL'
 ];
 requiredEnvVars.forEach(varName => {
   if (!process.env[varName]) {
@@ -39,10 +41,18 @@ app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/civisight')
-.then(() => logger.info('MongoDB connected'))
-.catch(err => logger.error('MongoDB connection error:', err));
+// Connect to the selected data store
+if (DATA_DRIVER === 'mongo') {
+  const mongoose = require('mongoose');
+  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/civisight')
+    .then(() => logger.info('Data driver: mongo — MongoDB connected'))
+    .catch(err => logger.error('MongoDB connection error:', err));
+} else {
+  const { getPool } = require('./db/pool');
+  getPool().query('select 1')
+    .then(() => logger.info('Data driver: supabase — Postgres connected'))
+    .catch(err => logger.error('Postgres connection error:', err));
+}
 
 const PORT = process.env.PORT || 5001;
 

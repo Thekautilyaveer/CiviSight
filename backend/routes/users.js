@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth, adminOnly } = require('../middleware/auth');
-const User = require('../models/User');
+const store = require('../db/store');
 const logger = require('../utils/logger');
 
 // @route   GET /api/users
@@ -9,11 +9,7 @@ const logger = require('../utils/logger');
 // @access  Private (Admin only)
 router.get('/', auth, adminOnly, async (req, res) => {
   try {
-    const users = await User.find()
-      .select('-password')
-      .populate('countyId', 'name code')
-      .sort({ createdAt: -1 });
-    
+    const users = await store.users.findAllPopulated();
     res.json(users);
   } catch (error) {
     logger.error('Error fetching users:', error);
@@ -26,10 +22,7 @@ router.get('/', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.get('/admins', auth, adminOnly, async (req, res) => {
   try {
-    const admins = await User.find({ role: 'accg' })
-      .select('-password')
-      .sort({ createdAt: -1 });
-    
+    const admins = await store.users.findByRole('accg');
     res.json(admins);
   } catch (error) {
     logger.error('Error fetching admins:', error);
@@ -42,14 +35,12 @@ router.get('/admins', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.get('/:id', auth, adminOnly, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id)
-      .select('-password')
-      .populate('countyId', 'name code');
-    
+    const user = await store.users.findByIdPopulated(req.params.id);
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     res.json(user);
   } catch (error) {
     logger.error('Error fetching user:', error);
@@ -62,22 +53,22 @@ router.get('/:id', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.delete('/:id', auth, adminOnly, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    
+    const user = await store.users.findById(req.params.id);
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Prevent deleting yourself
     if (user._id.toString() === req.user._id.toString()) {
       return res.status(400).json({ message: 'Cannot delete your own account' });
     }
-    
+
     // Log the action
     logger.info(`Admin ${req.user.username} deleted user: ${user.username} (${user.email})`);
-    
-    await User.findByIdAndDelete(req.params.id);
-    
+
+    await store.users.deleteById(req.params.id);
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     logger.error('Error deleting user:', error);

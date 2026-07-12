@@ -4,14 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const { auth, adminOnly } = require('../middleware/auth');
 const { hasAdminPowers } = require('../utils/roles');
-const Task = require('../models/Task');
-const County = require('../models/County');
-const Contact = require('../models/Contact');
-const Notification = require('../models/Notification');
+const store = require('../db/store');
 const { body, validationResult } = require('express-validator');
 const { uploadForm, uploadFilledForm, getSignedUrl, deleteFile } = require('../middleware/upload');
 const { sendReminderEmail, sendTaskAssignmentEmail, sendFormUploadEmail } = require('../utils/email');
-const User = require('../models/User');
 const logger = require('../utils/logger');
 const { DEPARTMENT_ROLE_SLUGS } = require('../constants/departmentRoles');
 
@@ -33,7 +29,7 @@ async function resolveAssignedContacts(countyId, assignedContactIds) {
   )];
   if (requestedIds.length === 0) return [];
 
-  const contactDoc = await Contact.findOne({ countyId });
+  const contactDoc = await store.contacts.findByCountyId(countyId);
   if (!contactDoc) {
     const error = new Error('Contacts have not been set up for this county');
     error.statusCode = 400;
@@ -85,80 +81,34 @@ function getDeadlineFromFiscalYearEnd(county, offsetDays) {
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    let query = {};
-    
+    const filters = {};
+
     // County users only see tasks for their county
     if (!hasAdminPowers(req.user)) {
       if (!req.user.countyId) {
         return res.json([]);
       }
-      query.countyId = req.user.countyId;
+      filters.countyId = req.user.countyId.toString();
 
-      // Role-based visibility: if user has departmentRoles, only show tasks with no assignedRoles or overlapping roles
+      // Role-based visibility: if user has departmentRoles, only show tasks with no
+      // assignedRoles or overlapping roles.
       const userRoles = req.user.departmentRoles;
       if (userRoles && userRoles.length > 0) {
-        query.$and = (query.$and || []).concat([
-          {
-            $or: [
-              { assignedRoles: { $exists: false } },
-              { assignedRoles: { $size: 0 } },
-              { assignedRoles: { $in: userRoles } }
-            ]
-          }
-        ]);
+        filters.visibleRoles = userRoles;
       }
     }
 
-    // Filter by county if provided
-    if (req.query.countyId) {
-      query.countyId = req.query.countyId;
-    }
+    // Filter by county if provided (mirrors legacy behavior: overrides the above)
+    if (req.query.countyId) filters.countyId = req.query.countyId;
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.priority) filters.priority = req.query.priority;
+    if (req.query.deadlineFrom) filters.deadlineFrom = req.query.deadlineFrom;
+    if (req.query.deadlineTo) filters.deadlineTo = req.query.deadlineTo;
+    if (req.query.assignedFrom) filters.assignedFrom = req.query.assignedFrom;
+    if (req.query.assignedTo) filters.assignedTo = req.query.assignedTo;
+    if (req.query.search) filters.search = req.query.search;
 
-    // Filter by status if provided
-    if (req.query.status) {
-      query.status = req.query.status;
-    }
-
-    // Filter by priority if provided
-    if (req.query.priority) {
-      query.priority = req.query.priority;
-    }
-
-    // Filter by deadline date range
-    if (req.query.deadlineFrom || req.query.deadlineTo) {
-      query.deadline = {};
-      if (req.query.deadlineFrom) {
-        query.deadline.$gte = new Date(req.query.deadlineFrom);
-      }
-      if (req.query.deadlineTo) {
-        query.deadline.$lte = new Date(req.query.deadlineTo);
-      }
-    }
-
-    // Filter by assigned date range
-    if (req.query.assignedFrom || req.query.assignedTo) {
-      query.createdAt = {};
-      if (req.query.assignedFrom) {
-        query.createdAt.$gte = new Date(req.query.assignedFrom);
-      }
-      if (req.query.assignedTo) {
-        query.createdAt.$lte = new Date(req.query.assignedTo);
-      }
-    }
-
-    // Search by title or description
-    if (req.query.search) {
-      query.$or = [
-        { title: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } }
-      ];
-    }
-
-    const tasks = await Task.find(query)
-      .populate('countyId', 'name code')
-      .populate('assignedBy', 'username email')
-      .sort({ deadline: 1, createdAt: -1 });
-
+    const tasks = await store.tasks.findList(filters);
     res.json(tasks);
   } catch (error) {
     logger.error('Error fetching tasks:', error);
@@ -171,9 +121,7 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate('countyId', 'name code')
-      .populate('assignedBy', 'username email');
+    const task = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: false });
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -219,7 +167,7 @@ router.post('/', auth, adminOnly, [
     const assignedRoles = parseAssignedRoles(req.body.assignedRoles);
 
     // Verify county exists
-    const county = await County.findById(countyId);
+    const county = await store.counties.findById(countyId);
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
     }
@@ -234,7 +182,7 @@ router.post('/', auth, adminOnly, [
       return res.status(400).json({ message: 'Either deadline (ISO date) or deadlineType "fiscal_year_offset" with deadlineOffsetDays (60, 90, 180, or 270) is required' });
     }
 
-    const task = new Task({
+    const task = await store.tasks.create({
       title,
       description: description || '',
       countyId,
@@ -248,48 +196,36 @@ router.post('/', auth, adminOnly, [
       assignedContacts
     });
 
-    await task.save();
-
     // Send email notification - always send to EMAIL_TO
     try {
-      const populatedCounty = await County.findById(countyId);
-      const assignedByUser = await User.findById(req.user._id);
       const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
-      
-      if (populatedCounty) {
-        await sendTaskAssignmentEmail(
-          emailTo,
-          populatedCounty.name,
-          title,
-          resolvedDeadline,
-          assignedByUser.username
-        );
-        logger.info(`Task assignment email sent to ${emailTo} for ${populatedCounty.name}`);
-      }
+      await sendTaskAssignmentEmail(
+        emailTo,
+        county.name,
+        title,
+        resolvedDeadline,
+        req.user.username
+      );
+      logger.info(`Task assignment email sent to ${emailTo} for ${county.name}`);
     } catch (emailError) {
       logger.error('Failed to send task assignment email:', emailError);
       // Continue even if email fails
     }
 
     // Create notification for county users whose roles match the task
-    const Notification = require('../models/Notification');
-    const countyUsers = await User.find({ countyId: countyId, role: 'county_user' });
-    const usersToNotify = usersToNotifyForTask(countyUsers, task.assignedRoles);
+    const countyUsers = await store.users.findCountyUsers(countyId);
+    const usersToNotify = usersToNotifyForTask(countyUsers, assignedRoles);
     for (const user of usersToNotify) {
-      const notification = new Notification({
+      await store.notifications.create({
         userId: user._id,
         type: 'task_assigned',
         title: 'New Task Assigned',
         message: `New task assigned: ${title}`,
         taskId: task._id
       });
-      await notification.save();
     }
 
-    const populatedTask = await Task.findById(task._id)
-      .populate('countyId', 'name code email')
-      .populate('assignedBy', 'username email');
-
+    const populatedTask = await store.tasks.findByIdPopulated(task._id, { countyEmail: true });
     res.status(201).json(populatedTask);
   } catch (error) {
     logger.error('Error creating task:', error);
@@ -317,7 +253,7 @@ router.post('/bulk', auth, adminOnly, [
     const assignedRoles = parseAssignedRoles(req.body.assignedRoles);
 
     // Verify all counties exist
-    const counties = await County.find({ _id: { $in: countyIds } });
+    const counties = await store.counties.findByIds(countyIds);
     if (counties.length !== countyIds.length) {
       return res.status(404).json({ message: 'One or more counties not found' });
     }
@@ -337,7 +273,7 @@ router.post('/bulk', auth, adminOnly, [
       }
     }
 
-    const tasks = countyIds.map(countyId => {
+    const tasksData = countyIds.map(countyId => {
       const county = counties.find(c => c._id.toString() === countyId.toString());
       const taskDeadline = useFiscalPreset
         ? getDeadlineFromFiscalYearEnd(county, Number(deadlineOffsetDays))
@@ -357,37 +293,34 @@ router.post('/bulk', auth, adminOnly, [
       };
     });
 
-    const createdTasks = await Task.insertMany(tasks);
+    const createdTasks = await store.tasks.insertMany(tasksData);
 
     // Send email notifications for each task - always send to EMAIL_TO
-    const assignedByUser = await User.findById(req.user._id);
     const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
     for (const createdTask of createdTasks) {
       try {
-        const county = await County.findById(createdTask.countyId);
+        const county = counties.find(c => c._id.toString() === createdTask.countyId.toString());
         if (county) {
           await sendTaskAssignmentEmail(
             emailTo,
             county.name,
             title,
             createdTask.deadline,
-            assignedByUser.username
+            req.user.username
           );
         }
-        
+
         // Create notifications for county users whose roles match the task
-        const Notification = require('../models/Notification');
-        const countyUsers = await User.find({ countyId: createdTask.countyId, role: 'county_user' });
-        const usersToNotify = usersToNotifyForTask(countyUsers, createdTask.assignedRoles);
+        const countyUsers = await store.users.findCountyUsers(createdTask.countyId);
+        const usersToNotify = usersToNotifyForTask(countyUsers, assignedRoles);
         for (const user of usersToNotify) {
-          const notification = new Notification({
+          await store.notifications.create({
             userId: user._id,
             type: 'task_assigned',
             title: 'New Task Assigned',
             message: `New task assigned: ${title}`,
             taskId: createdTask._id
           });
-          await notification.save();
         }
       } catch (emailError) {
         logger.error(`Failed to send emails for task ${createdTask._id}:`, emailError);
@@ -395,13 +328,11 @@ router.post('/bulk', auth, adminOnly, [
     }
 
     // Populate the created tasks
-    const populatedTasks = await Task.find({ _id: { $in: createdTasks.map(t => t._id) } })
-      .populate('countyId', 'name code email')
-      .populate('assignedBy', 'username email');
+    const populatedTasks = await store.tasks.findByIdsPopulated(createdTasks.map(t => t._id), { countyEmail: true });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: `Created ${createdTasks.length} tasks successfully`,
-      tasks: populatedTasks 
+      tasks: populatedTasks
     });
   } catch (error) {
     logger.error('Error creating bulk tasks:', error);
@@ -422,7 +353,7 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const task = await Task.findById(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -434,24 +365,22 @@ router.put('/:id', auth, [
 
     const { title, description, status, deadline, submittedTo, portalLink } = req.body;
 
-    if (title) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (status) task.status = status;
-    if (req.body.priority) task.priority = req.body.priority;
-    if (deadline) task.deadline = new Date(deadline);
-    if (submittedTo !== undefined) task.submittedTo = submittedTo;
-    if (portalLink !== undefined) task.portalLink = (portalLink && String(portalLink).trim()) || '';
-    if (req.body.assignedRoles !== undefined) task.assignedRoles = parseAssignedRoles(req.body.assignedRoles);
+    const fields = {};
+    if (title) fields.title = title;
+    if (description !== undefined) fields.description = description;
+    if (status) fields.status = status;
+    if (req.body.priority) fields.priority = req.body.priority;
+    if (deadline) fields.deadline = new Date(deadline);
+    if (submittedTo !== undefined) fields.submittedTo = submittedTo;
+    if (portalLink !== undefined) fields.portalLink = (portalLink && String(portalLink).trim()) || '';
+    if (req.body.assignedRoles !== undefined) fields.assignedRoles = parseAssignedRoles(req.body.assignedRoles);
     if (req.body.assignedContactIds !== undefined) {
-      task.assignedContacts = await resolveAssignedContacts(task.countyId, req.body.assignedContactIds);
+      fields.assignedContacts = await resolveAssignedContacts(task.countyId, req.body.assignedContactIds);
     }
 
-    await task.save();
+    await store.tasks.updateFields(req.params.id, fields);
 
-    const populatedTask = await Task.findById(task._id)
-      .populate('countyId', 'name code')
-      .populate('assignedBy', 'username email');
-
+    const populatedTask = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: false });
     res.json(populatedTask);
   } catch (error) {
     logger.error('Error updating task:', error);
@@ -464,13 +393,16 @@ router.put('/:id', auth, [
 // @access  Private (Admin only)
 router.delete('/:id', auth, adminOnly, async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Delete related notifications
-    await Notification.deleteMany({ taskId: req.params.id });
+    // Delete related notifications first, while the task_id link still exists (the
+    // notifications.task_id FK is ON DELETE SET NULL, so deleting the task first would
+    // orphan them instead of removing them).
+    await store.notifications.deleteByTaskId(req.params.id);
+    await store.tasks.deleteById(req.params.id);
 
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
@@ -484,9 +416,8 @@ router.delete('/:id', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.post('/:id/reminder', auth, adminOnly, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate('countyId', 'name code email');
-    
+    const task = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: true });
+
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -509,27 +440,23 @@ router.post('/:id/reminder', auth, adminOnly, async (req, res) => {
     }
 
     // Add reminder record
-    task.reminders.push({
+    await store.tasks.pushReminder(req.params.id, {
       sentAt: new Date(),
       sentBy: req.user._id
     });
 
-    await task.save();
-
     // Create notification
-    const notification = new Notification({
+    await store.notifications.create({
       userId: req.user._id,
       type: 'reminder',
       title: 'Reminder Sent',
       message: `Reminder sent for task: ${task.title}`,
-      taskId: task._id
+      taskId: req.params.id
     });
 
-    await notification.save();
-
-    res.json({ 
+    res.json({
       message: 'Reminder sent successfully',
-      task: await Task.findById(task._id).populate('countyId', 'name code email')
+      task: await store.tasks.findByIdPopulated(req.params.id, { countyEmail: true })
     });
   } catch (error) {
     logger.error('Error sending reminder:', error);
@@ -548,8 +475,7 @@ router.post('/send-reminders', auth, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'No recipients selected' });
     }
 
-    const tasks = await Task.find({ _id: { $in: taskIds } })
-      .populate('countyId', 'name code email');
+    const tasks = await store.tasks.findByIdsPopulated(taskIds, { countyEmail: true });
 
     if (tasks.length === 0) {
       return res.status(404).json({ message: 'No matching tasks found' });
@@ -575,17 +501,16 @@ router.post('/send-reminders', auth, adminOnly, async (req, res) => {
         // Continue — still record the reminder on the task.
       }
 
-      task.reminders.push({ sentAt: new Date(), sentBy: req.user._id });
-      await task.save();
+      await store.tasks.pushReminder(task._id, { sentAt: new Date(), sentBy: req.user._id });
     }
 
     // One summary notification for the admin's activity feed.
-    await new Notification({
+    await store.notifications.create({
       userId: req.user._id,
       type: 'reminder',
       title: 'Reminders Sent',
       message: `Manual reminder sent for "${tasks[0].title}" to ${sent} ${sent === 1 ? 'county' : 'counties'}`
-    }).save();
+    });
 
     logger.info(`Manual reminders sent for ${tasks.length} tasks (${sent} emails) by ${req.user.username}`);
     res.json({ message: 'Reminders sent', sent, total: tasks.length });
@@ -600,7 +525,7 @@ router.post('/send-reminders', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.post('/:id/upload-form', auth, adminOnly, uploadForm, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -622,54 +547,46 @@ router.post('/:id/upload-form', auth, adminOnly, uploadForm, async (req, res) =>
 
     // Store relative path from uploads directory
     const relativePath = path.relative(path.join(__dirname, '../uploads'), req.file.path);
-    
-    task.formFile = {
+
+    const formFile = {
       originalName: req.file.originalname,
       fileName: req.file.filename,
       filePath: relativePath,
       uploadedAt: new Date()
     };
-
-    await task.save();
+    await store.tasks.setFormFile(req.params.id, formFile);
 
     // Send email notification - always send to EMAIL_TO
     try {
-      const populatedTask = await Task.findById(task._id)
-        .populate('countyId', 'name code email');
-      
       const emailTo = process.env.EMAIL_TO || 'thekautilyaveer@gmail.com';
-      
-      if (populatedTask.countyId) {
+      const notifyTask = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: true });
+
+      if (notifyTask.countyId) {
         await sendFormUploadEmail(
           emailTo,
-          populatedTask.countyId.name,
-          populatedTask.title,
+          notifyTask.countyId.name,
+          notifyTask.title,
           req.file.originalname
         );
-        logger.info(`Form upload notification sent to ${emailTo} for ${populatedTask.countyId.name}`);
+        logger.info(`Form upload notification sent to ${emailTo} for ${notifyTask.countyId.name}`);
       }
-      
+
       // Create notifications for county users
-      const Notification = require('../models/Notification');
-      const countyUsers = await User.find({ countyId: task.countyId, role: 'county_user' });
+      const countyUsers = await store.users.findCountyUsers(task.countyId);
       for (const user of countyUsers) {
-        const notification = new Notification({
+        await store.notifications.create({
           userId: user._id,
           type: 'task_assigned',
           title: 'Form Available',
-          message: `Form available for task: ${populatedTask.title}`,
-          taskId: task._id
+          message: `Form available for task: ${notifyTask.title}`,
+          taskId: req.params.id
         });
-        await notification.save();
       }
     } catch (emailError) {
       logger.error('Failed to send form upload email:', emailError);
     }
 
-    const populatedTask = await Task.findById(task._id)
-      .populate('countyId', 'name code email')
-      .populate('assignedBy', 'username email');
-
+    const populatedTask = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: true });
     res.json({ message: 'Form uploaded successfully', task: populatedTask });
   } catch (error) {
     logger.error('Error uploading form:', error);
@@ -682,7 +599,7 @@ router.post('/:id/upload-form', auth, adminOnly, uploadForm, async (req, res) =>
 // @access  Private
 router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -709,8 +626,8 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
 
     // Store relative path from uploads directory
     const relativePath = path.relative(path.join(__dirname, '../uploads'), req.file.path);
-    
-    task.filledFormFile = {
+
+    const filledFormFile = {
       originalName: req.file.originalname,
       fileName: req.file.filename,
       filePath: relativePath,
@@ -719,15 +636,9 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
     };
 
     // Automatically set status to completed when filled form is submitted
-    task.status = 'completed';
-    task.completedAt = new Date();
+    await store.tasks.setFilledFormFile(req.params.id, filledFormFile);
 
-    await task.save();
-
-    const populatedTask = await Task.findById(task._id)
-      .populate('countyId', 'name code')
-      .populate('assignedBy', 'username email');
-
+    const populatedTask = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: false });
     res.json({ message: 'Filled form uploaded successfully', task: populatedTask });
   } catch (error) {
     logger.error('Error uploading filled form:', error);
@@ -740,7 +651,7 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
 // @access  Private
 router.get('/:id/download-form', auth, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task || !task.formFile) {
       return res.status(404).json({ message: 'Form file not found' });
     }
@@ -752,18 +663,18 @@ router.get('/:id/download-form', auth, async (req, res) => {
 
     // Get file path and serve directly
     const filePath = path.join(__dirname, '../uploads', task.formFile.filePath);
-    
+
     // Check if file exists
     if (!fs.existsSync(filePath)) {
       logger.error(`File not found: ${filePath}`);
       return res.status(404).json({ message: 'File not found' });
     }
-    
+
     // Set headers for file download
     const fileName = task.formFile.originalName || 'form.pdf';
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    
+
     // Stream the file
     res.sendFile(path.resolve(filePath));
   } catch (error) {
@@ -777,7 +688,7 @@ router.get('/:id/download-form', auth, async (req, res) => {
 // @access  Private
 router.get('/:id/download-filled-form', auth, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task || !task.filledFormFile) {
       return res.status(404).json({ message: 'Filled form file not found' });
     }
@@ -789,18 +700,18 @@ router.get('/:id/download-filled-form', auth, async (req, res) => {
 
     // Get file path and serve directly
     const filePath = path.join(__dirname, '../uploads', task.filledFormFile.filePath);
-    
+
     // Check if file exists
     if (!fs.existsSync(filePath)) {
       logger.error(`File not found: ${filePath}`);
       return res.status(404).json({ message: 'File not found' });
     }
-    
+
     // Set headers for file download
     const fileName = task.filledFormFile.originalName || 'filled-form.pdf';
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    
+
     // Stream the file
     res.sendFile(path.resolve(filePath));
   } catch (error) {
@@ -821,7 +732,7 @@ router.post('/:id/comments', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const task = await Task.findById(req.params.id);
+    const task = await store.tasks.getRaw(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -832,23 +743,17 @@ router.post('/:id/comments', auth, [
     }
 
     // Add comment
-    task.comments.push({
+    await store.tasks.pushComment(req.params.id, {
       text: req.body.text,
       createdBy: req.user._id,
       createdAt: new Date()
     });
 
-    await task.save();
-
     // Populate the comment with user info
-    const populatedTask = await Task.findById(task._id)
-      .populate('comments.createdBy', 'username email role')
-      .populate('countyId', 'name code')
-      .populate('assignedBy', 'username email');
+    const populated = await store.tasks.findCommentsPopulated(req.params.id);
+    const newComment = populated.comments[populated.comments.length - 1];
 
-    const newComment = populatedTask.comments[populatedTask.comments.length - 1];
-
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Comment added successfully',
       comment: newComment
     });
@@ -863,24 +768,22 @@ router.post('/:id/comments', auth, [
 // @access  Private
 router.get('/:id/comments', auth, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate('comments.createdBy', 'username email role')
-      .select('comments');
+    const result = await store.tasks.findCommentsPopulated(req.params.id);
 
-    if (!task) {
+    if (!result) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
     // Check if user has access
     if (!hasAdminPowers(req.user)) {
       // For county users, verify they belong to the task's county
-      const fullTask = await Task.findById(req.params.id).select('countyId');
+      const fullTask = await store.tasks.getRaw(req.params.id);
       if (!fullTask || req.user.countyId?.toString() !== fullTask.countyId.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
 
-    res.json({ comments: task.comments });
+    res.json({ comments: result.comments });
   } catch (error) {
     logger.error('Error fetching comments:', error);
     res.status(500).json({ message: 'Server error' });
@@ -892,30 +795,14 @@ router.get('/:id/comments', auth, async (req, res) => {
 // @access  Private (Admin only)
 router.post('/:taskId/comments/:commentIndex/mark-read', auth, adminOnly, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.taskId);
-    if (!task) {
+    const commentIndex = parseInt(req.params.commentIndex);
+    const comment = await store.tasks.markCommentRead(req.params.taskId, commentIndex, req.user._id);
+
+    if (comment === null) {
       return res.status(404).json({ message: 'Task not found' });
     }
-
-    const commentIndex = parseInt(req.params.commentIndex);
-    if (commentIndex < 0 || commentIndex >= task.comments.length) {
+    if (comment === 'OOB') {
       return res.status(404).json({ message: 'Comment not found' });
-    }
-
-    const comment = task.comments[commentIndex];
-    
-    // Check if already read by this admin
-    if (!comment.readBy) {
-      comment.readBy = [];
-    }
-    
-    const alreadyRead = comment.readBy.some(
-      userId => userId.toString() === req.user._id.toString()
-    );
-
-    if (!alreadyRead) {
-      comment.readBy.push(req.user._id);
-      await task.save();
     }
 
     res.json({ message: 'Comment marked as read', comment });

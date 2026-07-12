@@ -36,7 +36,9 @@ There is no backend test runner or linter configured. Frontend lint is CRA's bui
 
 ## Environment
 
-Backend requires a `backend/.env` (see `backend/env.example`). `server.js` **fails fast on startup** if any of these are missing: `JWT_SECRET`, `MONGODB_URI`, `EMAIL_USER`, `EMAIL_PASSWORD`. Other vars: `PORT` (default 5001), `EMAIL_TO` (where reminder emails are sent), `FRONTEND_URL`, optional AWS S3 vars.
+Backend requires a `backend/.env` (see `backend/env.example`). `server.js` **fails fast on startup** if any of these are missing: `JWT_SECRET`, `EMAIL_USER`, `EMAIL_PASSWORD`, plus the connection string for the active data driver — `SUPABASE_DB_URL` when `DATA_DRIVER=supabase` (default) or `MONGODB_URI` when `DATA_DRIVER=mongo`. Other vars: `PORT` (default 5001), `EMAIL_TO` (where reminder emails are sent), `FRONTEND_URL`, optional AWS S3 vars.
+
+**Data driver:** the app reads/writes through a store abstraction (`backend/db/store.js`) selected by `DATA_DRIVER`. `supabase` (default) uses the Postgres repos in `backend/db/repos/*` (pool in `backend/db/pool.js`, JSON shaping in `backend/db/mapper.js`); `mongo` uses the Mongoose repos in `backend/db/mongo/*` and is kept as an instant rollback. Both return identical API JSON. Routes/middleware/scheduler import `store`, never a model or the pool directly. See `SUPABASE_MIGRATION_PLAN.md`.
 
 Frontend talks to the API via `REACT_APP_API_URL` (defaults to `http://localhost:5001/api`).
 

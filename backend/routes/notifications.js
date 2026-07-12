@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const { hasAdminPowers } = require('../utils/roles');
-const Notification = require('../models/Notification');
-const Task = require('../models/Task');
+const store = require('../db/store');
 const logger = require('../utils/logger');
 
 // @route   GET /api/notifications
@@ -11,11 +10,7 @@ const logger = require('../utils/logger');
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user._id })
-      .populate('taskId', 'title deadline status')
-      .sort({ createdAt: -1 })
-      .limit(50);
-
+    const notifications = await store.notifications.findForUser(req.user._id);
     res.json(notifications);
   } catch (error) {
     logger.error('Error fetching notifications:', error);
@@ -28,30 +23,24 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/upcoming', auth, async (req, res) => {
   try {
-    let query = {};
-    
     // County users only see tasks for their county
+    let countyId;
     if (!hasAdminPowers(req.user)) {
       if (!req.user.countyId) {
         return res.json([]);
       }
-      query.countyId = req.user.countyId;
+      countyId = req.user.countyId;
     }
 
     // Get tasks with deadlines in the next 7 days
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-    query.deadline = {
-      $gte: new Date(),
-      $lte: sevenDaysFromNow
-    };
-    query.status = { $ne: 'completed' };
-
-    const upcomingTasks = await Task.find(query)
-      .populate('countyId', 'name code')
-      .sort({ deadline: 1 })
-      .limit(10);
+    const upcomingTasks = await store.tasks.findUpcoming({
+      countyId,
+      from: new Date(),
+      to: sevenDaysFromNow
+    });
 
     res.json(upcomingTasks);
   } catch (error) {
@@ -65,8 +54,8 @@ router.get('/upcoming', auth, async (req, res) => {
 // @access  Private
 router.put('/:id/read', auth, async (req, res) => {
   try {
-    const notification = await Notification.findById(req.params.id);
-    
+    const notification = await store.notifications.findById(req.params.id);
+
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
@@ -76,10 +65,9 @@ router.put('/:id/read', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    notification.read = true;
-    await notification.save();
+    const updated = await store.notifications.markRead(req.params.id);
 
-    res.json(notification);
+    res.json(updated);
   } catch (error) {
     logger.error('Error marking notification as read:', error);
     res.status(500).json({ message: 'Server error' });
@@ -91,10 +79,7 @@ router.put('/:id/read', auth, async (req, res) => {
 // @access  Private
 router.put('/read-all', auth, async (req, res) => {
   try {
-    await Notification.updateMany(
-      { userId: req.user._id, read: false },
-      { read: true }
-    );
+    await store.notifications.markAllRead(req.user._id);
 
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {

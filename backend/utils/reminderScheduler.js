@@ -1,5 +1,4 @@
-const Task = require('../models/Task');
-const County = require('../models/County');
+const store = require('../db/store');
 const { sendReminderEmail } = require('./email');
 const logger = require('./logger');
 
@@ -11,14 +10,7 @@ const checkAndSendReminders = async () => {
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
     // Find tasks that are due in 3 days and not completed
-    const tasks = await Task.find({
-      status: { $ne: 'completed' },
-      deadline: {
-        $gte: now,
-        $lte: threeDaysFromNow
-      }
-    })
-      .populate('countyId', 'name email');
+    const tasks = await store.tasks.findDueForReminder(now, threeDaysFromNow);
 
     for (const task of tasks) {
       // Check if reminder was already sent in the last 24 hours
@@ -40,12 +32,8 @@ const checkAndSendReminders = async () => {
             task.deadline
           );
 
-          // Record the reminder
-          task.reminders.push({
-            sentAt: new Date(),
-            sentBy: null // System-generated
-          });
-          await task.save();
+          // Record the reminder (sentBy null = system-generated)
+          await store.tasks.pushReminder(task._id, { sentAt: new Date(), sentBy: null });
 
           logger.info(`Automatic reminder sent for task: ${task.title} (${task.countyId.name})`, { taskId: task._id, countyId: task.countyId._id });
         } catch (error) {
