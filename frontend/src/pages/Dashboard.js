@@ -130,10 +130,16 @@ const Dashboard = () => {
         >
           <div className="min-w-0">
             <div className="font-bold text-gray-900 dark:text-white truncate">{filing.title}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {done.length} of {total} done
-              {overdueCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold"> · {overdueCount} overdue</span>}
-              {filing.submittedTo && <span className="hidden sm:inline"> · {filing.submittedTo}</span>}
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              {filing.submittedTo && (
+                <span className="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 px-2 py-0.5 text-[10.5px] font-semibold text-indigo-700 dark:text-indigo-300">
+                  {filing.submittedTo}
+                </span>
+              )}
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {done.length} of {total} done
+                {overdueCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold"> · {overdueCount} overdue</span>}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
