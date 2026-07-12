@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { auth, adminOnly } = require('../middleware/auth');
-const Submission = require('../models/Submission');
-const Task = require('../models/Task');
+const { hasAdminPowers } = require('../utils/roles');
+const store = require('../db/store');
 const logger = require('../utils/logger');
 
 function buildSubmissionStats(submissions) {
@@ -70,27 +70,20 @@ function buildSubmissionStats(submissions) {
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const query = {};
+    const filters = {};
 
-    if (req.user.role !== 'admin') {
+    if (!hasAdminPowers(req.user)) {
       if (!req.user.countyId) return res.json([]);
-      query.countyId = req.user.countyId;
+      filters.countyId = req.user.countyId.toString();
     }
 
-    if (req.query.agency && req.query.agency !== 'all') query.agency = req.query.agency;
-    if (req.query.status && req.query.status !== 'all') query.status = req.query.status;
-    if (req.query.formName) query.formName = req.query.formName;
-    if (req.query.countyId) query.countyId = req.query.countyId;
-    if (req.query.taskId) query.taskId = req.query.taskId;
+    if (req.query.agency && req.query.agency !== 'all') filters.agency = req.query.agency;
+    if (req.query.status && req.query.status !== 'all') filters.status = req.query.status;
+    if (req.query.formName) filters.formName = req.query.formName;
+    if (req.query.countyId) filters.countyId = req.query.countyId;
+    if (req.query.taskId) filters.taskId = req.query.taskId;
 
-    const submissions = await Submission.find(query)
-      .populate('taskId', 'title deadline status submittedTo')
-      .populate('countyId', 'name code')
-      .populate('submittedBy', 'username email role')
-      .populate('reviewedBy', 'username email role')
-      .populate('comments.createdBy', 'username email role')
-      .sort({ submittedAt: -1 });
-
+    const submissions = await store.submissions.find(filters);
     res.json(submissions);
   } catch (error) {
     logger.error('Error fetching submissions:', error);
@@ -107,17 +100,12 @@ router.post('/:id/comments', auth, adminOnly, async (req, res) => {
     const text = String(req.body.text || '').trim();
     if (!fieldId || !text) return res.status(400).json({ message: 'A field and comment are required' });
 
-    const submission = await Submission.findById(req.params.id);
+    const submission = await store.submissions.pushComment(req.params.id, {
+      fieldId, text, createdBy: req.user._id, createdAt: new Date()
+    });
     if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
-    submission.comments.push({ fieldId, text, createdBy: req.user._id, createdAt: new Date() });
-    await submission.save();
-
-    const populated = await Submission.findById(submission._id)
-      .populate('countyId', 'name code')
-      .populate('submittedBy', 'username email role')
-      .populate('comments.createdBy', 'username email role');
-    res.status(201).json({ message: 'Comment sent to county', submission: populated });
+    res.status(201).json({ message: 'Comment sent to county', submission });
   } catch (error) {
     logger.error('Error adding submission comment:', error);
     res.status(500).json({ message: 'Server error' });
@@ -129,14 +117,11 @@ router.post('/:id/comments', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.get('/stats', auth, adminOnly, async (req, res) => {
   try {
-    const query = {};
-    if (req.query.agency && req.query.agency !== 'all') query.agency = req.query.agency;
-    if (req.query.formName) query.formName = req.query.formName;
+    const filters = {};
+    if (req.query.agency && req.query.agency !== 'all') filters.agency = req.query.agency;
+    if (req.query.formName) filters.formName = req.query.formName;
 
-    const submissions = await Submission.find(query)
-      .populate('taskId', 'title submittedTo')
-      .populate('countyId', 'name code');
-
+    const submissions = await store.submissions.findForStats(filters);
     res.json(buildSubmissionStats(submissions));
   } catch (error) {
     logger.error('Error fetching submission stats:', error);
@@ -157,12 +142,10 @@ function escapeExcel(value) {
 // @access  Private
 router.get('/:id/export', auth, async (req, res) => {
   try {
-    const submission = await Submission.findById(req.params.id)
-      .populate('taskId', 'title')
-      .populate('countyId', 'name code');
+    const submission = await store.submissions.findByIdPopulated(req.params.id);
 
     if (!submission) return res.status(404).json({ message: 'Submission not found' });
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== submission.countyId._id.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== submission.countyId._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (submission.formType !== 'online') {
@@ -198,15 +181,10 @@ router.get('/:id/export', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const submission = await Submission.findById(req.params.id)
-      .populate('taskId', 'title deadline status submittedTo')
-      .populate('countyId', 'name code')
-      .populate('submittedBy', 'username email role')
-      .populate('reviewedBy', 'username email role')
-      .populate('comments.createdBy', 'username email role');
+    const submission = await store.submissions.findByIdPopulated(req.params.id);
 
     if (!submission) return res.status(404).json({ message: 'Submission not found' });
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== submission.countyId._id.toString()) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== submission.countyId._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -228,26 +206,21 @@ router.put('/:id/review', auth, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Invalid review status' });
     }
 
-    const submission = await Submission.findById(req.params.id);
-    if (!submission) return res.status(404).json({ message: 'Submission not found' });
+    const raw = await store.submissions.getRaw(req.params.id);
+    if (!raw) return res.status(404).json({ message: 'Submission not found' });
 
-    submission.status = status;
-    submission.reviewNote = typeof reviewNote === 'string' ? reviewNote.trim() : submission.reviewNote;
-    submission.reviewedBy = req.user._id;
-    submission.reviewedAt = new Date();
-    await submission.save();
-
-    const task = await Task.findById(submission.taskId);
-    if (task && status === 'needs_correction') {
-      task.status = 'in_progress';
-      await task.save();
+    // Bouncing a submission back re-opens its task for the county.
+    if (status === 'needs_correction') {
+      await store.tasks.updateFields(raw.taskId, { status: 'in_progress' });
     }
 
-    const populated = await Submission.findById(submission._id)
-      .populate('taskId', 'title deadline status submittedTo')
-      .populate('countyId', 'name code')
-      .populate('submittedBy', 'username email role')
-      .populate('reviewedBy', 'username email role');
+    const note = typeof reviewNote === 'string' ? reviewNote.trim() : raw.reviewNote;
+    const populated = await store.submissions.updateReview(req.params.id, {
+      status,
+      reviewNote: note,
+      reviewedBy: req.user._id,
+      reviewedAt: new Date()
+    });
 
     res.json(populated);
   } catch (error) {

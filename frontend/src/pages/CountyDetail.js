@@ -11,7 +11,7 @@ const isRlgfTask = (task) => /\brlgf\b|report of local government financ/i.test(
 const CountyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin, user } = useAuth();
+  const { isAccg, user } = useAuth();
   const [county, setCounty] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -666,7 +666,7 @@ const CountyDetail = () => {
   };
 
   const isCommentUnread = (comment) => {
-    if (!isAdmin || !user) return false;
+    if (!isAccg || !user) return false;
     // Comment is unread if:
     // 1. It wasn't created by the current admin
     // 2. The current admin hasn't read it yet
@@ -808,7 +808,7 @@ const CountyDetail = () => {
     Boolean(currentUserEmail && (contact?.email || '').trim().toLowerCase() === currentUserEmail);
   const taskAssignedToCurrentUser = (task) =>
     Array.isArray(task.assignedContacts) && task.assignedContacts.some(contactMatchesCurrentUser);
-  const myAssignedTasks = !isAdmin && currentUserEmail
+  const myAssignedTasks = !isAccg && currentUserEmail
     ? filteredTasks
         .filter(taskAssignedToCurrentUser)
         .sort((a, b) => {
@@ -848,7 +848,7 @@ const CountyDetail = () => {
     <div className="px-4 py-6 sm:px-0">
       {/* Header Section */}
       <div className="mb-8">
-        {isAdmin && (
+        {isAccg && (
           <button
             onClick={() => navigate('/dashboard')}
             className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-2"
@@ -877,7 +877,7 @@ const CountyDetail = () => {
                   {county?.name || 'County Details'}
                 </h1>
                 <p className="text-blue-100 text-lg">
-                  {isAdmin ? 'Manage tasks for this county' : 'Your Task Management Dashboard'}
+                  {isAccg ? 'Manage tasks for this county' : 'Your Task Management Dashboard'}
                 </p>
               </div>
             </div>
@@ -945,7 +945,7 @@ const CountyDetail = () => {
         </div>
       </div>
 
-      {!isAdmin && currentUserEmail && (
+      {!isAccg && currentUserEmail && (
         <section className="mb-8">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
@@ -1179,7 +1179,7 @@ const CountyDetail = () => {
                             <span className="text-xs text-green-600">({task.filledFormFile.originalName})</span>
                           </button>
                         ) : task.formFile ? (
-                          !isAdmin && task.status !== 'completed' && (
+                          !isAccg && task.status !== 'completed' && (
                             <label className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer">
                               <input
                                 type="file"
@@ -1198,7 +1198,7 @@ const CountyDetail = () => {
                             </label>
                           )
                         ) : (
-                          !isAdmin && task.status !== 'completed' && (
+                          !isAccg && task.status !== 'completed' && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1304,7 +1304,7 @@ const CountyDetail = () => {
                                               {comment.createdBy?.username || 'Unknown User'}
                                             </p>
                                             <p className="text-xs text-gray-500">
-                                              {comment.createdBy?.role === 'admin' ? 'Admin' : 'County User'}
+                                              {comment.createdBy?.role === 'accg' ? 'ACCG' : 'County User'}
                                             </p>
                                           </div>
                                         </div>
@@ -1313,7 +1313,7 @@ const CountyDetail = () => {
                                         </span>
                                       </div>
                                       <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{comment.text}</p>
-                                      {isAdmin && unread && (
+                                      {isAccg && unread && (
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                           <button
                                             onClick={() => handleMarkAsRead(task._id, idx)}
@@ -1365,7 +1365,7 @@ const CountyDetail = () => {
                     </div>
                     
                     {/* Admin Actions */}
-                    {isAdmin && (
+                    {isAccg && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => openEditModal(task)}

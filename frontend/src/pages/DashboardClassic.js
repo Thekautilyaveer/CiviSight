@@ -29,11 +29,11 @@ const Dashboard = () => {
   });
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingCounty, setDeletingCounty] = useState(null);
-  const { isAdmin, user } = useAuth();
+  const { isAccg, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAccg) {
       fetchCounties();
       loadSavedPresets();
       loadFiltersFromStorage();
@@ -41,7 +41,7 @@ const Dashboard = () => {
       fetchUserCounty();
       loadFiltersFromStorage();
     }
-  }, [isAdmin, user]);
+  }, [isAccg, user]);
 
   useEffect(() => {
     saveFiltersToStorage();
@@ -319,13 +319,13 @@ const Dashboard = () => {
       <div className="mb-6 flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {isAdmin ? 'Association of County Commissioners of Georgia' : (userCounty?.name || 'Dashboard')}
+            {isAccg ? 'Association of County Commissioners of Georgia' : (userCounty?.name || 'Dashboard')}
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {isAdmin ? 'County Management and Compliance Portal' : 'Your Task Management Dashboard'}
+            {isAccg ? 'County Management and Compliance Portal' : 'Your Task Management Dashboard'}
           </p>
         </div>
-        {isAdmin && (
+        {isAccg && (
           <div className="flex gap-3">
             <button
               onClick={() => navigate('/users')}
@@ -375,7 +375,7 @@ const Dashboard = () => {
       </div>
 
       {/* Search and Filter */}
-      {isAdmin && (
+      {isAccg && (
         <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
           <div className="flex flex-col gap-4">
             {/* Basic Filters */}
@@ -546,7 +546,7 @@ const Dashboard = () => {
       )}
 
       {/* County Cards - Only show for admin */}
-      {isAdmin ? (
+      {isAccg ? (
         filteredCounties.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 dark:text-gray-400">No counties found</p>

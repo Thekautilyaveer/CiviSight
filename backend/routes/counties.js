@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { auth, adminOnly } = require('../middleware/auth');
-const County = require('../models/County');
-const Task = require('../models/Task');
-const User = require('../models/User');
+const { hasAdminPowers } = require('../utils/roles');
+const store = require('../db/store');
 const logger = require('../utils/logger');
 
 // @route   GET /api/counties
@@ -12,29 +11,29 @@ const logger = require('../utils/logger');
 router.get('/', auth, async (req, res) => {
   try {
     let counties;
-    
-    if (req.user.role === 'admin') {
-      counties = await County.find().sort({ name: 1 });
+
+    if (hasAdminPowers(req.user)) {
+      counties = await store.counties.findAllSorted();
     } else {
       // County users only see their own county
       if (!req.user.countyId) {
         return res.json([]);
       }
-      counties = await County.find({ _id: req.user.countyId });
+      const own = await store.counties.findById(req.user.countyId);
+      counties = own ? [own] : [];
     }
 
     // Get task statistics for each county
     const countiesWithStats = await Promise.all(
       counties.map(async (county) => {
-        const tasks = await Task.find({ countyId: county._id })
-          .populate('comments.createdBy', '_id');
+        const tasks = await store.tasks.findForCountyStats(county._id);
         const pending = tasks.filter(t => t.status === 'pending').length;
         const inProgress = tasks.filter(t => t.status === 'in_progress').length;
         const completed = tasks.filter(t => t.status === 'completed').length;
         
         // Count unread comments for admin (only if user is admin)
         let unreadComments = 0;
-        if (req.user.role === 'admin') {
+        if (hasAdminPowers(req.user)) {
           unreadComments = tasks.reduce((sum, task) => {
             if (!task.comments || task.comments.length === 0) return sum;
             const unread = task.comments.filter(comment => {
@@ -55,8 +54,9 @@ router.get('/', auth, async (req, res) => {
           }, 0);
         }
 
+        const base = typeof county.toObject === 'function' ? county.toObject() : county;
         return {
-          ...county.toObject(),
+          ...base,
           taskStats: {
             total: tasks.length,
             pending,
@@ -80,13 +80,13 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const county = await County.findById(req.params.id);
+    const county = await store.counties.findById(req.params.id);
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
     }
 
     // Check if user has access (admin or county user for their county)
-    if (req.user.role !== 'admin' && req.user.countyId?.toString() !== req.params.id) {
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== req.params.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -104,14 +104,12 @@ router.post('/', auth, adminOnly, async (req, res) => {
   try {
     const { name, code, description, email } = req.body;
 
-    const county = new County({
+    const county = await store.counties.create({
       name,
       code,
       description: description || '',
       email: email || ''
     });
-
-    await county.save();
 
     // Automatically create a county user for this county
     const countyCodeLower = code.toLowerCase();
@@ -119,7 +117,7 @@ router.post('/', auth, adminOnly, async (req, res) => {
     const countyUsername = `${countyCodeLower}_user`;
 
     try {
-      const countyUser = new User({
+      await store.users.create({
         username: countyUsername,
         email: countyEmail,
         password: 'county123',
@@ -127,7 +125,6 @@ router.post('/', auth, adminOnly, async (req, res) => {
         countyId: county._id
       });
 
-      await countyUser.save();
       logger.info(`Created county user: ${countyEmail} / county123 (${countyUsername})`);
     } catch (userError) {
       // If user creation fails (e.g., duplicate email), log but don't fail county creation
@@ -152,11 +149,7 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
   try {
     const { name, code, description } = req.body;
 
-    const county = await County.findByIdAndUpdate(
-      req.params.id,
-      { name, code, description },
-      { new: true, runValidators: true }
-    );
+    const county = await store.counties.updateById(req.params.id, { name, code, description });
 
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
@@ -174,13 +167,13 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
 // @access  Private (Admin only)
 router.delete('/:id', auth, adminOnly, async (req, res) => {
   try {
-    const county = await County.findByIdAndDelete(req.params.id);
+    const county = await store.counties.deleteById(req.params.id);
     if (!county) {
       return res.status(404).json({ message: 'County not found' });
     }
 
     // Also delete all tasks for this county
-    await Task.deleteMany({ countyId: req.params.id });
+    await store.tasks.deleteByCountyId(req.params.id);
 
     res.json({ message: 'County deleted successfully' });
   } catch (error) {

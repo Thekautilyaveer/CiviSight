@@ -1,3 +1,7 @@
+// MongoDB (DATA_DRIVER=mongo) version. For the default Supabase store, use
+// scripts/cleanup-rlgf-demo-completions-supabase.js instead.
+// Resets RLGF tasks that were seeded as "completed" (with no real Submission) back to
+// pending, so the online-submission workflow is demoable. Idempotent.
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Task = require('./models/Task');

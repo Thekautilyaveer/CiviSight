@@ -6,14 +6,21 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Each account role lands on its own face: DCA agency, ACCG admin, or county.
+  const homeFor = (u) => {
+    if (u?.role === 'dca') return '/dca';
+    if (u?.role === 'county_user' && u?.countyId) return `/county/${u.countyId}`;
+    return '/dashboard';
+  };
+
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/dashboard');
+    if (!authLoading && isAuthenticated && user) {
+      navigate(homeFor(user));
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +28,7 @@ const Login = () => {
 
     const result = await login(email, password);
     if (result.success) {
-      navigate('/dashboard');
+      navigate(homeFor(result.user));
     } else {
       setError(result.message);
     }

@@ -18,12 +18,12 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [agency, setAgency] = useState('all');
   const [expanded, setExpanded] = useState(null);
-  const { isAdmin, user } = useAuth();
+  const { isAccg, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     // County users don't track all counties — send them to their own county page.
-    if (!isAdmin) {
+    if (!isAccg) {
       if (user?.countyId) navigate(`/county/${user.countyId}`);
       setLoading(false);
       return;
@@ -44,7 +44,7 @@ const Dashboard = () => {
       }
     };
     fetchTasks();
-  }, [isAdmin, user, navigate]);
+  }, [isAccg, user, navigate]);
 
   const refreshSubmissions = async () => {
     const submissionRes = await api.get('/submissions');
@@ -167,7 +167,7 @@ const Dashboard = () => {
   const attention = [];
   const complete = filtered;
 
-  if (loading || !isAdmin) {
+  if (loading || !isAccg) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -259,10 +259,16 @@ const Dashboard = () => {
         >
           <div className="min-w-0">
             <div className="font-bold text-gray-900 dark:text-white truncate">{filing.title}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {done.length} of {total} done
-              {overdueCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold"> · {overdueCount} overdue</span>}
-              {filing.submittedTo && <span className="hidden sm:inline"> · {filing.submittedTo}</span>}
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              {filing.submittedTo && (
+                <span className="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 px-2 py-0.5 text-[10.5px] font-semibold text-indigo-700 dark:text-indigo-300">
+                  {filing.submittedTo}
+                </span>
+              )}
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {done.length} of {total} done
+                {overdueCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold"> · {overdueCount} overdue</span>}
+              </span>
             </div>
             {filingSubmissions.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">

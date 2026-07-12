@@ -16,6 +16,13 @@ import Contacts from './pages/Contacts';
 import Users from './pages/Users';
 import FormPilot from './pages/FormPilot';
 import RlgfFormPage from './pages/RlgfFormPage';
+import DcaShell from './dca/DcaShell';
+import DcaDashboard from './dca/pages/DcaDashboard';
+import DcaEntities from './dca/pages/DcaEntities';
+import DcaEntityDetail from './dca/pages/DcaEntityDetail';
+import DcaSubmissions from './dca/pages/DcaSubmissions';
+import DcaSubmissionDetail from './dca/pages/DcaSubmissionDetail';
+import DcaReminders from './dca/pages/DcaReminders';
 
 function App() {
   return (
@@ -134,6 +141,26 @@ function App() {
               </PrivateRoute>
             }
           />
+          {/* DCA (state agency) section — hard-gated to the 'dca' role only.
+              Dashboard + Add Report are wired to the real /api/tasks endpoints;
+              Entities/Submissions/Reminders remain UI-only mock previews. */}
+          <Route
+            path="/dca"
+            element={
+              <PrivateRoute dcaOnly={true}>
+                <DcaShell />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<DcaDashboard />} />
+            <Route path="entities" element={<DcaEntities />} />
+            <Route path="entities/:entityId" element={<DcaEntityDetail />} />
+            <Route path="submissions" element={<DcaSubmissions />} />
+            <Route path="submissions/:submissionId" element={<DcaSubmissionDetail />} />
+            <Route path="reminders" element={<DcaReminders />} />
+            {/* Add Report reuses the existing ACCG Add Task flow (real create endpoint). */}
+            <Route path="add-report" element={<CreateTask />} />
+          </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>

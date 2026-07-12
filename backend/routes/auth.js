@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const County = require('../models/County');
+const store = require('../db/store');
 const { body, validationResult } = require('express-validator');
 const { auth, adminOnly } = require('../middleware/auth');
 const logger = require('../utils/logger');
@@ -29,7 +28,7 @@ router.post('/register', auth, adminOnly, [
     .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'),
-  body('role').isIn(['admin', 'county_user']).withMessage('Invalid role'),
+  body('role').isIn(['accg', 'dca', 'county_user']).withMessage('Invalid role'),
   body('countyId')
     .optional({ values: 'falsy' })
     .custom((value) => {
@@ -45,12 +44,12 @@ router.post('/register', auth, adminOnly, [
     }
 
     const { username, email, password, role, countyId } = req.body;
-    
+
     // Clean up countyId - remove if empty string or null for admin users
-    const cleanCountyId = (role === 'admin' || !countyId || countyId === '') ? null : countyId;
+    const cleanCountyId = (role === 'accg' || role === 'dca' || !countyId || countyId === '') ? null : countyId;
 
     // Check if user exists
-    let user = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
+    let user = await store.users.findByEmailOrUsername(email, username);
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -61,22 +60,20 @@ router.post('/register', auth, adminOnly, [
         return res.status(400).json({ message: 'County ID is required for county users' });
       }
       // Verify county exists
-      const county = await County.findById(cleanCountyId);
+      const county = await store.counties.findById(cleanCountyId);
       if (!county) {
         return res.status(404).json({ message: 'County not found' });
       }
     }
 
     // Create user
-    user = new User({
+    user = await store.users.create({
       username,
       email: email.toLowerCase(),
       password,
       role,
       countyId: cleanCountyId
     });
-
-    await user.save();
 
     // Log the action
     logger.info(`Admin ${req.user.username} created user: ${username} (${email}) with role: ${role}`);
@@ -116,15 +113,9 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Check if user exists - convert email to lowercase to match database
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // Verify credentials (email lowercased inside the store)
+    const user = await store.users.verifyCredentials(email, password);
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
@@ -151,7 +142,7 @@ router.post('/login', [
 // @access  Private
 router.get('/me', require('../middleware/auth').auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await store.users.findById(req.user._id);
     res.json({
       user: {
         id: user._id,

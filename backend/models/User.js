@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'county_user'],
+    enum: ['accg', 'dca', 'county_user'],
     default: 'county_user'
   },
   countyId: {

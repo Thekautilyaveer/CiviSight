@@ -1,3 +1,5 @@
+// NOTE: This is the MongoDB (DATA_DRIVER=mongo) seeder. For the default Supabase store,
+// use scripts/seed-supabase.js instead. This script targets MongoDB directly via Mongoose.
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const User = require('./models/User');
@@ -122,8 +124,8 @@ const deadlineFor = (form, county) => {
 // filings already past their deadline are mostly completed (counties filed them),
 // only a few counties are genuinely behind, and upcoming filings are a mix of
 // not-started and in-progress. This keeps the attention list meaningful.
+// RLGF is submitted via the online form workflow, so never seed it as completed.
 const isRlgfForm = (form) => form.title === 'Report of Local Government Finances';
-
 const statusFor = (form, deadline, countyIdx, formIdx, now) => {
   if (isRlgfForm(form)) {
     return (countyIdx + formIdx) % 4 === 0 ? 'in_progress' : 'pending';
@@ -153,15 +155,25 @@ const seedData = async () => {
     const createdCounties = await County.insertMany(counties);
     console.log(`Created ${createdCounties.length} counties`);
 
-    // Create admin user
-    const admin = new User({
-      username: 'admin',
-      email: 'admin@civisight.org',
-      password: 'admin123',
-      role: 'admin'
+    // Create ACCG user (Association of County Commissioners of Georgia)
+    const accg = new User({
+      username: 'accg',
+      email: 'accg@civisight.org',
+      password: 'accg123',
+      role: 'accg'
     });
-    await admin.save();
-    console.log('Created admin user (email: admin@civisight.org, password: admin123)');
+    await accg.save();
+    console.log('Created ACCG user (email: accg@civisight.org, password: accg123)');
+
+    // Create DCA user (Georgia Dept. of Community Affairs — a separate admin-privileged agency)
+    const dca = new User({
+      username: 'dca',
+      email: 'dca@civisight.org',
+      password: 'dca123',
+      role: 'dca'
+    });
+    await dca.save();
+    console.log('Created DCA user (email: dca@civisight.org, password: dca123)');
 
     // Create county users: one per county with all roles, except Fulton which gets three users with role subsets
     const countyUsers = [];

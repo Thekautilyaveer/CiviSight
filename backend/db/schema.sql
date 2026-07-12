@@ -1,0 +1,144 @@
+-- CiviSight — Postgres schema (Supabase) mirroring the Mongoose models.
+-- Store-swap migration; see /SUPABASE_MIGRATION_PLAN.md.
+-- Idempotent: safe to run repeatedly (IF NOT EXISTS / CREATE OR REPLACE).
+-- Primary keys are the original Mongo ObjectId hex strings (text). See plan §3.
+
+-- === helper: updated_at trigger function ===
+create or replace function set_updated_at() returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+-- === counties ===
+create table if not exists counties (
+  id text primary key,
+  name text not null unique,
+  code text not null unique,
+  description text not null default '',
+  email text not null default '',
+  fiscal_year_start_month int not null default 1,
+  fiscal_year_start_day   int not null default 1,
+  fiscal_year_end_month   int not null default 12,
+  fiscal_year_end_day     int not null default 31,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create or replace trigger trg_counties_updated before update on counties
+  for each row execute function set_updated_at();
+
+-- === users ===
+create table if not exists users (
+  id text primary key,
+  username text not null unique,
+  email text not null unique,                       -- stored lowercased
+  password text not null,                           -- bcrypt hash, migrated as-is
+  role text not null default 'county_user'
+       check (role in ('accg','dca','county_user')),
+  county_id text references counties(id) on delete set null,
+  department_roles jsonb not null default '[]'::jsonb,   -- array of role slugs
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_users_county_role on users(county_id, role);
+create or replace trigger trg_users_updated before update on users
+  for each row execute function set_updated_at();
+
+-- === tasks ===
+create table if not exists tasks (
+  id text primary key,
+  title text not null,
+  description text not null default '',
+  county_id text not null references counties(id) on delete cascade,
+  submitted_to text not null default '',
+  portal_link text not null default '',
+  status text not null default 'pending'
+       check (status in ('pending','in_progress','completed')),
+  priority text not null default 'medium'
+       check (priority in ('low','medium','high')),
+  deadline timestamptz not null,
+  assigned_by text not null references users(id),
+  assigned_roles     jsonb not null default '[]'::jsonb,   -- [slug,...]
+  assigned_contacts  jsonb not null default '[]'::jsonb,   -- [{contactId,role,name,email,phone}]
+  reminders          jsonb not null default '[]'::jsonb,   -- [{sentAt,sentBy}]
+  form_file          jsonb,                                -- {originalName,fileName,filePath,uploadedAt}
+  filled_form_file   jsonb,                                -- {...,uploadedBy}
+  comments           jsonb not null default '[]'::jsonb,   -- [{text,createdBy,createdAt,readBy[]}]
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_tasks_county on tasks(county_id);
+create index if not exists idx_tasks_status on tasks(status);
+create index if not exists idx_tasks_priority on tasks(priority);
+create index if not exists idx_tasks_deadline on tasks(deadline);
+create index if not exists idx_tasks_created on tasks(created_at);
+create index if not exists idx_tasks_assigned_by on tasks(assigned_by);
+create index if not exists idx_tasks_county_status on tasks(county_id, status);
+create index if not exists idx_tasks_county_deadline on tasks(county_id, deadline);
+create index if not exists idx_tasks_status_deadline on tasks(status, deadline);
+create index if not exists idx_tasks_fts on tasks
+  using gin (to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,'')));
+create or replace trigger trg_tasks_updated before update on tasks
+  for each row execute function set_updated_at();
+
+-- === contacts (one row per county) ===
+create table if not exists contacts (
+  id text primary key,
+  county_id text not null unique references counties(id) on delete cascade,
+  contacts jsonb not null default '[]'::jsonb,            -- [{role,name,email,phone}]
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create or replace trigger trg_contacts_updated before update on contacts
+  for each row execute function set_updated_at();
+
+-- === notifications ===
+create table if not exists notifications (
+  id text primary key,
+  user_id text not null references users(id) on delete cascade,
+  type text not null
+       check (type in ('deadline','reminder','task_assigned','task_completed')),
+  title text not null,
+  message text not null,
+  task_id text references tasks(id) on delete set null,
+  read boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_notifications_user on notifications(user_id);
+create index if not exists idx_notifications_task on notifications(task_id);
+create index if not exists idx_notifications_user_read on notifications(user_id, read);
+create index if not exists idx_notifications_user_created on notifications(user_id, created_at desc);
+create or replace trigger trg_notifications_updated before update on notifications
+  for each row execute function set_updated_at();
+
+-- === submissions (county form submissions to agencies + agency review workflow) ===
+create table if not exists submissions (
+  id text primary key,
+  task_id text not null references tasks(id) on delete cascade,
+  county_id text not null references counties(id) on delete cascade,
+  agency text not null default '',
+  form_name text not null,
+  form_type text not null check (form_type in ('online','file')),
+  status text not null default 'submitted'
+       check (status in ('submitted','under_review','accepted','needs_correction')),
+  submitted_by text not null references users(id),
+  submitted_at timestamptz not null default now(),
+  answers jsonb,                                   -- online form answers {fieldId: value} (Mixed; null for file)
+  metadata jsonb not null default '{}'::jsonb,     -- {source, form, version, fields{...}, ...}
+  comments jsonb not null default '[]'::jsonb,     -- [{fieldId,text,createdBy,createdAt,readBy[]}]
+  file jsonb,                                       -- {originalName,fileName,filePath,uploadedAt}
+  reviewed_by text references users(id) on delete set null,
+  reviewed_at timestamptz,
+  review_note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_submissions_task on submissions(task_id, submitted_at desc);
+create index if not exists idx_submissions_county on submissions(county_id, submitted_at desc);
+create index if not exists idx_submissions_agency_status on submissions(agency, status);
+create index if not exists idx_submissions_form_agency on submissions(form_name, agency);
+create or replace trigger trg_submissions_updated before update on submissions
+  for each row execute function set_updated_at();

@@ -2,8 +2,16 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const PrivateRoute = ({ children, adminOnly = false }) => {
-  const { isAuthenticated, loading, isAdmin } = useAuth();
+// Where a signed-in user belongs, by role — used to bounce them off a face
+// they're not allowed on (rather than dumping them at a dead end).
+const homeFor = (user) => {
+  if (user?.role === 'dca') return '/dca';
+  if (user?.role === 'county_user' && user?.countyId) return `/county/${user.countyId}`;
+  return '/dashboard';
+};
+
+const PrivateRoute = ({ children, adminOnly = false, dcaOnly = false }) => {
+  const { isAuthenticated, loading, isAccg, isDca, user } = useAuth();
 
   if (loading) {
     return (
@@ -17,12 +25,17 @@ const PrivateRoute = ({ children, adminOnly = false }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (adminOnly && !isAdmin) {
+  // ACCG-only routes (the ACCG operator pages).
+  if (adminOnly && !isAccg) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // DCA-only routes (the /dca face). Only the DCA agency role may enter.
+  if (dcaOnly && !isDca) {
+    return <Navigate to={homeFor(user)} replace />;
   }
 
   return children;
 };
 
 export default PrivateRoute;
-

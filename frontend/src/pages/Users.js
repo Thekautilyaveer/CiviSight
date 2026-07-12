@@ -13,7 +13,7 @@ const Users = () => {
     username: '',
     email: '',
     password: '',
-    role: 'admin',
+    role: 'accg',
     countyId: ''
   });
   const { user: currentUser } = useAuth();
@@ -54,7 +54,7 @@ const Users = () => {
         username: '',
         email: '',
         password: '',
-        role: 'admin',
+        role: 'accg',
         countyId: ''
       });
       fetchUsers();
@@ -94,7 +94,7 @@ const Users = () => {
     );
   }
 
-  const adminUsers = users.filter(u => u.role === 'admin');
+  const accgUsers = users.filter(u => u.role === 'accg');
   const countyUsers = users.filter(u => u.role === 'county_user');
 
   return (
@@ -102,7 +102,7 @@ const Users = () => {
       <div className="mb-6 flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="mt-2 text-sm text-gray-600">Manage admin and county users</p>
+          <p className="mt-2 text-sm text-gray-600">Manage ACCG and county users</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -115,9 +115,9 @@ const Users = () => {
         </button>
       </div>
 
-      {/* Admin Users Section */}
+      {/* ACCG Users Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Users ({adminUsers.length})</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">ACCG Users ({accgUsers.length})</h2>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -130,7 +130,7 @@ const Users = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {adminUsers.map((user) => (
+                {accgUsers.map((user) => (
                   <tr key={user._id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.username}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
@@ -251,10 +251,10 @@ const Users = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
                   <select
                     value={userForm.role}
-                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value, countyId: e.target.value === 'admin' ? '' : userForm.countyId })}
+                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value, countyId: e.target.value === 'accg' ? '' : userForm.countyId })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="admin">Admin</option>
+                    <option value="accg">ACCG</option>
                     <option value="county_user">County User</option>
                   </select>
                 </div>
@@ -291,7 +291,7 @@ const Users = () => {
                         username: '',
                         email: '',
                         password: '',
-                        role: 'admin',
+                        role: 'accg',
                         countyId: ''
                       });
                     }}
