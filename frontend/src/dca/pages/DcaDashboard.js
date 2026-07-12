@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useDcaUI } from '../DcaUIContext';
+import { submissions } from '../mockData';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const daysUntil = (deadline) => Math.ceil((new Date(deadline).getTime() - Date.now()) / DAY_MS);
@@ -182,11 +183,17 @@ const DcaDashboard = () => {
     }
   };
 
-  const viewSubmission = (task) => {
-    // Real entity-detail view for the county that completed this form.
-    const entityId = task.countyId?._id || task.countyId;
-    if (entityId) navigate(`/county/${entityId}`);
-    else showToast('No entity record linked to this submission.');
+  const viewSubmission = (index) => {
+    // Opens the DCA submission-detail view — the same screen reached by clicking a row
+    // in the Submissions tab. The detail page is a UI-only mock (there is no real
+    // per-county submission data yet), so we open a representative mock submission,
+    // picked deterministically per row. TODO(submissions): wire real submission data.
+    if (!submissions.length) {
+      showToast('No submission detail available yet.');
+      return;
+    }
+    const sub = submissions[index % submissions.length];
+    navigate(`/dca/submissions/${sub.id}`);
   };
 
   const downloadExcel = () => {
@@ -448,7 +455,7 @@ const DcaDashboard = () => {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                  {doneRows.map((task) => (
+                  {doneRows.map((task, index) => (
                     <div key={task._id} className="flex items-center justify-between gap-4 px-4 py-3">
                       <div className="min-w-0">
                         <div className="font-semibold text-gray-900 dark:text-white truncate">
@@ -458,7 +465,7 @@ const DcaDashboard = () => {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => viewSubmission(task)}
+                          onClick={() => viewSubmission(index)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
                         >
                           View
