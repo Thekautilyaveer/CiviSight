@@ -1,3 +1,5 @@
+// DEPRECATED for the Supabase store: this rename was already applied and is reflected in
+// the migrated Supabase data. This one-shot targets MongoDB (DATA_DRIVER=mongo) only.
 // Idempotent migration: the legacy ACCG account was `admin@civisight.org` with role
 // `admin`. There is no longer an "admin" role — ACCG is its own role. This renames the
 // account to `accg@civisight.org` / `accg123` with role `accg`, WITHOUT wiping any data.

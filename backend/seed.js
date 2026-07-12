@@ -1,3 +1,5 @@
+// NOTE: This is the MongoDB (DATA_DRIVER=mongo) seeder. For the default Supabase store,
+// use scripts/seed-supabase.js instead. This script targets MongoDB directly via Mongoose.
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const User = require('./models/User');

@@ -1,3 +1,6 @@
+// DEPRECATED for the Supabase store: scripts/seed-supabase.js already creates the DCA
+// account, and the live Supabase data already includes it. This one-shot targets MongoDB
+// (DATA_DRIVER=mongo) only.
 // Idempotent: ensures the DCA (Georgia Dept. of Community Affairs) admin-privileged
 // account exists, WITHOUT wiping any existing data. Safe to run against a live DB.
 //

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-CiviSight is a full-stack dashboard for the Association of County Commissioners of Georgia (ACCG) to manage counties, compliance tasks, contacts, and deadline reminders. It's a MERN-style app: React (CRA) frontend + Express/Mongoose backend + MongoDB.
+CiviSight is a full-stack dashboard for the Association of County Commissioners of Georgia (ACCG) to manage counties, compliance tasks, contacts, and deadline reminders. It's a React (CRA) frontend + Express backend. Data lives in Supabase (PostgreSQL) by default, accessed through a store abstraction (`backend/db/store.js`) selected by `DATA_DRIVER`; a Mongoose/MongoDB driver is retained as a fallback (`DATA_DRIVER=mongo`).
 
 ## Commands
 
@@ -21,8 +21,12 @@ Backend (`cd backend`):
 ```bash
 npm run dev           # nodemon server.js
 npm start             # node server.js (production)
-node seed.js          # seed users, counties, sample tasks (destructive: clears collections)
-node seed-troup-contacts.js   # seed contacts for Troup County
+node scripts/apply-schema.js       # apply the Postgres schema to Supabase (idempotent)
+node scripts/seed-supabase.js      # seed Supabase (destructive; refuses non-empty DB unless SEED_FORCE=1)
+node scripts/migrate-mongo-to-supabase.js  # one-time Mongo -> Supabase data load (non-destructive)
+node scripts/verify-parity.js      # diff mongo vs supabase API JSON (needs a server per driver)
+node seed.js          # MongoDB-only seed (DATA_DRIVER=mongo; destructive: clears collections)
+node seed-troup-contacts.js   # MongoDB-only: seed contacts for Troup County
 ```
 
 Frontend (`cd frontend`):

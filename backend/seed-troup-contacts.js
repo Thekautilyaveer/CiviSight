@@ -1,5 +1,6 @@
 /**
  * One-off: populate Troup County contacts without re-running full seed.
+ * MongoDB-only (DATA_DRIVER=mongo); for the Supabase store, edit contacts via the app.
  * Usage: node seed-troup-contacts.js
  */
 const mongoose = require('mongoose');

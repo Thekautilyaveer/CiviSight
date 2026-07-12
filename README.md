@@ -17,14 +17,14 @@ A full-stack web application for the Association of County Commissioners of Geor
 
 - **Frontend**: React, Tailwind CSS, React Router
 - **Backend**: Node.js, Express
-- **Database**: MongoDB with Mongoose
+- **Database**: Supabase (PostgreSQL) via a data-access layer, selectable with `DATA_DRIVER` (`supabase` default; `mongo`/Mongoose kept as a fallback)
 
 ## Setup Instructions
 
 ### Prerequisites
 
 - Node.js (v14 or higher)
-- MongoDB (running locally or connection string)
+- A Supabase (PostgreSQL) project connection string (default), or MongoDB if running with `DATA_DRIVER=mongo`
 
 ### Installation
 
@@ -33,13 +33,16 @@ A full-stack web application for the Association of County Commissioners of Geor
 npm run install-all
 ```
 
-2. Set up MongoDB:
-   - Make sure MongoDB is running locally, or
-   - Update the `MONGODB_URI` in `backend/.env` with your MongoDB connection string
+2. Set up the database:
+   - **Supabase (default):** put your Supabase session-pooler connection string in `SUPABASE_DB_URL` in `backend/.env`, then apply the schema: `cd backend && node scripts/apply-schema.js`.
+   - **MongoDB (fallback):** set `DATA_DRIVER=mongo` and point `MONGODB_URI` at your MongoDB instance.
 
 3. Seed the database with sample data:
 ```bash
 cd backend
+# Supabase (default). Refuses to run against a non-empty DB unless SEED_FORCE=1:
+node scripts/seed-supabase.js
+# MongoDB (only when DATA_DRIVER=mongo):
 node seed.js
 ```
 
@@ -80,7 +83,8 @@ npm start
 ```
 civisight/
 ├── backend/
-│   ├── models/          # MongoDB models (User, County, Task, Notification)
+│   ├── models/          # Mongoose models (User, County, Task, Notification) — used by the mongo driver
+│   ├── db/              # Supabase data layer: pool, mapper, repos/ (Postgres) + mongo/ (fallback), store.js
 │   ├── routes/          # API routes
 │   ├── middleware/      # Auth middleware
 │   ├── server.js        # Express server
@@ -135,10 +139,14 @@ Create a `.env` file in the `backend` directory:
 
 ```
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/civisight
+DATA_DRIVER=supabase                 # 'supabase' (default) or 'mongo' (fallback)
+SUPABASE_DB_URL=postgresql://...     # required when DATA_DRIVER=supabase
+MONGODB_URI=mongodb://localhost:27017/civisight   # required when DATA_DRIVER=mongo
 JWT_SECRET=your-secret-key-change-in-production
 NODE_ENV=development
 ```
+
+Rollback is instant: set `DATA_DRIVER=mongo` and restart the backend (the MongoDB data is never modified while running on Supabase). See `SUPABASE_MIGRATION_PLAN.md`.
 
 ## License
 
