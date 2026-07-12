@@ -167,6 +167,10 @@ async function setFilledFormFile(id, filledFormFile) {
   );
 }
 
+async function markCompleted(id) {
+  await query(`update tasks set status = 'completed', completed_at = now() where id = $1`, [id]);
+}
+
 // --- Comments ---
 async function pushComment(id, { text, createdBy, createdAt }) {
   const el = {
@@ -259,6 +263,7 @@ module.exports = {
   pushReminder,
   setFormFile,
   setFilledFormFile,
+  markCompleted,
   pushComment,
   findCommentsPopulated,
   markCommentRead,

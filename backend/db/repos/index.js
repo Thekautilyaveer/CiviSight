@@ -6,4 +6,5 @@ module.exports = {
   tasks: require('./tasks'),
   contacts: require('./contacts'),
   notifications: require('./notifications'),
+  submissions: require('./submissions'),
 };

@@ -78,7 +78,7 @@ function subTitle(p) {
   return t.replace(/^Part\s+[IVXLC]+\s*[–-]*\s*/i, '').replace(/--/g, '—').trim();
 }
 
-function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorText, onChange, index }) {
+function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorText, onChange, index, readOnly = false, comments = [], commentingField, commentDraft = '', onStartComment, onCommentDraftChange, onAddComment }) {
   const { id, cell, label, type, is_derived, needs_review, ucoa_code } = field;
 
   let widget;
@@ -100,7 +100,7 @@ function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorTex
     const { resolved, options } = resolveOptions(field);
     widget = (
       <div className={'select-wrap' + (resolved ? '' : ' unresolved')}>
-        <select value={value ?? ''} onChange={(e) => onChange(id, e.target.value)}>
+        <select value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} disabled={readOnly}>
           <option value="">{resolved ? 'Select…' : '⚠ unresolved source'}</option>
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -113,18 +113,18 @@ function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorTex
       <div className="money-wrap">
         <span className="adorn">$</span>
         <input type="text" inputMode="decimal" autoComplete="off"
-          value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} placeholder="0" />
+          value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} placeholder="0" readOnly={readOnly} />
       </div>
     );
   } else if (type === 'integer') {
     widget = (
       <input className="num" type="text" inputMode="numeric" autoComplete="off"
-        value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} placeholder="0" />
+        value={value ?? ''} onChange={(e) => onChange(id, e.target.value)} placeholder="0" readOnly={readOnly} />
     );
   } else {
     widget = (
       <input className="txt" type="text" value={value ?? ''}
-        onChange={(e) => onChange(id, e.target.value)} placeholder="—" />
+        onChange={(e) => onChange(id, e.target.value)} placeholder="—" readOnly={readOnly} />
     );
   }
 
@@ -153,6 +153,29 @@ function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorTex
         <div className="widget-wrap">
           {widget}
           {isInvalid && errorText && <div className="field-error">{errorText}</div>}
+          {comments.length > 0 && (
+            <div className="field-comments">
+              {comments.map((comment, commentIndex) => (
+                <div className="field-comment" key={`${comment.createdAt || 'comment'}-${commentIndex}`}>
+                  <b>{comment.createdBy?.username || 'Reviewer'}</b>
+                  <span>{comment.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {onAddComment && (
+            commentingField === id ? (
+              <div className="field-comment-compose">
+                <textarea value={commentDraft} onChange={(e) => onCommentDraftChange(id, e.target.value)} placeholder="Comment on this field..." rows="2" />
+                <div className="field-comment-actions">
+                  <button type="button" onClick={() => onAddComment(id)} disabled={!commentDraft.trim()}>Send to county</button>
+                  <button type="button" onClick={() => onStartComment(null)}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="field-comment-trigger" onClick={() => onStartComment(id)}>Add comment</button>
+            )
+          )}
         </div>
       </div>
     </div>
@@ -168,14 +191,21 @@ function Stat({ label, value, tone }) {
   );
 }
 
-export default function RlgfForm({ subtitle = 'Report of Local Government Finance', onSubmit }) {
-  const [values, setValues] = useState({});
+export default function RlgfForm({ subtitle = 'Report of Local Government Finance', onSubmit, initialValues = {}, readOnly = false, fieldComments = {}, commentingField = null, commentDraft = '', onStartComment, onCommentDraftChange, onAddComment }) {
+  const [values, setValues] = useState(initialValues);
   const [pageIdx, setPageIdx] = useState(0);
   const [query, setQuery] = useState('');
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [submitted, setSubmitted] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const questionsRef = useRef(null);
+
+  useEffect(() => {
+    setValues(initialValues || {});
+    setPageIdx(0);
+  }, [initialValues]);
 
   const onChange = (id, v) => {
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -256,9 +286,10 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
     return errors;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const errors = validateForm();
     setFieldErrors(errors);
+    setSubmitError('');
     if (Object.keys(errors).length > 0) {
       const firstId = Object.keys(errors)[0];
       const firstPage = schema.pages.findIndex((p) => p.fields.some((f) => f.id === firstId));
@@ -266,22 +297,43 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
       return;
     }
 
-    const payload = { form: schema.form, version: schema.version, answers: {} };
+    const payload = { form: schema.form, version: schema.version, answers: {}, metadata: { fields: {} } };
     schema.pages.forEach((p, i) => {
       p.fields.forEach((f) => {
+        const display = displayField(f);
+        const hasValue = f.is_derived || (values[f.id] !== undefined && values[f.id] !== '');
+        if (!hasValue) return;
+
         if (f.is_derived) payload.answers[f.id] = evaluators[i].valueForField(f);
-        else if (values[f.id] !== undefined && values[f.id] !== '') payload.answers[f.id] = values[f.id];
+        else payload.answers[f.id] = values[f.id];
+
+        payload.metadata.fields[f.id] = {
+          label: display.label || '',
+          page: f.page || p.page,
+          cell: f.cell,
+          type: f.type,
+          ucoaCode: f.ucoa_code || '',
+          needsReview: Boolean(f.needs_review),
+          derived: Boolean(f.is_derived)
+        };
       });
     });
-    // eslint-disable-next-line no-console
-    console.log('RLGF submit payload:', payload);
-    if (onSubmit) onSubmit(payload);
-    setSubmitted({
-      answers: Object.keys(payload.answers).length,
-      flags: schema.pages.flatMap((p) => p.fields).filter((f) => f.needs_review).length,
-      pages: schema.pages.length,
-      timestamp: new Date(),
-    });
+    try {
+      setSubmitting(true);
+      const result = onSubmit ? await onSubmit(payload) : null;
+      setSubmitted({
+        answers: Object.keys(payload.answers).length,
+        flags: schema.pages.flatMap((p) => p.fields).filter((f) => f.needs_review).length,
+        pages: schema.pages.length,
+        timestamp: result?.submittedAt ? new Date(result.submittedAt) : new Date(),
+        agency: result?.agency || 'the receiving agency',
+        confirmation: result?._id || result?.id || '',
+      });
+    } catch (error) {
+      setSubmitError(error?.response?.data?.message || error?.message || 'Could not submit the form. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const filledCount = Object.values(values).filter((v) => v !== null && v !== undefined && String(v).trim() !== '').length;
@@ -365,7 +417,13 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
                     isUnhandled={evaluators[pageIdx].unhandledIds.has(f.id)}
                     isInvalid={Boolean(fieldErrors[f.id])}
                     errorText={fieldErrors[f.id]}
-                    onChange={onChange} index={idx}
+                    onChange={onChange} index={idx} readOnly={readOnly}
+                    comments={fieldComments[f.id] || []}
+                    commentingField={commentingField}
+                    commentDraft={commentDraft}
+                    onStartComment={onStartComment}
+                    onCommentDraftChange={onCommentDraftChange}
+                    onAddComment={onAddComment}
                   />
                 ))
               )}
@@ -379,16 +437,17 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
             </div>
           </div>
 
-          <footer className="submit-bar">
+          {!readOnly && <footer className="submit-bar">
             <div className="sb-meta">
               <span>This page: <b>{page.fields.filter((f) => !f.is_derived && f.type !== 'dropdown').length}</b> inputs</span>
               <span><b>{page.fields.filter((f) => f.is_derived).length}</b> computed</span>
               <span><b>{page.fields.filter((f) => f.needs_review).length}</b> flagged</span>
             </div>
-            <button type="button" className="submit-btn" onClick={handleSubmit}>
-              Submit form
+            {submitError && <div className="submit-error">{submitError}</div>}
+            <button type="button" className="submit-btn" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit form'}
             </button>
-          </footer>
+          </footer>}
         </main>
       </div>
       {submitted !== null && (
@@ -407,7 +466,7 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
             <div className="submit-success-kicker">Submission complete</div>
             <h2 id="rlgf-submit-title">RLGF form submitted</h2>
             <p>
-              {submitted.answers} answers were captured successfully. The form is ready for review and the next workflow step.
+              {submitted.answers} answers were sent to {submitted.agency}. The submitted form is now available for state-agency review.
             </p>
             <div className="submit-success-stats">
               <div><b>{filledCount}</b><span>filled</span></div>

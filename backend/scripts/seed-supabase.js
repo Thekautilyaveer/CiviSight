@@ -102,7 +102,13 @@ const deadlineFor = (form, county) => {
     default: return atEod(TARGET_YEAR, 12, 31);
   }
 };
-const statusFor = (deadline, countyIdx, formIdx, now) => {
+// RLGF is submitted via the online form workflow, so never seed it as completed —
+// leave it pending/in_progress so counties can actually submit it.
+const isRlgfForm = (form) => form.title === 'Report of Local Government Finances';
+const statusFor = (form, deadline, countyIdx, formIdx, now) => {
+  if (isRlgfForm(form)) {
+    return (countyIdx + formIdx) % 4 === 0 ? 'in_progress' : 'pending';
+  }
   if (deadline.getTime() < now) return 'completed';
   return (countyIdx + formIdx) % 3 === 0 ? 'in_progress' : 'pending';
 };
@@ -160,7 +166,7 @@ async function seedInto(client) {
     for (let f = 0; f < FORMS.length; f++) {
       const form = FORMS[f];
       const deadline = deadlineFor(form, county);
-      const status = statusFor(deadline, i, f, now);
+      const status = statusFor(form, deadline, i, f, now);
       const completedAt = status === 'completed' ? addDays(deadline, -5) : null;
       await client.query(
         `insert into tasks (id,title,description,county_id,submitted_to,portal_link,status,priority,deadline,assigned_by,completed_at)

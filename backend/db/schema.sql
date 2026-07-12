@@ -113,3 +113,32 @@ create index if not exists idx_notifications_user_read on notifications(user_id,
 create index if not exists idx_notifications_user_created on notifications(user_id, created_at desc);
 create or replace trigger trg_notifications_updated before update on notifications
   for each row execute function set_updated_at();
+
+-- === submissions (county form submissions to agencies + agency review workflow) ===
+create table if not exists submissions (
+  id text primary key,
+  task_id text not null references tasks(id) on delete cascade,
+  county_id text not null references counties(id) on delete cascade,
+  agency text not null default '',
+  form_name text not null,
+  form_type text not null check (form_type in ('online','file')),
+  status text not null default 'submitted'
+       check (status in ('submitted','under_review','accepted','needs_correction')),
+  submitted_by text not null references users(id),
+  submitted_at timestamptz not null default now(),
+  answers jsonb,                                   -- online form answers {fieldId: value} (Mixed; null for file)
+  metadata jsonb not null default '{}'::jsonb,     -- {source, form, version, fields{...}, ...}
+  comments jsonb not null default '[]'::jsonb,     -- [{fieldId,text,createdBy,createdAt,readBy[]}]
+  file jsonb,                                       -- {originalName,fileName,filePath,uploadedAt}
+  reviewed_by text references users(id) on delete set null,
+  reviewed_at timestamptz,
+  review_note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_submissions_task on submissions(task_id, submitted_at desc);
+create index if not exists idx_submissions_county on submissions(county_id, submitted_at desc);
+create index if not exists idx_submissions_agency_status on submissions(agency, status);
+create index if not exists idx_submissions_form_agency on submissions(form_name, agency);
+create or replace trigger trg_submissions_updated before update on submissions
+  for each row execute function set_updated_at();

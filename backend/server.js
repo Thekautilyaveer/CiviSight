@@ -40,6 +40,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/chatbot', require('./routes/chatbot'));
+app.use('/api/submissions', require('./routes/submissions'));
 
 // Connect to the selected data store
 if (DATA_DRIVER === 'mongo') {

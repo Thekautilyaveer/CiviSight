@@ -106,6 +106,45 @@ function task(row, { county = null, assignedBy = null, countyEmail = false } = {
   return out;
 }
 
+// Minimal populated task ref for submissions: {_id, title[, deadline, status, submittedTo]}.
+function taskRef(t) {
+  if (!t || t.id == null) return null;
+  const ref = { _id: t.id, title: t.title };
+  if (t.deadline !== undefined) ref.deadline = iso(t.deadline);
+  if (t.status !== undefined) ref.status = t.status;
+  if (t.submittedTo !== undefined) ref.submittedTo = t.submittedTo;
+  return ref;
+}
+
+// --- Submission ---
+// Optional populated refs (task/county/submittedBy/reviewedBy) and pre-populated comments
+// pass through; otherwise ids/jsonb are emitted as stored.
+function submission(row, { task = null, county = null, submittedBy = null, reviewedBy = null, comments } = {}) {
+  if (!row) return null;
+  const out = {
+    _id: row.id,
+    taskId: task ? taskRef(task) : row.task_id,
+    countyId: county ? countyRef(county) : row.county_id,
+    agency: row.agency,
+    formName: row.form_name,
+    formType: row.form_type,
+    status: row.status,
+    submittedBy: submittedBy ? userRef(submittedBy, { withRole: true }) : row.submitted_by,
+    submittedAt: iso(row.submitted_at),
+    answers: row.answers === undefined ? null : row.answers,
+    metadata: row.metadata || {},
+    comments: comments !== undefined ? comments : (row.comments || []),
+    file: row.file != null ? row.file : undefined,
+    reviewedBy: reviewedBy ? userRef(reviewedBy, { withRole: true }) : (row.reviewed_by != null ? row.reviewed_by : null),
+    reviewedAt: row.reviewed_at != null ? iso(row.reviewed_at) : null,
+    reviewNote: row.review_note,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  };
+  if (row.file == null) delete out.file; // matches Mongoose dropping the unset nested path
+  return out;
+}
+
 // --- Contact ---
 function contact(row) {
   if (!row) return null;
@@ -156,6 +195,8 @@ module.exports = {
   user,
   userRef,
   task,
+  taskRef,
+  submission,
   contact,
   notification,
 };

@@ -10,6 +10,7 @@ const store = DATA_DRIVER === 'mongo'
       tasks: require('./mongo/tasks'),
       contacts: require('./mongo/contacts'),
       notifications: require('./mongo/notifications'),
+      submissions: require('./mongo/submissions'),
     }
   : {
       counties: require('./repos/counties'),
@@ -17,6 +18,7 @@ const store = DATA_DRIVER === 'mongo'
       tasks: require('./repos/tasks'),
       contacts: require('./repos/contacts'),
       notifications: require('./repos/notifications'),
+      submissions: require('./repos/submissions'),
     };
 
 store.driver = DATA_DRIVER;

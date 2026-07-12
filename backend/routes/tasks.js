@@ -638,11 +638,85 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
     // Automatically set status to completed when filled form is submitted
     await store.tasks.setFilledFormFile(req.params.id, filledFormFile);
 
+    // Record the submission for the receiving agency's review queue.
+    await store.submissions.create({
+      taskId: req.params.id,
+      countyId: task.countyId,
+      agency: task.submittedTo || '',
+      formName: task.title,
+      formType: 'file',
+      status: 'submitted',
+      submittedBy: req.user._id,
+      submittedAt: new Date(),
+      file: {
+        originalName: req.file.originalname,
+        fileName: req.file.filename,
+        filePath: relativePath,
+        uploadedAt: new Date()
+      },
+      metadata: { source: 'filled_form_upload' }
+    });
+
     const populatedTask = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: false });
     res.json({ message: 'Filled form uploaded successfully', task: populatedTask });
   } catch (error) {
     logger.error('Error uploading filled form:', error);
     res.status(500).json({ message: error.message || 'Server error' });
+  }
+});
+
+// @route   POST /api/tasks/:id/submit-online
+// @desc    Submit an online form payload to the receiving agency
+// @access  Private
+router.post('/:id/submit-online', auth, async (req, res) => {
+  try {
+    const task = await store.tasks.getRaw(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== task.countyId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const answers = req.body.answers && typeof req.body.answers === 'object' ? req.body.answers : {};
+    const metadata = req.body.metadata && typeof req.body.metadata === 'object' ? req.body.metadata : {};
+    const answerCount = Object.keys(answers).length;
+
+    if (answerCount === 0) {
+      return res.status(400).json({ message: 'Submission must include at least one answer' });
+    }
+
+    const submission = await store.submissions.create({
+      taskId: req.params.id,
+      countyId: task.countyId,
+      agency: task.submittedTo || '',
+      formName: req.body.formName || task.title,
+      formType: 'online',
+      status: 'submitted',
+      submittedBy: req.user._id,
+      submittedAt: new Date(),
+      answers,
+      metadata: {
+        ...metadata,
+        source: 'online_form',
+        form: req.body.form,
+        version: req.body.version,
+        answerCount
+      }
+    });
+
+    await store.tasks.markCompleted(req.params.id);
+
+    const populatedSubmission = await store.submissions.findByIdPopulated(submission._id);
+
+    res.status(201).json({
+      message: 'Form submitted to agency successfully',
+      submission: populatedSubmission
+    });
+  } catch (error) {
+    logger.error('Error submitting online form:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -118,6 +118,14 @@ async function setFilledFormFile(id, filledFormFile) {
   await task.save();
 }
 
+async function markCompleted(id) {
+  const task = await Task.findById(id);
+  if (!task) return;
+  task.status = 'completed';
+  task.completedAt = new Date();
+  await task.save();
+}
+
 async function pushComment(id, { text, createdBy, createdAt }) {
   const task = await Task.findById(id);
   if (!task) return null;
@@ -176,6 +184,7 @@ module.exports = {
   pushReminder,
   setFormFile,
   setFilledFormFile,
+  markCompleted,
   pushComment,
   findCommentsPopulated,
   markCommentRead,
