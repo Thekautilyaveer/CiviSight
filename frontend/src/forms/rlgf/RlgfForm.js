@@ -16,6 +16,7 @@ const money = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 const fmtMoney = (n) => (n === null || n === undefined ? '—' : money.format(n));
+const EMPTY_VALUES = {};
 
 const presentationOverrides = {
   'Page 1:F12': { hidden: true },
@@ -77,6 +78,34 @@ function subTitle(p) {
   const t = p.title || p.page;
   return t.replace(/^Part\s+[IVXLC]+\s*[–-]*\s*/i, '').replace(/--/g, '—').trim();
 }
+
+// The current extracted workbook places Parts II-IV on one worksheet. Keep
+// the existing fields, but expose the original reporting parts in navigation.
+const splitPages = schema.pages.flatMap((page) => {
+  if (page.page !== 'Page 2') return [page];
+  return [
+    { ...page, page: 'Page 2', title: 'Part II -- INTERGOVERNMENTAL REVENUES -- ALL FUNDS', fields: page.fields.slice(0, 27) },
+    { ...page, page: 'Page 2A', title: 'Part III -- SERVICE CHARGES / OTHER REVENUES', fields: page.fields.slice(27, 62) },
+    { ...page, page: 'Page 2B', title: 'Part IV -- PUBLIC UTILITY / ENTERPRISE FUNDS', fields: page.fields.slice(62) }
+  ];
+});
+
+// Merge continuation worksheets into one navigable section per reporting part.
+const pages = splitPages.reduce((merged, page) => {
+  const partMatch = /Part\s+([IVXLC]+)/i.exec(page.title || page.page);
+  const partKey = partMatch ? partMatch[1].toUpperCase() : page.page;
+  const existing = merged.find((entry) => entry.partKey === partKey);
+  if (existing) {
+    existing.fields = [...existing.fields, ...page.fields];
+    return merged;
+  }
+  merged.push({
+    ...page,
+    partKey,
+    title: (page.title || page.page).replace(/\s*,?\s*\(continued\)|\s*,?\s*continued\.?$/i, '')
+  });
+  return merged;
+}, []).map(({ partKey, ...page }) => page);
 
 function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorText, onChange, index, readOnly = false, comments = [], commentingField, commentDraft = '', onStartComment, onCommentDraftChange, onAddComment }) {
   const { id, cell, label, type, is_derived, needs_review, ucoa_code } = field;
@@ -191,7 +220,7 @@ function Stat({ label, value, tone }) {
   );
 }
 
-export default function RlgfForm({ subtitle = 'Report of Local Government Finance', onSubmit, initialValues = {}, readOnly = false, fieldComments = {}, commentingField = null, commentDraft = '', onStartComment, onCommentDraftChange, onAddComment }) {
+export default function RlgfForm({ subtitle = 'Report of Local Government Finance', onSubmit, initialValues = EMPTY_VALUES, readOnly = false, fieldComments = {}, commentingField = null, commentDraft = '', onStartComment, onCommentDraftChange, onAddComment }) {
   const [values, setValues] = useState(initialValues);
   const [pageIdx, setPageIdx] = useState(0);
   const [query, setQuery] = useState('');
@@ -218,10 +247,10 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
   };
 
   const { evaluators, derivedById, unhandledCount } = useMemo(() => {
-    const evs = schema.pages.map((p) => makeEvaluator(p, values));
+    const evs = pages.map((p) => makeEvaluator(p, values));
     const derived = {};
     let unhandled = 0;
-    schema.pages.forEach((p, i) => {
+    pages.forEach((p, i) => {
       p.fields.forEach((f) => { if (f.is_derived) derived[f.id] = evs[i].valueForField(f); });
       unhandled += evs[i].unhandledIds.size;
     });
@@ -231,7 +260,7 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
   const qa = useMemo(() => {
     const byType = { dollar: 0, integer: 0, text: 0, dropdown: 0 };
     let total = 0, derived = 0, needsReview = 0, unresolved = 0;
-    for (const p of schema.pages) {
+    for (const p of pages) {
       for (const f of p.fields) {
         total++;
         byType[f.type] = (byType[f.type] || 0) + 1;
@@ -243,7 +272,7 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
     return { total, byType, derived, needsReview, unresolved, inputs: total - derived - byType.dropdown };
   }, []);
 
-  const page = schema.pages[pageIdx];
+  const page = pages[pageIdx];
   useEffect(() => {
     questionsRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [pageIdx]);
@@ -262,7 +291,7 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
 
   const validateForm = () => {
     const errors = {};
-    schema.pages.forEach((p) => {
+    pages.forEach((p) => {
       p.fields.forEach((f) => {
         if (f.is_derived) return;
         const raw = values[f.id];
@@ -292,13 +321,13 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
     setSubmitError('');
     if (Object.keys(errors).length > 0) {
       const firstId = Object.keys(errors)[0];
-      const firstPage = schema.pages.findIndex((p) => p.fields.some((f) => f.id === firstId));
+      const firstPage = pages.findIndex((p) => p.fields.some((f) => f.id === firstId));
       if (firstPage >= 0) setPageIdx(firstPage);
       return;
     }
 
     const payload = { form: schema.form, version: schema.version, answers: {}, metadata: { fields: {} } };
-    schema.pages.forEach((p, i) => {
+    pages.forEach((p, i) => {
       p.fields.forEach((f) => {
         const display = displayField(f);
         const hasValue = f.is_derived || (values[f.id] !== undefined && values[f.id] !== '');
@@ -323,8 +352,8 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
       const result = onSubmit ? await onSubmit(payload) : null;
       setSubmitted({
         answers: Object.keys(payload.answers).length,
-        flags: schema.pages.flatMap((p) => p.fields).filter((f) => f.needs_review).length,
-        pages: schema.pages.length,
+        flags: pages.flatMap((p) => p.fields).filter((f) => f.needs_review).length,
+        pages: pages.length,
         timestamp: result?.submittedAt ? new Date(result.submittedAt) : new Date(),
         agency: result?.agency || 'the receiving agency',
         confirmation: result?._id || result?.id || '',
@@ -351,8 +380,8 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
           </div>
 
           <nav className="nav">
-            {schema.pages.map((p, i) => (
-              <button key={p.page} className={'nav-item' + (i === pageIdx ? ' active' : '')}
+            {pages.map((p, i) => (
+              <button type="button" key={`${p.page}-${i}`} className={'nav-item' + (i === pageIdx ? ' active' : '')}
                 onClick={() => setPageIdx(i)}>
                 <span className="nav-part">{shortTitle(p)}</span>
                 <span className="nav-count">{p.fields.length}</span>
@@ -383,7 +412,7 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
           <header className="page-head">
             <div className="ph-eyebrow">
               <span>{shortTitle(page)}</span>
-              <span className="ph-progress">Page {pageIdx + 1} of {schema.pages.length}</span>
+              <span className="ph-progress">Page {pageIdx + 1} of {pages.length}</span>
             </div>
             <h1 className="ph-title">{subTitle(page) || page.page}</h1>
 
@@ -430,10 +459,10 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
             </section>
 
             <div className="pager">
-              <button disabled={pageIdx === 0} onClick={() => setPageIdx((i) => Math.max(0, i - 1))}>← Previous</button>
+              <button type="button" disabled={pageIdx === 0} onClick={() => setPageIdx((i) => Math.max(0, i - 1))}>← Previous</button>
               <span>{shortTitle(page)}</span>
-              <button disabled={pageIdx === schema.pages.length - 1}
-                onClick={() => setPageIdx((i) => Math.min(schema.pages.length - 1, i + 1))}>Next →</button>
+              <button type="button" disabled={pageIdx === pages.length - 1}
+                onClick={() => setPageIdx((i) => Math.min(pages.length - 1, i + 1))}>Next →</button>
             </div>
           </div>
 

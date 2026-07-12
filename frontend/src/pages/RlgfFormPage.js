@@ -14,7 +14,6 @@ const RlgfFormPage = () => {
 
   useEffect(() => {
     let active = true;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     api
       .get(`/counties/${id}`)
       .then((res) => { if (active) setCountyName(res.data?.name || ''); })
@@ -62,6 +61,14 @@ const RlgfFormPage = () => {
           <span className="text-sm text-gray-500">
             Report of Local Government Finance{countyName ? ` · ${countyName}` : ''}
           </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          <a href="https://dca.georgia.gov/community-assistance/government-authority-reporting/report-local-government-finance-rlgf/rlgf" target="_blank" rel="noreferrer" className="font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+            Official DCA RLGF page
+          </a>
+          <a href="https://dca.georgia.gov/document/publications/instructions-reports-covering-fiscal-year-ending-2016-or-future-years-pdf/download" target="_blank" rel="noreferrer" className="font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+            Instructions
+          </a>
         </div>
       </div>
 

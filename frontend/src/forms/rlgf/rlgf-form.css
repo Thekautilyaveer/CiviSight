@@ -1,7 +1,5 @@
 /* RLGF form — "Civic Ledger" styling, fully scoped under .rlgf-root so it never
    leaks into the rest of CiviSight (and Tailwind's reset can't clobber it). */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
 .rlgf-root {
   --paper: #f4efe4;
   --paper-2: #ece5d6;
@@ -403,6 +401,91 @@
 .rlgf-root .field-comment-actions button { border: 0; border-radius: 5px; padding: 5px 8px; background: var(--pine); color: #fff; cursor: pointer; font: 700 10px var(--sans); }
 .rlgf-root .field-comment-actions button:last-child { background: transparent; color: var(--muted); }
 .rlgf-root .field-comment-actions button:disabled { cursor: not-allowed; opacity: .5; }
+
+/* CiviSight application theme: keep the form layout, but use the shared
+   dashboard palette, typography, control treatment, and surface hierarchy. */
+.rlgf-root {
+  --paper: #f9fafb;
+  --paper-2: #f3f4f6;
+  --card: #ffffff;
+  --ink: #111827;
+  --ink-soft: #4b5563;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --pine: #2563eb;
+  --pine-deep: #1d4ed8;
+  --pine-bright: #3b82f6;
+  --gold: #b45309;
+  --gold-soft: #fef3c7;
+  --red: #dc2626;
+  --red-soft: #fee2e2;
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.05), 0 4px 12px rgba(17, 24, 39, 0.04);
+  --radius: 8px;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --serif: var(--sans);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.rlgf-root .shell { background: var(--card); border-color: var(--line); border-radius: 8px; box-shadow: 0 1px 3px rgba(17, 24, 39, 0.08); }
+.rlgf-root .sidebar { background: var(--paper); color: var(--ink); border-right: 1px solid var(--line); padding: 22px 18px; gap: 18px; }
+.rlgf-root .brand-mark { color: #fff; background: var(--pine); border-radius: 8px; box-shadow: none; }
+.rlgf-root .brand-title { font-family: var(--sans); font-size: 16px; font-weight: 700; letter-spacing: 0; color: var(--ink); }
+.rlgf-root .brand-sub { color: var(--muted); font-size: 11px; }
+.rlgf-root .nav-item { color: #4b5563; border-radius: 8px; font-size: 13px; }
+.rlgf-root .nav-item:hover { background: #eff6ff; color: var(--pine-deep); transform: none; }
+.rlgf-root .nav-item.active { background: #eff6ff; color: var(--pine-deep); box-shadow: inset 3px 0 0 var(--pine); }
+.rlgf-root .nav-count { color: var(--muted); background: #e5e7eb; }
+.rlgf-root .nav-item.active .nav-count { color: var(--pine-deep); background: #dbeafe; }
+.rlgf-root .panel { background: var(--card); border-color: var(--line); border-radius: 8px; }
+.rlgf-root .panel-head { color: var(--muted); letter-spacing: .1em; }
+.rlgf-root .stat-num { color: var(--ink); }
+.rlgf-root .stat-label { color: var(--muted); }
+.rlgf-root .stat-gold .stat-num { color: var(--gold); }
+.rlgf-root .stat-bad .stat-num { color: var(--red); }
+.rlgf-root .stat-ok .stat-num { color: #16a34a; }
+.rlgf-root .panel-foot { border-top-color: var(--line); }
+.rlgf-root .flag.ok { color: #16a34a; }
+.rlgf-root .flag.bad { color: var(--red); }
+.rlgf-root .panel-foot .muted { color: var(--muted); }
+.rlgf-root .page-head { padding: 20px 28px 14px; background: var(--card); }
+.rlgf-root .ph-eyebrow { color: var(--pine); letter-spacing: .1em; }
+.rlgf-root .ph-title { font-family: var(--sans); font-size: 24px; line-height: 1.2; letter-spacing: 0; color: var(--ink); }
+.rlgf-root .search { background: var(--card); border-color: var(--line-strong); border-radius: 8px; }
+.rlgf-root .search:focus-within { border-color: var(--pine); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+.rlgf-root .sheet { margin-left: 28px; margin-right: 28px; border-color: var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.rlgf-root .row:hover { background: #f9fafb; }
+.rlgf-root .row.is-derived { background: #f9fafb; }
+.rlgf-root .row.is-flagged { box-shadow: inset 3px 0 0 #f59e0b; }
+.rlgf-root .label { color: var(--ink); font-weight: 500; }
+.rlgf-root .chip-cell { color: var(--muted); background: var(--paper-2); }
+.rlgf-root .chip-ucoa { color: #1d4ed8; background: #eff6ff; }
+.rlgf-root .chip-type { color: var(--ink-soft); background: #f3f4f6; }
+.rlgf-root .chip-review { color: var(--gold); background: var(--gold-soft); }
+.rlgf-root input.num, .rlgf-root input.txt, .rlgf-root .money-wrap input, .rlgf-root .select-wrap select { color: var(--ink); background: var(--card); border-color: var(--line-strong); border-radius: 6px; }
+.rlgf-root input:focus, .rlgf-root select:focus { border-color: var(--pine); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+.rlgf-root .derived { background: #f9fafb; border-color: var(--line-strong); }
+.rlgf-root .derived-val { color: var(--pine-deep); }
+.rlgf-root .pager { color: var(--muted); }
+.rlgf-root .pager button { background: var(--card); color: var(--ink); border-color: var(--line-strong); border-radius: 6px; }
+.rlgf-root .pager button:hover:not(:disabled) { background: #eff6ff; color: var(--pine-deep); transform: none; }
+.rlgf-root .submit-bar { padding: 12px 28px; background: rgba(255,255,255,.96); border-top-color: var(--line); }
+.rlgf-root .sb-meta { color: var(--ink-soft); }
+.rlgf-root .sb-meta b { color: var(--pine); }
+.rlgf-root .submit-btn { background: var(--pine); border-radius: 6px; box-shadow: 0 1px 2px rgba(37, 99, 235, .2); }
+.rlgf-root .submit-btn:hover { background: var(--pine-deep); box-shadow: 0 2px 5px rgba(37, 99, 235, .25); transform: none; }
+.rlgf-root .submit-success-dialog { border-color: #bfdbfe; border-radius: 8px; background: var(--card); box-shadow: 0 20px 40px rgba(17, 24, 39, .18); }
+.rlgf-root .submit-success-icon { background: var(--pine); box-shadow: none; }
+.rlgf-root .submit-success-dialog h2 { font-family: var(--sans); font-size: 22px; color: var(--ink); }
+.rlgf-root .submit-success-kicker { color: var(--pine); letter-spacing: .1em; }
+.rlgf-root .submit-success-dialog p { color: var(--ink-soft); }
+.rlgf-root .submit-success-stats div { background: var(--paper); border-color: var(--line); border-radius: 6px; }
+.rlgf-root .submit-success-stats b { font-family: var(--sans); color: var(--pine); }
+.rlgf-root .submit-success-stats span { color: var(--muted); }
+.rlgf-root .submit-success-close { background: var(--pine); border-radius: 6px; }
+.rlgf-root .submit-success-close:hover { background: var(--pine-deep); transform: none; }
+.rlgf-root .field-comment { border-left-color: #f59e0b; background: #fffbeb; color: var(--ink-soft); }
+.rlgf-root .field-comment b, .rlgf-root .field-comment-trigger { color: var(--pine-deep); }
+.rlgf-root .field-comment-actions button { background: var(--pine); border-radius: 6px; }
 @media (max-width: 860px) {
   .rlgf-root .shell { grid-template-columns: 1fr; height: auto; overflow: visible; }
   .rlgf-root .main { overflow: visible; }
