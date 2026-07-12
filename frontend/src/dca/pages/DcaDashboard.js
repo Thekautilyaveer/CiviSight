@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useDcaUI } from '../DcaUIContext';
 import { submissions } from '../mockData';
+import TaskCardDetails from '../../components/TaskCardDetails';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const daysUntil = (deadline) => Math.ceil((new Date(deadline).getTime() - Date.now()) / DAY_MS);
@@ -55,6 +56,8 @@ const DcaDashboard = () => {
 
   const [remindingId, setRemindingId] = useState(null);
   const [remindingAll, setRemindingAll] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const toggleExpand = (id) => setExpandedId((cur) => (cur === id ? null : id));
 
   useEffect(() => {
     let active = true;
@@ -411,33 +414,46 @@ const DcaDashboard = () => {
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
                   {notDoneRows.map(({ task, days }) => (
-                    <div key={task._id} className="flex items-center justify-between gap-4 px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="font-semibold text-gray-900 dark:text-white truncate">
-                          {task.countyId?.name || 'Unknown entity'}
+                    <div key={task._id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-900 dark:text-white truncate">
+                            {task.countyId?.name || 'Unknown entity'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Deadline {fmtDeadline(task.deadline)}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          Deadline {fmtDeadline(task.deadline)}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span
+                            className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                              days < 0
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {dueTag(days)}
+                          </span>
+                          <button
+                            onClick={() => remindOne(task)}
+                            disabled={remindingId === task._id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-600 text-blue-700 dark:text-blue-300 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {remindingId === task._id ? 'Sending…' : 'Remind'}
+                          </button>
+                          <button
+                            onClick={() => toggleExpand(task._id)}
+                            aria-label="Toggle details"
+                            aria-expanded={expandedId === task._id}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <svg className={`w-4 h-4 transition-transform ${expandedId === task._id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span
-                          className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
-                            days < 0
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {dueTag(days)}
-                        </span>
-                        <button
-                          onClick={() => remindOne(task)}
-                          disabled={remindingId === task._id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-600 text-blue-700 dark:text-blue-300 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-sm font-medium transition-colors disabled:opacity-50"
-                        >
-                          {remindingId === task._id ? 'Sending…' : 'Remind'}
-                        </button>
-                      </div>
+                      {expandedId === task._id && <TaskCardDetails task={task} />}
                     </div>
                   ))}
                 </div>
@@ -465,31 +481,44 @@ const DcaDashboard = () => {
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
                   {doneRows.map((task, index) => (
-                    <div key={task._id} className="flex items-center justify-between gap-4 px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="font-semibold text-gray-900 dark:text-white truncate">
-                          {task.countyId?.name || 'Unknown entity'}
+                    <div key={task._id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-900 dark:text-white truncate">
+                            {task.countyId?.name || 'Unknown entity'}
+                          </div>
+                          <div className="text-xs text-green-700 dark:text-green-400 mt-0.5">Completed</div>
                         </div>
-                        <div className="text-xs text-green-700 dark:text-green-400 mt-0.5">Completed</div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => viewSubmission(index)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={downloadExcel}
+                            title="Export to Excel (coming soon)"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Download
+                          </button>
+                          <button
+                            onClick={() => toggleExpand(task._id)}
+                            aria-label="Toggle details"
+                            aria-expanded={expandedId === task._id}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <svg className={`w-4 h-4 transition-transform ${expandedId === task._id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => viewSubmission(index)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={downloadExcel}
-                          title="Export to Excel (coming soon)"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                          </svg>
-                          Download
-                        </button>
-                      </div>
+                      {expandedId === task._id && <TaskCardDetails task={task} />}
                     </div>
                   ))}
                 </div>
