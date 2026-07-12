@@ -31,6 +31,12 @@ const TYPE_OPTIONS = [
 const rlgfLabel = (title) =>
   /local government finance/i.test(title) && !/\(RLGF\)/i.test(title) ? `${title} (RLGF)` : title;
 
+// The DCA portal only concerns forms addressed to DCA. Match the "Submitted To" value
+// against DCA regardless of phrasing (e.g. "Georgia Department of Community Affairs (DCA)"
+// from the create form, or "Dept. of Community Affairs (DCA)" from seed data).
+const isDcaAgency = (submittedTo) =>
+  /\bDCA\b/i.test(submittedTo || '') || /community affairs/i.test(submittedTo || '');
+
 const DcaDashboard = () => {
   const navigate = useNavigate();
   const { showToast } = useDcaUI();
@@ -68,10 +74,13 @@ const DcaDashboard = () => {
     };
   }, []);
 
-  // Distinct forms = distinct task titles across the data.
+  // Only forms addressed to DCA belong in DCA's portal.
+  const dcaTasks = useMemo(() => tasks.filter((t) => isDcaAgency(t.submittedTo)), [tasks]);
+
+  // Distinct forms = distinct DCA task titles across the data.
   const forms = useMemo(
-    () => [...new Set(tasks.map((t) => t.title))].sort((a, b) => a.localeCompare(b)),
-    [tasks]
+    () => [...new Set(dcaTasks.map((t) => t.title))].sort((a, b) => a.localeCompare(b)),
+    [dcaTasks]
   );
 
   // Default to RLGF when it exists, otherwise the first form.
@@ -89,8 +98,8 @@ const DcaDashboard = () => {
     setDeadlineFilter('');
   };
 
-  // All tasks for the selected form.
-  const formTasks = useMemo(() => tasks.filter((t) => t.title === selectedForm), [tasks, selectedForm]);
+  // All DCA tasks for the selected form.
+  const formTasks = useMemo(() => dcaTasks.filter((t) => t.title === selectedForm), [dcaTasks, selectedForm]);
 
   // Stat line, computed from real data.
   const { total, undone, overdue } = useMemo(() => {
