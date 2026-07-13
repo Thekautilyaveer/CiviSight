@@ -11,9 +11,15 @@ begin
 end;
 $$ language plpgsql;
 
--- === counties ===
-create table if not exists counties (
+-- === entities (reporting governments: counties, cities, authorities) ===
+-- Formerly `counties`. `type` distinguishes the government kind; ACCG oversees counties
+-- only, DCA oversees all types (see utils/roles.js entityTypesFor). `gov_id` is Georgia's
+-- canonical government identifier — the stable identity that reconciles a filer across
+-- forms, years, and legacy sources (nullable until captured, e.g. from an RLGF filing).
+create table if not exists entities (
   id text primary key,
+  gov_id text unique,
+  type text not null default 'county' check (type in ('county','city','authority')),
   name text not null unique,
   code text not null unique,
   description text not null default '',
@@ -25,7 +31,8 @@ create table if not exists counties (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create or replace trigger trg_counties_updated before update on counties
+create index if not exists idx_entities_type on entities(type);
+create or replace trigger trg_entities_updated before update on entities
   for each row execute function set_updated_at();
 
 -- === users ===
@@ -36,7 +43,7 @@ create table if not exists users (
   password text not null,                           -- bcrypt hash, migrated as-is
   role text not null default 'county_user'
        check (role in ('accg','dca','county_user')),
-  county_id text references counties(id) on delete set null,
+  county_id text references entities(id) on delete set null,
   department_roles jsonb not null default '[]'::jsonb,   -- array of role slugs
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -50,7 +57,7 @@ create table if not exists tasks (
   id text primary key,
   title text not null,
   description text not null default '',
-  county_id text not null references counties(id) on delete cascade,
+  county_id text not null references entities(id) on delete cascade,
   submitted_to text not null default '',
   portal_link text not null default '',
   status text not null default 'pending'
@@ -86,7 +93,7 @@ create or replace trigger trg_tasks_updated before update on tasks
 -- === contacts (one row per county) ===
 create table if not exists contacts (
   id text primary key,
-  county_id text not null unique references counties(id) on delete cascade,
+  county_id text not null unique references entities(id) on delete cascade,
   contacts jsonb not null default '[]'::jsonb,            -- [{role,name,email,phone}]
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -119,7 +126,7 @@ create or replace trigger trg_notifications_updated before update on notificatio
 create table if not exists submissions (
   id text primary key,
   task_id text not null references tasks(id) on delete cascade,
-  county_id text not null references counties(id) on delete cascade,
+  county_id text not null references entities(id) on delete cascade,
   agency text not null default '',
   form_name text not null,
   form_type text not null check (form_type in ('online','file')),

@@ -65,7 +65,7 @@ async function create({ username, email, password, role = 'county_user', countyI
 async function findAllPopulated() {
   const { rows } = await query(
     `select ${COLS.split(',').map((c) => 'u.' + c.trim()).join(',')}, ${COUNTY_JOIN}
-       from users u left join counties c on c.id = u.county_id
+       from users u left join entities c on c.id = u.county_id
       order by u.created_at desc`
   );
   return rows.map((r) => m.user(r, { populatedCounty: countyFromRow(r) }));
@@ -81,7 +81,7 @@ async function findByRole(role) {
 async function findByIdPopulated(id) {
   const { rows } = await query(
     `select ${COLS.split(',').map((c) => 'u.' + c.trim()).join(',')}, ${COUNTY_JOIN}
-       from users u left join counties c on c.id = u.county_id
+       from users u left join entities c on c.id = u.county_id
       where u.id = $1`,
     [id]
   );

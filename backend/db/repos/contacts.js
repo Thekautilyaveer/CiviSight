@@ -25,7 +25,7 @@ async function findAllPopulated() {
   const { rows } = await query(
     `select ct.id, ct.county_id, ct.contacts, ct.created_at, ct.updated_at,
             c.name as c_name, c.code as c_code
-       from contacts ct left join counties c on c.id = ct.county_id
+       from contacts ct left join entities c on c.id = ct.county_id
       order by c.name asc`
   );
   return rows.map((r) => {

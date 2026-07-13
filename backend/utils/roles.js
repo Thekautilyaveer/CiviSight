@@ -13,4 +13,15 @@ const AGENCY_ROLES = ['dca'];
 
 const isReviewingAgency = (user) => !!user && AGENCY_ROLES.includes(user.role);
 
-module.exports = { ADMIN_ROLES, hasAdminPowers, AGENCY_ROLES, isReviewingAgency };
+// Which entity types (county|city|authority) an admin account may see. ACCG is the
+// counties' association — it oversees counties ONLY and must never see cities/authorities.
+// DCA (a state agency) oversees all local governments. Returns null for non-admins (they
+// are scoped to their own entity by id, not by type). Apply as a filter on list queries
+// that admins hit (entities list, tasks list).
+const ALL_ENTITY_TYPES = ['county', 'city', 'authority'];
+const entityTypesFor = (user) => {
+  if (!hasAdminPowers(user)) return null;
+  return user.role === 'accg' ? ['county'] : ALL_ENTITY_TYPES;
+};
+
+module.exports = { ADMIN_ROLES, hasAdminPowers, AGENCY_ROLES, isReviewingAgency, ALL_ENTITY_TYPES, entityTypesFor };

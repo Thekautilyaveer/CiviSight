@@ -115,13 +115,13 @@ const statusFor = (form, deadline, countyIdx, formIdx, now) => {
 
 // ---- core seeding (runs on a provided pg client so it can be tx-wrapped) ----
 async function seedInto(client) {
-  await client.query('truncate notifications, contacts, tasks, users, counties restart identity cascade');
+  await client.query('truncate notifications, contacts, tasks, users, entities restart identity cascade');
 
   // Counties
   const countyRows = counties.map((c) => ({ ...c, id: newId() }));
   for (const c of countyRows) {
     await client.query(
-      `insert into counties (id,name,code,description,email,
+      `insert into entities (id,name,code,description,email,
          fiscal_year_start_month,fiscal_year_start_day,fiscal_year_end_month,fiscal_year_end_day)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [c.id, c.name, c.code, c.description, c.email,
@@ -192,7 +192,7 @@ async function seedInto(client) {
 
 async function isPopulated(client) {
   const { rows } = await client.query(
-    `select (select count(*) from counties) + (select count(*) from users) +
+    `select (select count(*) from entities) + (select count(*) from users) +
             (select count(*) from tasks) + (select count(*) from contacts) +
             (select count(*) from notifications) as n`
   );

@@ -14,7 +14,7 @@ const SUB_JOIN = `sb.id as sb_id, sb.username as sb_username, sb.email as sb_ema
 const REV_JOIN = `rb.id as rb_id, rb.username as rb_username, rb.email as rb_email, rb.role as rb_role`;
 const JOINS = `
   left join tasks t on t.id = s.task_id
-  left join counties c on c.id = s.county_id
+  left join entities c on c.id = s.county_id
   left join users sb on sb.id = s.submitted_by
   left join users rb on rb.id = s.reviewed_by`;
 
@@ -92,7 +92,7 @@ async function findForStats(filters = {}) {
     `select ${S}, ${TASK_JOIN}, ${COUNTY_JOIN}
        from submissions s
        left join tasks t on t.id = s.task_id
-       left join counties c on c.id = s.county_id
+       left join entities c on c.id = s.county_id
        ${where.length ? 'where ' + where.join(' and ') : ''}`,
     params
   );

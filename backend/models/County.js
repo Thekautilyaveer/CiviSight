@@ -1,6 +1,19 @@
 const mongoose = require('mongoose');
 
+// "County" is the legacy model name; it now represents any reporting entity
+// (county | city | authority). Kept for the mongo rollback driver's parity with the
+// Supabase `entities` table. gov_id is Georgia's canonical government identifier.
 const countySchema = new mongoose.Schema({
+  govId: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  type: {
+    type: String,
+    enum: ['county', 'city', 'authority'],
+    default: 'county'
+  },
   name: {
     type: String,
     required: true,

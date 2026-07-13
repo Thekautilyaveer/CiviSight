@@ -10,9 +10,9 @@ const COLS = `id,title,description,county_id,submitted_to,portal_link,status,pri
 
 // Task columns prefixed for joins, plus county/assignedBy populate columns.
 const T = COLS.split(',').map((c) => 't.' + c.trim()).join(',');
-const COUNTY_JOIN = `c.id as c_id, c.name as c_name, c.code as c_code, c.email as c_email`;
+const COUNTY_JOIN = `c.id as c_id, c.name as c_name, c.code as c_code, c.email as c_email, c.type as c_type`;
 const USER_JOIN = `a.id as a_id, a.username as a_username, a.email as a_email`;
-const countyFrom = (r) => (r.c_id ? { id: r.c_id, name: r.c_name, code: r.c_code, email: r.c_email } : null);
+const countyFrom = (r) => (r.c_id ? { id: r.c_id, name: r.c_name, code: r.c_code, email: r.c_email, type: r.c_type } : null);
 const userFrom = (r) => (r.a_id ? { id: r.a_id, username: r.a_username, email: r.a_email } : null);
 
 // --- GET /tasks (list with filters, role visibility, populate, sort) ---
@@ -36,10 +36,15 @@ async function findList(filters = {}) {
   if (Array.isArray(filters.visibleRoles) && filters.visibleRoles.length > 0) {
     where.push(`(jsonb_array_length(t.assigned_roles) = 0 or t.assigned_roles ?| ${p(filters.visibleRoles)}::text[])`);
   }
+  // Entity-type visibility: ACCG oversees counties only, so its task list excludes tasks
+  // whose entity is a city/authority. DCA passes all types (see utils/roles.js).
+  if (Array.isArray(filters.entityTypes) && filters.entityTypes.length > 0) {
+    where.push(`c.type = any(${p(filters.entityTypes)}::text[])`);
+  }
 
   const sql = `select ${T}, ${COUNTY_JOIN}, ${USER_JOIN}
       from tasks t
-      left join counties c on c.id = t.county_id
+      left join entities c on c.id = t.county_id
       left join users a on a.id = t.assigned_by
       ${where.length ? 'where ' + where.join(' and ') : ''}
       order by t.deadline asc, t.created_at desc`;
@@ -52,7 +57,7 @@ async function findByIdPopulated(id, { countyEmail = false } = {}) {
   const { rows } = await query(
     `select ${T}, ${COUNTY_JOIN}, ${USER_JOIN}
        from tasks t
-       left join counties c on c.id = t.county_id
+       left join entities c on c.id = t.county_id
        left join users a on a.id = t.assigned_by
       where t.id = $1`,
     [id]
@@ -66,7 +71,7 @@ async function findByIdsPopulated(ids, { countyEmail = false } = {}) {
   const { rows } = await query(
     `select ${T}, ${COUNTY_JOIN}, ${USER_JOIN}
        from tasks t
-       left join counties c on c.id = t.county_id
+       left join entities c on c.id = t.county_id
        left join users a on a.id = t.assigned_by
       where t.id = any($1::text[])
       order by t.created_at asc`,
@@ -234,7 +239,7 @@ async function findDueForReminder(now, until) {
   const { rows } = await query(
     `select ${T}, ${COUNTY_JOIN}
        from tasks t
-       left join counties c on c.id = t.county_id
+       left join entities c on c.id = t.county_id
       where t.status <> 'completed' and t.deadline >= $1 and t.deadline <= $2`,
     [now, until]
   );
@@ -249,7 +254,7 @@ async function findUpcoming({ countyId, from, to }) {
   const { rows } = await query(
     `select ${T}, ${COUNTY_JOIN}
        from tasks t
-       left join counties c on c.id = t.county_id
+       left join entities c on c.id = t.county_id
       where ${where.join(' and ')}
       order by t.deadline asc
       limit 10`,

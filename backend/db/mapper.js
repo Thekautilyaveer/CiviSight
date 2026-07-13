@@ -25,6 +25,8 @@ function county(row) {
   if (!row) return null;
   return {
     _id: row.id,
+    govId: row.gov_id,
+    type: row.type,
     name: row.name,
     code: row.code,
     description: row.description,

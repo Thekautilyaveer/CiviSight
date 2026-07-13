@@ -67,7 +67,7 @@ const objJson = (v) => (v == null ? null : JSON.stringify(deep(v)));
       const docs = await db.collection('counties').find({}).toArray();
       for (const d of docs) {
         await pg.query(
-          `insert into counties
+          `insert into entities
              (id,name,code,description,email,
               fiscal_year_start_month,fiscal_year_start_day,fiscal_year_end_month,fiscal_year_end_day,
               created_at,updated_at)
@@ -204,7 +204,7 @@ const objJson = (v) => (v == null ? null : JSON.stringify(deep(v)));
 
   const q = async (sql) => (await pg.query(sql)).rows[0].n;
   const pgCounts = {
-    counties: await q('select count(*)::int n from counties'),
+    counties: await q('select count(*)::int n from entities'),
     users: await q('select count(*)::int n from users'),
     tasks: await q('select count(*)::int n from tasks'),
     contacts: await q('select count(*)::int n from contacts'),
@@ -224,10 +224,10 @@ const objJson = (v) => (v == null ? null : JSON.stringify(deep(v)));
     console.log(`  notifications: ${pgCounts.notifications} (${stats.notifications})  ${match ? 'OK' : 'MISMATCH'}`);
   }
 
-  const orphanTasksCounty = await q('select count(*)::int n from tasks t left join counties c on c.id=t.county_id where c.id is null');
+  const orphanTasksCounty = await q('select count(*)::int n from tasks t left join entities c on c.id=t.county_id where c.id is null');
   const orphanTasksUser = await q('select count(*)::int n from tasks t left join users u on u.id=t.assigned_by where u.id is null');
   const orphanNotifUser = await q('select count(*)::int n from notifications x left join users u on u.id=x.user_id where u.id is null');
-  const orphanContactsCounty = await q('select count(*)::int n from contacts c left join counties k on k.id=c.county_id where k.id is null');
+  const orphanContactsCounty = await q('select count(*)::int n from contacts c left join entities k on k.id=c.county_id where k.id is null');
 
   console.log('\nReferential integrity (all should be 0):');
   console.log(`  tasks w/ missing county:      ${orphanTasksCounty}`);

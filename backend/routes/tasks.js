@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const { auth, adminOnly } = require('../middleware/auth');
-const { hasAdminPowers } = require('../utils/roles');
+const { hasAdminPowers, entityTypesFor } = require('../utils/roles');
 const store = require('../db/store');
 const { body, validationResult } = require('express-validator');
 const { uploadForm, uploadFilledForm, getSignedUrl, deleteFile } = require('../middleware/upload');
@@ -96,6 +96,9 @@ router.get('/', auth, async (req, res) => {
       if (userRoles && userRoles.length > 0) {
         filters.visibleRoles = userRoles;
       }
+    } else {
+      // Entity-type visibility: ACCG oversees counties only; DCA sees all types.
+      filters.entityTypes = entityTypesFor(req.user);
     }
 
     // Filter by county if provided — admins only. County users are already locked to

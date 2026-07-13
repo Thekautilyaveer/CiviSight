@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth, adminOnly } = require('../middleware/auth');
-const { hasAdminPowers } = require('../utils/roles');
+const { hasAdminPowers, entityTypesFor } = require('../utils/roles');
 const store = require('../db/store');
 const logger = require('../utils/logger');
 
@@ -13,7 +13,8 @@ router.get('/', auth, async (req, res) => {
     let counties;
 
     if (hasAdminPowers(req.user)) {
-      counties = await store.counties.findAllSorted();
+      // ACCG sees counties only; DCA sees all entity types.
+      counties = await store.counties.findAllSorted(entityTypesFor(req.user));
     } else {
       // County users only see their own county
       if (!req.user.countyId) {
