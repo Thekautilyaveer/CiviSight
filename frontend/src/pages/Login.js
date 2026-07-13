@@ -13,7 +13,7 @@ const Login = () => {
   const homeFor = (u) => {
     if (u?.role === 'dca') return '/dca';
     if (u?.role === 'county_user' && u?.countyId) return `/county/${u.countyId}`;
-    return '/dashboard';
+    return '/accg';
   };
 
   useEffect(() => {

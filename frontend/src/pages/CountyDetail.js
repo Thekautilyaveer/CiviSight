@@ -852,7 +852,7 @@ const CountyDetail = () => {
       <div className="mb-8">
         {isAccg && (
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/accg')}
             className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -100,7 +100,7 @@ const Layout = ({ children }) => {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link to="/dashboard" className="flex items-center gap-2.5">
+                <Link to="/accg" className="flex items-center gap-2.5">
                   <img 
                     src="/logo.png" 
                     alt="CiviSight" 
@@ -121,8 +121,8 @@ const Layout = ({ children }) => {
                 {isAccg ? (
                   <>
                     <Link
-                      to="/dashboard"
-                      className={getLinkClasses('/dashboard')}
+                      to="/accg"
+                      className={getLinkClasses('/accg')}
                     >
                       Dashboard
                     </Link>
@@ -142,8 +142,8 @@ const Layout = ({ children }) => {
                 ) : (
                   <>
                     <Link
-                      to={user?.countyId ? `/county/${user.countyId}` : '/dashboard'}
-                      className={getLinkClasses(user?.countyId ? `/county/${user.countyId}` : '/dashboard')}
+                      to={user?.countyId ? `/county/${user.countyId}` : '/accg'}
+                      className={getLinkClasses(user?.countyId ? `/county/${user.countyId}` : '/accg')}
                     >
                       My Tasks
                     </Link>
@@ -231,7 +231,7 @@ const Layout = ({ children }) => {
           <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 px-2 py-2 space-y-1">
             {isAccg ? (
               <>
-                <Link to="/dashboard" onClick={closeMobile} className={mobileLinkCls}>Dashboard</Link>
+                <Link to="/accg" onClick={closeMobile} className={mobileLinkCls}>Dashboard</Link>
                 <Link to="/track-by-counties" onClick={closeMobile} className={mobileLinkCls}>Track by Counties</Link>
                 <Link to="/reminders" onClick={closeMobile} className={mobileLinkCls}>Reminders</Link>
                 <button onClick={() => { closeMobile(); navigate('/users'); }} className={`${mobileLinkCls} w-full text-left`}>Manage Users</button>
@@ -241,7 +241,7 @@ const Layout = ({ children }) => {
               </>
             ) : (
               <>
-                <Link to={user?.countyId ? `/county/${user.countyId}` : '/dashboard'} onClick={closeMobile} className={mobileLinkCls}>My Tasks</Link>
+                <Link to={user?.countyId ? `/county/${user.countyId}` : '/accg'} onClick={closeMobile} className={mobileLinkCls}>My Tasks</Link>
                 {user?.countyId && (
                   <>
                     <Link to={`/county/${user.countyId}/contacts`} onClick={closeMobile} className={mobileLinkCls}>Contacts</Link>

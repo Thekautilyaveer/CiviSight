@@ -129,7 +129,7 @@ const CreateTask = () => {
         showToast('Tasks created successfully!', 'success');
       }
       
-      navigate('/dashboard');
+      navigate('/accg');
     } catch (error) {
       showToast(error.response?.data?.message || 'Error creating tasks', 'error');
     } finally {
@@ -422,7 +422,7 @@ const CreateTask = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/accg')}
               className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
             >
               Cancel

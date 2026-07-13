@@ -34,7 +34,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
-            path="/dashboard"
+            path="/accg"
             element={
               <PrivateRoute>
                 <Layout>
@@ -43,6 +43,8 @@ function App() {
               </PrivateRoute>
             }
           />
+          {/* Legacy URL — the ACCG dashboard used to live at /dashboard. */}
+          <Route path="/dashboard" element={<Navigate to="/accg" replace />} />
           <Route
             path="/track-by-counties"
             element={
@@ -165,7 +167,7 @@ function App() {
             {/* User management reuses the ACCG Users page (DCA has the same admin powers). */}
             <Route path="users" element={<Users />} />
           </Route>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/accg" replace />} />
         </Routes>
       </Router>
         </ToastProvider>

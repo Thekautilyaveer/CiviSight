@@ -13,7 +13,7 @@ const FormPilot = () => {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <Link
-              to={isAccg ? '/dashboard' : `/county/${id}`}
+              to={isAccg ? '/accg' : `/county/${id}`}
               className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

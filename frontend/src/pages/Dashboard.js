@@ -53,9 +53,10 @@ const Dashboard = () => {
   const toggleExpand = (id) => setExpandedId((cur) => (cur === id ? null : id));
 
   useEffect(() => {
-    // County users don't track all counties — send them to their own county page.
+    // /accg is the ACCG face — send other roles to their own face.
     if (!isAccg) {
-      if (user?.countyId) navigate(`/county/${user.countyId}`);
+      if (user?.role === 'dca') navigate('/dca');
+      else if (user?.countyId) navigate(`/county/${user.countyId}`);
       setLoading(false);
       return;
     }
