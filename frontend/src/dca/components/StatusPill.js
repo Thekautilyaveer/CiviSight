@@ -8,14 +8,24 @@ const STATUS_CLASSES = {
   under_review: 'bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800',
   received: 'bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600',
   accepted: 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
-  returned: 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800'
+  returned: 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+  // Real submission review statuses (backend /api/submissions)
+  needs_correction: 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800'
+};
+
+// Friendly labels for the review statuses.
+const STATUS_LABELS = {
+  submitted: 'Received',
+  under_review: 'Under review',
+  accepted: 'Accepted',
+  needs_correction: 'Needs correction'
 };
 
 const StatusPill = ({ status, className = '' }) => (
   <span
     className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${STATUS_CLASSES[status] || STATUS_CLASSES.pending} ${className}`}
   >
-    {status.replace('_', ' ')}
+    {STATUS_LABELS[status] || String(status).replace('_', ' ')}
   </span>
 );
 

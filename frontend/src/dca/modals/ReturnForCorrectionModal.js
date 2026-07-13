@@ -1,15 +1,28 @@
 import React, { useState } from 'react';
 import ModalShell from '../components/ModalShell';
 import { useDcaUI } from '../DcaUIContext';
+import api from '../../utils/api';
 
-const ReturnForCorrectionModal = ({ submissionLabel = '' }) => {
+const ReturnForCorrectionModal = ({ submissionId, submissionLabel = '', onReturned }) => {
   const { closeModal, showToast } = useDcaUI();
   const [comment, setComment] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
-    closeModal();
-    showToast('Returned for correction (preview only — not saved)');
+    if (!submissionId) { closeModal(); return; }
+    setSaving(true);
+    try {
+      // Sets the submission to needs_correction (reopens the county's task) with the note.
+      await api.put(`/submissions/${submissionId}/review`, { status: 'needs_correction', reviewNote: comment.trim() });
+      closeModal();
+      showToast('Returned to county for correction.');
+      if (onReturned) onReturned();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Could not return submission.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -34,9 +47,10 @@ const ReturnForCorrectionModal = ({ submissionLabel = '' }) => {
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
-            className="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            disabled={saving}
+            className="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
           >
-            Send
+            {saving ? 'Sending…' : 'Send'}
           </button>
           <button
             type="button"

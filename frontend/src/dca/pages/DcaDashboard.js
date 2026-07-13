@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useDcaUI } from '../DcaUIContext';
-import { submissions } from '../mockData';
 import TaskCardDetails from '../../components/TaskCardDetails';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -195,17 +194,19 @@ const DcaDashboard = () => {
     }
   };
 
-  const viewSubmission = (index) => {
-    // Opens the DCA submission-detail view — the same screen reached by clicking a row
-    // in the Submissions tab. The detail page is a UI-only mock (there is no real
-    // per-county submission data yet), so we open a representative mock submission,
-    // picked deterministically per row. TODO(submissions): wire real submission data.
-    if (!submissions.length) {
-      showToast('No submission detail available yet.');
-      return;
+  const viewSubmission = async (task) => {
+    // Open the real submission this county filed for this form, if any.
+    try {
+      const res = await api.get(`/submissions?taskId=${task._id}`);
+      const list = res.data || [];
+      if (!list.length) {
+        showToast('No submission on file for this county yet.');
+        return;
+      }
+      navigate(`/dca/submissions/${list[0]._id}`);
+    } catch (err) {
+      showToast('Could not open the submission.');
     }
-    const sub = submissions[index % submissions.length];
-    navigate(`/dca/submissions/${sub.id}`);
   };
 
   const downloadExcel = () => {
@@ -480,7 +481,7 @@ const DcaDashboard = () => {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                  {doneRows.map((task, index) => (
+                  {doneRows.map((task) => (
                     <div key={task._id} className="px-4 py-3">
                       <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0">
@@ -491,7 +492,7 @@ const DcaDashboard = () => {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <button
-                            onClick={() => viewSubmission(index)}
+                            onClick={() => viewSubmission(task)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
                           >
                             View
