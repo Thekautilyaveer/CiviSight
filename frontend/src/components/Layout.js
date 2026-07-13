@@ -7,8 +7,11 @@ import Chatbot from './Chatbot';
 const Layout = ({ children }) => {
   const { user, logout, isAccg } = useAuth();
   const [exporting, setExporting] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const closeMobile = () => setMobileOpen(false);
+  const mobileLinkCls = 'block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700';
 
   const handleLogout = () => {
     logout();
@@ -163,6 +166,20 @@ const Layout = ({ children }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className="sm:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Toggle menu"
+                aria-expanded={mobileOpen}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  {mobileOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
               {isAccg && (
                 <>
                   <button
@@ -193,7 +210,7 @@ const Layout = ({ children }) => {
                 </>
               )}
               <div className="flex-shrink-0">
-                <span className="text-sm text-gray-700 dark:text-gray-300 mr-4">
+                <span className="text-sm text-gray-700 dark:text-gray-300 mr-4 hidden sm:inline">
                   {user?.username} ({user?.role === 'accg' ? 'ACCG' : 'County User'})
                 </span>
                 <button
@@ -206,6 +223,34 @@ const Layout = ({ children }) => {
             </div>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 px-2 py-2 space-y-1">
+            {isAccg ? (
+              <>
+                <Link to="/dashboard" onClick={closeMobile} className={mobileLinkCls}>Dashboard</Link>
+                <Link to="/track-by-counties" onClick={closeMobile} className={mobileLinkCls}>Track by Counties</Link>
+                <Link to="/reminders" onClick={closeMobile} className={mobileLinkCls}>Reminders</Link>
+                <button onClick={() => { closeMobile(); navigate('/users'); }} className={`${mobileLinkCls} w-full text-left`}>Manage Users</button>
+                <button onClick={() => { closeMobile(); handleExport(); }} disabled={exporting} className={`${mobileLinkCls} w-full text-left disabled:opacity-50`}>
+                  {exporting ? 'Exporting…' : 'Export to Excel'}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to={user?.countyId ? `/county/${user.countyId}` : '/dashboard'} onClick={closeMobile} className={mobileLinkCls}>My Tasks</Link>
+                {user?.countyId && (
+                  <>
+                    <Link to={`/county/${user.countyId}/contacts`} onClick={closeMobile} className={mobileLinkCls}>Contacts</Link>
+                    <Link to={`/county/${user.countyId}/formpilot`} onClick={closeMobile} className={mobileLinkCls}>FormPilot</Link>
+                  </>
+                )}
+              </>
+            )}
+            <div className="px-3 pt-2 text-xs text-gray-400">{user?.username} ({user?.role === 'accg' ? 'ACCG' : 'County User'})</div>
+          </div>
+        )}
       </nav>
       <main className="py-6 px-4 sm:px-6 lg:px-8">
         {children}
