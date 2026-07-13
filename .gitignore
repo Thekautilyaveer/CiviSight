@@ -12,3 +12,6 @@ coverage/
 # Generated design-iteration screenshots (regenerable from the HTML prototypes)
 design-iterations/screens/
 
+# Live-DB backups (data dumps incl. password hashes — kept locally, never pushed)
+.backups/
+
