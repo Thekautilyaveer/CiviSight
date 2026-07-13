@@ -27,7 +27,9 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// 2mb: a fully-filled RLGF online submission (~750 answers + per-field metadata) exceeds
+// express.json's 100kb default.
+app.use(express.json({ limit: '2mb' }));
 
 // Serve uploaded files
 app.use('/api/files', express.static(path.join(__dirname, 'uploads')));
@@ -41,6 +43,7 @@ app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/submissions', require('./routes/submissions'));
+app.use('/api/rlgf', require('./routes/rlgf'));
 
 // Connect to the selected data store
 if (DATA_DRIVER === 'mongo') {

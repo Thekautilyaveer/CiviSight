@@ -132,6 +132,18 @@ const DcaSubmissionDetail = () => {
               Submitted by {s.submittedBy?.username || 'county user'} · {fmtDateTime(s.submittedAt)}
               {' · '}{online ? 'Online form' : 'Uploaded file'}
             </p>
+            {online && s.file?.filePath && (
+              <p className="text-sm mt-1">
+                <a
+                  href={`${process.env.REACT_APP_API_URL || 'http://localhost:5001/api'}/files/${s.file.filePath}`}
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium"
+                  download={s.file.originalName || true}
+                >
+                  Source workbook: {s.file.originalName || 'download'}
+                </a>
+                <span className="text-gray-400"> (imported by the county)</span>
+              </p>
+            )}
           </div>
           <StatusPill status={s.status} />
         </div>

@@ -3,6 +3,7 @@ import schema from './rlgf_schema.json';
 import jurisdictions from './jurisdiction_table.json';
 import ucoa from './ucoa_codes.json';
 import { makeEvaluator } from './formula.js';
+import api from '../../utils/api';
 import './rlgf-form.css';
 
 // Schema-driven RLGF form renderer, embedded inside CiviSight. Identical logic to
@@ -223,6 +224,94 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
   const [fieldErrors, setFieldErrors] = useState({});
   const questionsRef = useRef(null);
 
+  // Excel import: upload a filled RLGF workbook and prefill the form from it.
+  const fileInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState(null); // { imported, warnings[] }
+  const [pendingImport, setPendingImport] = useState(null); // parse result awaiting overwrite choice
+  const [sourceFile, setSourceFile] = useState(null); // saved workbook ref, attached on submit
+
+  // Normalize a raw workbook cell value for a schema field. Returns undefined to skip,
+  // { warn } to record a warning, or the normalized value.
+  const normalizeImported = (field, raw) => {
+    if (raw === undefined || raw === null) return undefined;
+    const disp = displayField(field);
+    if (disp.hidden) return undefined;
+    if (field.type === 'dollar' || field.type === 'integer') {
+      if (typeof raw === 'number') return raw;
+      let s = String(raw).trim().replace(/[$,\s]/g, '');
+      let neg = false;
+      const m = /^\((.*)\)$/.exec(s);
+      if (m) { neg = true; s = m[1]; }
+      if (s === '' || s === '-') return undefined;
+      const n = Number(s);
+      if (Number.isNaN(n)) return { warn: `"${String(raw).slice(0, 24)}" is not a number` };
+      return neg ? -n : n;
+    }
+    if (field.type === 'dropdown') {
+      const { resolved, options } = resolveOptions(disp);
+      const sv = String(raw).trim();
+      if (!resolved) return sv;
+      const svl = sv.toLowerCase();
+      const hit = options.find(
+        (o) =>
+          String(o.value).toLowerCase() === svl ||
+          String(o.label).toLowerCase() === svl ||
+          String(o.label).toLowerCase().split('—').pop().trim() === svl
+      );
+      if (hit) return String(hit.value);
+      return { warn: `"${sv.slice(0, 30)}" is not one of the options` };
+    }
+    return String(raw);
+  };
+
+  const applyImport = (data, mode) => {
+    const next = { ...values };
+    let imported = 0;
+    const warnings = [];
+    for (const p of pages) {
+      for (const f of p.fields) {
+        if (f.is_derived) continue;
+        const raw = data.cells?.[f.page]?.[f.cell];
+        if (raw === undefined) continue;
+        const norm = normalizeImported(f, raw);
+        if (norm === undefined) continue;
+        if (norm && typeof norm === 'object' && norm.warn) {
+          warnings.push(`${f.page}!${f.cell} — ${(displayField(f).label || '').slice(0, 40)}: ${norm.warn}`);
+          continue;
+        }
+        const cur = next[f.id];
+        if (mode === 'fill-empty' && cur !== undefined && cur !== null && String(cur).trim() !== '') continue;
+        next[f.id] = norm;
+        imported++;
+      }
+    }
+    setValues(next);
+    setSourceFile(data.sourceFile || null);
+    setImportSummary({ imported, warnings });
+    setPendingImport(null);
+    setFieldErrors({});
+  };
+
+  const startImport = async (file) => {
+    if (!file) return;
+    setImporting(true);
+    setImportSummary(null);
+    try {
+      const fd = new FormData();
+      fd.append('workbook', file);
+      const res = await api.post('/rlgf/parse', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const hasValues = Object.values(values).some((v) => v !== null && v !== undefined && String(v).trim() !== '');
+      if (hasValues) setPendingImport(res.data);
+      else applyImport(res.data, 'overwrite');
+    } catch (err) {
+      setImportSummary({ imported: 0, warnings: [err?.response?.data?.message || 'Import failed. Make sure the file is the official RLGF workbook (.xls or .xlsx).'] });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   useEffect(() => {
     setValues(initialValues || {});
     setPageIdx(0);
@@ -334,6 +423,7 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
     }
 
     const payload = { form: schema.form, version: schema.version, answers: {}, metadata: { fields: {} } };
+    if (sourceFile) payload.sourceFile = sourceFile; // original imported workbook (audit)
     pages.forEach((p, i) => {
       p.fields.forEach((f) => {
         const display = displayField(f);
@@ -396,6 +486,30 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
             ))}
           </nav>
 
+          {!readOnly && (
+            <div className="panel">
+              <div className="panel-head">Import</div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xls,.xlsx"
+                className="hidden"
+                onChange={(e) => startImport(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {importing ? 'Reading workbook…' : 'Import from Excel'}
+              </button>
+              <p className="mt-2 text-[11px] leading-snug text-gray-400">
+                Upload your filled RLGF workbook (.xls / .xlsx) to prefill this form. You can review everything before submitting.
+              </p>
+            </div>
+          )}
+
           <div className="panel">
             <div className="panel-head">Form summary</div>
             <div className="stats">
@@ -422,6 +536,26 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
               <span className="ph-progress">Page {pageIdx + 1} of {pages.length}</span>
             </div>
             <h1 className="ph-title">{subTitle(page) || page.page}</h1>
+
+            {importSummary && (
+              <div className={`mt-3 rounded-lg border px-4 py-3 text-sm ${importSummary.imported > 0 ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">
+                    {importSummary.imported > 0
+                      ? `Imported ${importSummary.imported} field${importSummary.imported === 1 ? '' : 's'} from the workbook.`
+                      : 'Nothing was imported.'}
+                    {importSummary.warnings.length > 0 && ` ${importSummary.warnings.length} warning${importSummary.warnings.length === 1 ? '' : 's'}.`}
+                  </span>
+                  <button type="button" onClick={() => setImportSummary(null)} className="shrink-0 text-xs font-semibold opacity-60 hover:opacity-100">Dismiss</button>
+                </div>
+                {importSummary.warnings.length > 0 && (
+                  <ul className="mt-1.5 list-disc pl-5 space-y-0.5 text-xs opacity-90">
+                    {importSummary.warnings.slice(0, 6).map((w, i) => (<li key={i}>{w}</li>))}
+                    {importSummary.warnings.length > 6 && <li>…and {importSummary.warnings.length - 6} more</li>}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <div className="toolbar">
               <div className="search">
@@ -514,6 +648,43 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
                 Submitted {submitted.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               </span>
               <button className="submit-success-close" onClick={() => setSubmitted(null)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import conflict: the form already has values — overwrite or fill blanks only? */}
+      {pendingImport && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Import from workbook</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This form already has some values. How should the workbook data be applied?
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => applyImport(pendingImport, 'overwrite')}
+                className="w-full px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors text-left"
+              >
+                Overwrite with workbook values
+                <span className="block text-xs font-normal opacity-80">Workbook wins wherever it has data</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => applyImport(pendingImport, 'fill-empty')}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50 text-sm font-semibold transition-colors text-left"
+              >
+                Fill empty fields only
+                <span className="block text-xs font-normal text-gray-500">Keep everything you have typed</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingImport(null)}
+                className="w-full px-4 py-2 rounded-lg text-gray-500 hover:text-gray-700 text-sm font-medium"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

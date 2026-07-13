@@ -687,6 +687,24 @@ router.post('/:id/submit-online', auth, async (req, res) => {
       return res.status(400).json({ message: 'Submission must include at least one answer' });
     }
 
+    // Optional: the original workbook this submission was imported from (audit trail).
+    // Ownership is enforced by the uploader-id prefix the parse endpoint bakes into the
+    // stored filename, so one county can't attach another's upload.
+    let file = null;
+    const src = req.body.sourceFile;
+    if (src && typeof src === 'object' && typeof src.fileName === 'string') {
+      const expectedPrefix = `${req.user._id}_`;
+      const safeName = /^[\w.-]+$/.test(src.fileName) ? src.fileName : null;
+      if (safeName && safeName.startsWith(expectedPrefix)) {
+        file = {
+          originalName: String(src.originalName || safeName).slice(0, 200),
+          fileName: safeName,
+          filePath: `rlgf-imports/${safeName}`,
+          uploadedAt: src.uploadedAt || new Date()
+        };
+      }
+    }
+
     const submission = await store.submissions.create({
       taskId: req.params.id,
       countyId: task.countyId,
@@ -697,6 +715,7 @@ router.post('/:id/submit-online', auth, async (req, res) => {
       submittedBy: req.user._id,
       submittedAt: new Date(),
       answers,
+      file,
       metadata: {
         ...metadata,
         source: 'online_form',
