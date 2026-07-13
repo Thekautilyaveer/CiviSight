@@ -861,11 +861,14 @@ const CountyDetail = () => {
             Back to Dashboard
           </button>
         )}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-6">
-          <div className="flex items-center justify-between">
+        <div className="relative bg-white rounded-2xl border border-gray-200 shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-8 mb-6">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+          </div>
+          <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-4">
               {county?.code && (
-                <div className="bg-white rounded-xl p-2 shrink-0 shadow-sm">
+                <div className="bg-white rounded-xl p-2 shrink-0 border border-gray-200 shadow-sm">
                   <img
                     src={`/${county.code.toLowerCase()}_logo.png`}
                     alt={`${county.name} logo`}
@@ -875,17 +878,17 @@ const CountyDetail = () => {
                 </div>
               )}
               <div>
-                <h1 className="text-4xl font-bold text-white mb-2">
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">
                   {county?.name || 'County Details'}
                 </h1>
-                <p className="text-blue-100 text-lg">
+                <p className="text-gray-500 text-lg">
                   {isAccg ? 'Manage tasks for this county' : 'Your Task Management Dashboard'}
                 </p>
               </div>
             </div>
             <Link
               to={`/county/${id}/contacts`}
-              className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

@@ -149,20 +149,23 @@ const DcaEntityDetail = () => {
       {backBtn}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-6 mb-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6 mb-6">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+        </div>
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-3xl font-bold text-white">{county.name}</h1>
-              <TypeBadge type="county" className="bg-white/20 !text-white !border-white/30" />
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{county.name}</h1>
+              <TypeBadge type="county" />
             </div>
-            <p className="mt-2 text-blue-100 text-sm">
-              {county.code} · <span className="font-semibold text-white">{doneCount}</span> of <span className="font-semibold text-white">{total}</span> DCA filings done
+            <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm">
+              {county.code} · <span className="font-semibold text-gray-900 dark:text-white">{doneCount}</span> of <span className="font-semibold text-gray-900 dark:text-white">{total}</span> DCA filings done
             </p>
           </div>
           <button
             onClick={() => openModal('contacts', { entityName: county.name, entityType: 'county' })}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm font-semibold transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm"
           >
             Contacts
           </button>

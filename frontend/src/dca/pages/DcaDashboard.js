@@ -225,8 +225,11 @@ const DcaDashboard = () => {
   if (error) {
     return (
       <div className="px-2 sm:px-4 py-2">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-6">
-          <h1 className="text-3xl font-bold text-white">DCA Dashboard</h1>
+        <div className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-8 mb-6">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+          </div>
+          <h1 className="relative text-3xl font-bold text-gray-900 dark:text-white">DCA Dashboard</h1>
         </div>
         <div className="text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
           {error}
@@ -241,24 +244,27 @@ const DcaDashboard = () => {
   return (
     <div className="px-2 sm:px-4 py-2">
       {/* Hero banner — form title + form picker + stat line */}
-      <div className="relative bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-6">
-        <div className="flex items-start justify-between gap-4">
+      <div className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-8 mb-6">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+        </div>
+        <div className="relative flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-blue-100/90 mb-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 mb-1">
               Georgia Department of Community Affairs — Selected form
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white break-words">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white break-words">
               {selectedForm ? rlgfLabel(selectedForm) : 'No forms found'}
             </h1>
-            <p className="mt-3 text-blue-100 text-sm sm:text-base">
-              <span className="font-semibold text-white">{undone}</span> of{' '}
-              <span className="font-semibold text-white">{total}</span> undone
-              <span className="mx-2 text-blue-200/70">·</span>
-              <span className="font-semibold text-white">{overdue}</span> overdue
+            <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm sm:text-base">
+              <span className="font-semibold text-amber-600 dark:text-amber-400">{undone}</span> of{' '}
+              <span className="font-semibold text-gray-900 dark:text-white">{total}</span> undone
+              <span className="mx-2 text-gray-300 dark:text-gray-600">·</span>
+              <span className="font-semibold text-red-600 dark:text-red-400">{overdue}</span> overdue
               {fyLabel && (
                 <>
-                  <span className="mx-2 text-blue-200/70">·</span>
-                  <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white">
+                  <span className="mx-2 text-gray-300 dark:text-gray-600">·</span>
+                  <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
                     {fyLabel}
                   </span>
                 </>
@@ -274,7 +280,7 @@ const DcaDashboard = () => {
               aria-label="Switch form"
               aria-haspopup="menu"
               aria-expanded={pickerOpen}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="5" cy="12" r="2" />
