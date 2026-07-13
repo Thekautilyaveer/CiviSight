@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
 import Chatbot from './Chatbot';
 
 const Layout = ({ children }) => {
   const { user, logout, isAccg } = useAuth();
+  const { showToast } = useToast();
   const [exporting, setExporting] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -78,7 +80,7 @@ const Layout = ({ children }) => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      alert(error.response?.data?.message || 'Error exporting data');
+      showToast(error.response?.data?.message || 'Error exporting data', 'error');
     } finally {
       setExporting(false);
     }

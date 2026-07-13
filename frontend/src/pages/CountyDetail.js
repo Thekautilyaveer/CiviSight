@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { DEPARTMENT_ROLES } from '../constants/departmentRoles';
 
 // Tasks whose title identifies the RLGF filing open the in-app schema-driven form
@@ -11,6 +12,7 @@ const isRlgfTask = (task) => /\brlgf\b|report of local government financ/i.test(
 const CountyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast, confirm } = useToast();
   const { isAccg, user } = useAuth();
   const [county, setCounty] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -169,12 +171,12 @@ const CountyDetail = () => {
         : taskForm.submittedToSelect;
 
     if (!finalSubmittedTo) {
-      alert('Please select who this task is submitted to.');
+      showToast('Please select who this task is submitted to.', 'error');
       return;
     }
     const useFiscalPreset = deadlineMode === 'fiscal_preset' && deadlinePreset != null;
     if (!useFiscalPreset && !taskForm.deadline) {
-      alert('Please choose a deadline (specific date or fiscal year preset).');
+      showToast('Please choose a deadline (specific date or fiscal year preset).', 'error');
       return;
     }
     try {
@@ -218,7 +220,7 @@ const CountyDetail = () => {
       setFormFile(null);
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating task');
+      showToast(error.response?.data?.message || 'Error creating task', 'error');
     }
   };
 
@@ -230,7 +232,7 @@ const CountyDetail = () => {
         : taskForm.submittedToSelect;
 
     if (!finalSubmittedTo) {
-      alert('Please select who this task is submitted to.');
+      showToast('Please select who this task is submitted to.', 'error');
       return;
     }
     try {
@@ -265,17 +267,17 @@ const CountyDetail = () => {
       setFormFile(null);
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating task');
+      showToast(error.response?.data?.message || 'Error updating task', 'error');
     }
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    if (!(await confirm({ title: 'Delete task', message: 'Are you sure you want to delete this task?', confirmText: 'Delete', danger: true }))) return;
     try {
       await api.delete(`/tasks/${taskId}`);
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error deleting task');
+      showToast(error.response?.data?.message || 'Error deleting task', 'error');
     }
   };
 
@@ -284,7 +286,7 @@ const CountyDetail = () => {
       await api.put(`/tasks/${taskId}`, { status: newStatus });
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating task status');
+      showToast(error.response?.data?.message || 'Error updating task status', 'error');
     }
   };
 
@@ -310,10 +312,10 @@ const CountyDetail = () => {
         throw new Error(error.message || 'Upload failed');
       }
 
-      alert('Form uploaded successfully');
+      showToast('Form uploaded successfully', 'success');
       fetchTasks();
     } catch (error) {
-      alert(error.message || 'Error uploading form');
+      showToast(error.message || 'Error uploading form', 'error');
     } finally {
       setUploadingForm(null);
     }
@@ -347,10 +349,10 @@ const CountyDetail = () => {
       } catch (statusErr) {
         console.error('Could not update status after upload:', statusErr);
       }
-      alert('Filled form uploaded — filing marked as completed');
+      showToast('Filled form uploaded — filing marked as completed', 'success');
       fetchTasks();
     } catch (error) {
-      alert(error.message || 'Error uploading filled form');
+      showToast(error.message || 'Error uploading filled form', 'error');
     } finally {
       setUploadingFilledForm(null);
     }
@@ -393,7 +395,7 @@ const CountyDetail = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert(error.message || 'Error downloading form');
+      showToast(error.message || 'Error downloading form', 'error');
     }
   };
 
@@ -434,17 +436,17 @@ const CountyDetail = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert(error.message || 'Error downloading filled form');
+      showToast(error.message || 'Error downloading filled form', 'error');
     }
   };
 
   const handleSendReminder = async (taskId) => {
     try {
       await api.post(`/tasks/${taskId}/reminder`);
-      alert('Reminder sent successfully');
+      showToast('Reminder sent successfully', 'success');
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error sending reminder');
+      showToast(error.response?.data?.message || 'Error sending reminder', 'error');
     }
   };
 
@@ -468,7 +470,7 @@ const CountyDetail = () => {
       setTaskComments(prev => ({ ...prev, [taskId]: res.data.comments }));
     } catch (error) {
       console.error('Error fetching comments:', error);
-      alert(error.response?.data?.message || 'Error loading comments');
+      showToast(error.response?.data?.message || 'Error loading comments', 'error');
     } finally {
       setLoadingComments(prev => ({ ...prev, [taskId]: false }));
     }
@@ -476,7 +478,7 @@ const CountyDetail = () => {
 
   const handleAddComment = async (taskId) => {
     if (!newComment.trim()) {
-      alert('Please enter a comment');
+      showToast('Please enter a comment', 'error');
       return;
     }
 
@@ -495,7 +497,7 @@ const CountyDetail = () => {
       fetchTasks();
     } catch (error) {
       console.error('Error adding comment:', error);
-      alert(error.response?.data?.message || 'Error adding comment');
+      showToast(error.response?.data?.message || 'Error adding comment', 'error');
     } finally {
       setAddingComment(null);
     }
@@ -661,7 +663,7 @@ const CountyDetail = () => {
       fetchTasks();
     } catch (error) {
       console.error('Error marking comment as read:', error);
-      alert(error.response?.data?.message || 'Error marking comment as read');
+      showToast(error.response?.data?.message || 'Error marking comment as read', 'error');
     }
   };
 
@@ -719,7 +721,7 @@ const CountyDetail = () => {
       setOwnerContactIds([]);
       fetchTasks();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating form owners');
+      showToast(error.response?.data?.message || 'Error updating form owners', 'error');
     } finally {
       setSavingOwners(false);
     }
@@ -755,7 +757,7 @@ const CountyDetail = () => {
         await api.put(`/tasks/${task._id}`, { status: 'in_progress' });
         fetchTasks();
       } catch (err) {
-        alert(err.response?.data?.message || 'Failed to update status');
+        showToast(err.response?.data?.message || 'Failed to update status', 'error');
         return;
       }
     }

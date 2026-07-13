@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const Dashboard = () => {
   const [counties, setCounties] = useState([]);
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingCounty, setDeletingCounty] = useState(null);
   const { isAccg, user } = useAuth();
+  const { showToast, confirm } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -137,7 +139,7 @@ const Dashboard = () => {
 
   const savePreset = () => {
     if (!presetName.trim()) {
-      alert('Please enter a preset name');
+      showToast('Please enter a preset name', 'error');
       return;
     }
 
@@ -197,14 +199,14 @@ const Dashboard = () => {
       setCountyForm({ name: '', code: '', description: '', email: '' });
       setShowAddForm(false);
       fetchCounties();
-      alert(`County created successfully!\n\nCounty user credentials:\nEmail: ${userEmail}\nPassword: county123`);
+      showToast(`County created successfully!\n\nCounty user credentials:\nEmail: ${userEmail}\nPassword: county123`, 'success');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating county');
+      showToast(error.response?.data?.message || 'Error creating county', 'error');
     }
   };
 
   const handleDeleteCounty = async (countyId, countyName) => {
-    if (!window.confirm(`Are you sure you want to delete "${countyName}"? This will also delete all associated tasks.`)) {
+    if (!(await confirm({ title: 'Delete county', message: `Delete "${countyName}"? This will also delete all associated tasks.`, confirmText: 'Delete', danger: true }))) {
       return;
     }
     
@@ -212,9 +214,9 @@ const Dashboard = () => {
     try {
       await api.delete(`/counties/${countyId}`);
       fetchCounties();
-      alert('County deleted successfully!');
+      showToast('County deleted successfully!', 'success');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error deleting county');
+      showToast(error.response?.data?.message || 'Error deleting county', 'error');
     } finally {
       setDeletingCounty(null);
     }
@@ -284,7 +286,7 @@ const Dashboard = () => {
       URL.revokeObjectURL(url);
     } catch (error) {
       // eslint-disable-next-line no-alert
-      alert(error.response?.data?.message || 'Error exporting data');
+      showToast(error.response?.data?.message || 'Error exporting data', 'error');
     } finally {
       setExporting(false);
       setShowOptionsMenu(false);

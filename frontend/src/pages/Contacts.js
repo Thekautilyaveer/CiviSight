@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const Contacts = ({ countyId: propCountyId }) => {
   const { id: paramId } = useParams();
@@ -11,6 +12,7 @@ const Contacts = ({ countyId: propCountyId }) => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const { isAccg, user } = useAuth();
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchContacts();
@@ -23,7 +25,7 @@ const Contacts = ({ countyId: propCountyId }) => {
       setContacts(res.data.contacts || []);
     } catch (error) {
       console.error('Error fetching contacts:', error);
-      alert('Error loading contacts');
+      showToast('Error loading contacts', 'error');
     } finally {
       setLoading(false);
     }
@@ -43,10 +45,10 @@ const Contacts = ({ countyId: propCountyId }) => {
       setSaving(true);
       await api.put(`/contacts/${countyId}`, { contacts });
       setEditing(false);
-      alert('Contacts updated successfully!');
+      showToast('Contacts updated successfully!', 'success');
     } catch (error) {
       console.error('Error saving contacts:', error);
-      alert(error.response?.data?.message || 'Error saving contacts');
+      showToast(error.response?.data?.message || 'Error saving contacts', 'error');
     } finally {
       setSaving(false);
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -20,6 +21,7 @@ const TrackByCounties = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingCounty, setDeletingCounty] = useState(null);
   const { isAccg, user } = useAuth();
+  const { showToast, confirm } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -104,14 +106,14 @@ const TrackByCounties = () => {
       setCountyForm({ name: '', code: '', description: '', email: '' });
       setShowAddForm(false);
       fetchData();
-      alert(`County created successfully!\n\nCounty user credentials:\nEmail: ${userEmail}\nPassword: county123`);
+      showToast(`County created successfully!\n\nCounty user credentials:\nEmail: ${userEmail}\nPassword: county123`, 'success');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating county');
+      showToast(error.response?.data?.message || 'Error creating county', 'error');
     }
   };
 
   const handleDeleteCounty = async (countyId, countyName) => {
-    if (!window.confirm(`Are you sure you want to delete "${countyName}"? This will also delete all associated tasks.`)) {
+    if (!(await confirm({ title: 'Delete county', message: `Delete "${countyName}"? This will also delete all associated tasks.`, confirmText: 'Delete', danger: true }))) {
       return;
     }
 
@@ -119,9 +121,9 @@ const TrackByCounties = () => {
     try {
       await api.delete(`/counties/${countyId}`);
       fetchData();
-      alert('County deleted successfully!');
+      showToast('County deleted successfully!', 'success');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error deleting county');
+      showToast(error.response?.data?.message || 'Error deleting county', 'error');
     } finally {
       setDeletingCounty(null);
     }

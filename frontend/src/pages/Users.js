@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 // State agencies that receive county filings. Each maps to a backend account role.
 // Only DCA exists today; add more here as they gain a login/role.
@@ -24,6 +25,7 @@ const Users = () => {
     countyId: ''
   });
   const { user: currentUser } = useAuth();
+  const { showToast, confirm } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,7 +38,7 @@ const Users = () => {
       const res = await api.get('/users');
       setUsers(res.data);
     } catch (error) {
-      alert(error.response?.data?.message || 'Error fetching users');
+      showToast(error.response?.data?.message || 'Error fetching users', 'error');
     } finally {
       setLoading(false);
     }
@@ -67,7 +69,7 @@ const Users = () => {
         countyId: finalRole === 'county_user' ? userForm.countyId : ''
       };
       await api.post('/auth/register', payload);
-      alert('User created successfully!');
+      showToast('User created successfully!', 'success');
       setShowCreateModal(false);
       resetUserForm();
       fetchUsers();
@@ -75,25 +77,25 @@ const Users = () => {
       const errorMessage = error.response?.data?.message || 'Error creating user';
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors.map(e => e.msg).join('\n');
-        alert(errors);
+        showToast(errors, 'error');
       } else {
-        alert(errorMessage);
+        showToast(errorMessage, 'error');
       }
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
+    if (!(await confirm({ title: 'Delete user', message: 'Are you sure you want to delete this user?', confirmText: 'Delete', danger: true }))) {
       return;
     }
 
     setDeletingUserId(userId);
     try {
       await api.delete(`/users/${userId}`);
-      alert('User deleted successfully');
+      showToast('User deleted successfully', 'success');
       fetchUsers();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error deleting user');
+      showToast(error.response?.data?.message || 'Error deleting user', 'error');
     } finally {
       setDeletingUserId(null);
     }

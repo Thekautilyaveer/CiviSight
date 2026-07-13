@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { useToast } from '../context/ToastContext';
 import { DEPARTMENT_ROLES } from '../constants/departmentRoles';
 
 const CreateTask = () => {
@@ -30,6 +31,7 @@ const CreateTask = () => {
   const [formFile, setFormFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchCounties();
@@ -48,7 +50,7 @@ const CreateTask = () => {
     e.preventDefault();
     
     if (taskForm.countyIds.length === 0) {
-      alert('Please select at least one county');
+      showToast('Please select at least one county', 'error');
       return;
     }
 
@@ -58,13 +60,13 @@ const CreateTask = () => {
         : taskForm.submittedToSelect;
 
     if (!finalSubmittedTo) {
-      alert('Please select who this task is submitted to.');
+      showToast('Please select who this task is submitted to.', 'error');
       return;
     }
 
     const useFiscalPreset = deadlineMode === 'fiscal_preset' && deadlinePreset != null;
     if (!useFiscalPreset && !taskForm.deadline) {
-      alert('Please choose a deadline (specific date or fiscal year preset).');
+      showToast('Please choose a deadline (specific date or fiscal year preset).', 'error');
       return;
     }
 
@@ -119,17 +121,17 @@ const CreateTask = () => {
         }
         
         if (uploadErrors.length > 0) {
-          alert(`Tasks created successfully! However, ${uploadErrors.length} file upload(s) failed. ${uploadSuccessCount} upload(s) succeeded.`);
+          showToast(`Tasks created successfully! However, ${uploadErrors.length} file upload(s) failed. ${uploadSuccessCount} upload(s) succeeded.`, 'error');
         } else {
-          alert('Tasks created and files uploaded successfully!');
+          showToast('Tasks created and files uploaded successfully!', 'success');
         }
       } else {
-        alert('Tasks created successfully!');
+        showToast('Tasks created successfully!', 'success');
       }
       
       navigate('/dashboard');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating tasks');
+      showToast(error.response?.data?.message || 'Error creating tasks', 'error');
     } finally {
       setUploading(false);
     }
