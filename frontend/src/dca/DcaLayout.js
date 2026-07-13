@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import ChatPanel from './components/ChatPanel';
 import { useDcaUI } from './DcaUIContext';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_LINKS = [
   { to: '/dca', label: 'Dashboard' },
@@ -15,7 +16,9 @@ const DcaLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useDcaUI();
+  const { user } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const getLinkClasses = (path) => {
     // /dca/entities/:id should keep the Entities tab highlighted.
@@ -59,6 +62,20 @@ const DcaLayout = ({ children }) => {
             </div>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className="sm:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Toggle menu"
+                aria-expanded={mobileOpen}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  {mobileOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+              <button
                 onClick={() => navigate('/dca/users')}
                 title="User management"
                 aria-label="User management"
@@ -79,7 +96,7 @@ const DcaLayout = ({ children }) => {
                 </svg>
               </button>
               <div className="flex-shrink-0">
-                <span className="text-sm text-gray-700 dark:text-gray-300 mr-4">dca (State Agency)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 mr-4 hidden sm:inline">{user?.username || 'dca'} (State Agency)</span>
                 <button
                   onClick={() => navigate('/login')}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
@@ -90,6 +107,33 @@ const DcaLayout = ({ children }) => {
             </div>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 px-2 py-2 space-y-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMobileOpen(false)}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  getLinkClasses(link.to).includes('text-gray-900')
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <button
+              onClick={() => { setMobileOpen(false); navigate('/dca/users'); }}
+              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              User management
+            </button>
+            <div className="px-3 pt-2 text-xs text-gray-400">{user?.username || 'dca'} (State Agency)</div>
+          </div>
+        )}
       </nav>
       <main className="py-6 px-4 sm:px-6 lg:px-8">{children}</main>
 
