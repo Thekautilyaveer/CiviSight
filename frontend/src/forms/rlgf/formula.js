@@ -109,7 +109,7 @@ function evalArith(expr, getCell) {
 // ---- per-page evaluator ---------------------------------------------------
 // page: { fields: [...] }   valuesById: { [id]: string }
 // Returns { valueForField(f), unhandledIds:Set }
-export function makeEvaluator(page, valuesById) {
+export function makeEvaluator(page, valuesById, resolveExternal) {
   const cellMap = {}
   for (const f of page.fields) cellMap[f.cell] = f
 
@@ -134,9 +134,25 @@ export function makeEvaluator(page, valuesById) {
     let s = String(formula || '').trim()
     if (s.startsWith('=')) s = s.slice(1).trim()
 
+    // 0) cross-sheet refs ('Page 3'!C28) — resolve each through the external
+    //    resolver and substitute its numeric value (parenthesized so negatives
+    //    survive the arithmetic parser). Without a resolver they stay unhandled.
+    if (s.includes('!')) {
+      if (typeof resolveExternal !== 'function') {
+        console.warn('⚠ unhandled formula (cross-sheet, no resolver):', id, JSON.stringify(formula))
+        return { unhandled: true }
+      }
+      s = s.replace(/'([^']+)'!([A-Za-z]+\d+)/g, (_, pageName, cell) => `(${toNum(resolveExternal(pageName, cell))})`)
+      // unquoted variant: Page1!C28 (not used by this workbook, but harmless)
+      s = s.replace(/([A-Za-z][\w ]*)!([A-Za-z]+\d+)/g, (_, pageName, cell) => `(${toNum(resolveExternal(pageName.trim(), cell))})`)
+      if (s.includes('!')) {
+        console.warn('⚠ unhandled formula (unresolvable sheet ref):', id, JSON.stringify(formula))
+        return { unhandled: true }
+      }
+    }
+
     // 1) SUM(...) — supports a range (C11:C27), comma-separated args, and
-    //    arithmetic inside (SUM(J34+J54)). Cross-page refs ('Page 1'!F80) fall
-    //    through to "unhandled" since the resolver is same-page only (§2).
+    //    arithmetic inside (SUM(J34+J54)).
     const sm = /^SUM\((.*)\)$/is.exec(s)
     if (sm && !sm[1].includes('!')) {
       try {

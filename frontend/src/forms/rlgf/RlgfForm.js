@@ -70,42 +70,34 @@ function resolveOptions(field) {
 }
 
 function shortTitle(p) {
+  if (p.nav_label) return p.nav_label;
   const t = p.title || p.page;
   const m = /Part\s+([IVXLC]+)/i.exec(t);
   return m ? `Part ${m[1].toUpperCase()}` : p.page;
 }
 function subTitle(p) {
   const t = p.title || p.page;
-  return t.replace(/^Part\s+[IVXLC]+\s*[–-]*\s*/i, '').replace(/--/g, '—').trim();
+  return t.replace(/^Part\s+[IVXLC]+\s*(\([^)]*\))?\s*[–—-]*\s*/i, '').replace(/--/g, '—').trim();
 }
 
-// The current extracted workbook places Parts II-IV on one worksheet. Keep
-// the existing fields, but expose the original reporting parts in navigation.
-const splitPages = schema.pages.flatMap((page) => {
-  if (page.page !== 'Page 2') return [page];
-  return [
-    { ...page, page: 'Page 2', title: 'Part II -- INTERGOVERNMENTAL REVENUES -- ALL FUNDS', fields: page.fields.slice(0, 27) },
-    { ...page, page: 'Page 2A', title: 'Part III -- SERVICE CHARGES / OTHER REVENUES', fields: page.fields.slice(27, 62) },
-    { ...page, page: 'Page 2B', title: 'Part IV -- PUBLIC UTILITY / ENTERPRISE FUNDS', fields: page.fields.slice(62) }
-  ];
-});
+// One navigable section per RLGF reporting Part. The schema itself is organized by
+// Part (General Info, Parts I–XV, Attachments), mirroring the official workbook.
+// Each page keeps its original worksheet name in `page.page`, and every field keeps
+// its original worksheet cell ref — so same-sheet formulas resolve within a page and
+// cross-sheet formulas ('Page 3'!C28) resolve through the external resolver below.
+// NOTE: continuation parts (V cont., XI cont.) are intentionally NOT merged into
+// their parents: the two worksheets reuse the same cell refs (e.g. D11 exists on
+// both Page 3 and Page 4), so merging them would collide cell->field resolution.
+const pages = schema.pages;
 
-// Merge continuation worksheets into one navigable section per reporting part.
-const pages = splitPages.reduce((merged, page) => {
-  const partMatch = /Part\s+([IVXLC]+)/i.exec(page.title || page.page);
-  const partKey = partMatch ? partMatch[1].toUpperCase() : page.page;
-  const existing = merged.find((entry) => entry.partKey === partKey);
-  if (existing) {
-    existing.fields = [...existing.fields, ...page.fields];
-    return merged;
-  }
-  merged.push({
-    ...page,
-    partKey,
-    title: (page.title || page.page).replace(/\s*,?\s*\(continued\)|\s*,?\s*continued\.?$/i, '')
+// Cross-sheet formula support: index every field by (worksheet, cell) so an
+// evaluator can resolve refs like 'Page 1'!F80 that live on another page.
+const fieldIndex = {};
+pages.forEach((p, pi) => {
+  p.fields.forEach((f) => {
+    (fieldIndex[f.page] = fieldIndex[f.page] || {})[f.cell] = { field: f, pi };
   });
-  return merged;
-}, []).map(({ partKey, ...page }) => page);
+});
 
 function FieldRow({ field, value, derivedValue, isUnhandled, isInvalid, errorText, onChange, index, readOnly = false, comments = [], commentingField, commentDraft = '', onStartComment, onCommentDraftChange, onAddComment }) {
   const { id, cell, label, type, is_derived, needs_review, ucoa_code } = field;
@@ -247,7 +239,22 @@ export default function RlgfForm({ subtitle = 'Report of Local Government Financ
   };
 
   const { evaluators, derivedById, unhandledCount } = useMemo(() => {
-    const evs = pages.map((p) => makeEvaluator(p, values));
+    // resolveExternal handles cross-sheet refs ('Page 3'!C28): non-derived fields read
+    // straight from values; derived ones recurse into their own page's evaluator.
+    const registry = { evs: [] };
+    const resolveExternal = (pageName, cell) => {
+      const entry = (fieldIndex[pageName] || {})[cell];
+      if (!entry) return 0; // blank / label cell on that sheet
+      const { field, pi } = entry;
+      if (!field.is_derived) {
+        const v = values[field.id];
+        const n = Number(v);
+        return v === null || v === undefined || v === '' || Number.isNaN(n) ? 0 : n;
+      }
+      return registry.evs[pi] ? registry.evs[pi].valueForField(field) : 0;
+    };
+    const evs = pages.map((p) => makeEvaluator(p, values, resolveExternal));
+    registry.evs = evs;
     const derived = {};
     let unhandled = 0;
     pages.forEach((p, i) => {
