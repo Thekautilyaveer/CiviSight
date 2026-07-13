@@ -98,8 +98,10 @@ router.get('/', auth, async (req, res) => {
       }
     }
 
-    // Filter by county if provided (mirrors legacy behavior: overrides the above)
-    if (req.query.countyId) filters.countyId = req.query.countyId;
+    // Filter by county if provided — admins only. County users are already locked to
+    // their own countyId above; honoring this param for them would let one county read
+    // another's tasks (e.g. ?countyId=<other>).
+    if (req.query.countyId && hasAdminPowers(req.user)) filters.countyId = req.query.countyId;
     if (req.query.status) filters.status = req.query.status;
     if (req.query.priority) filters.priority = req.query.priority;
     if (req.query.deadlineFrom) filters.deadlineFrom = req.query.deadlineFrom;

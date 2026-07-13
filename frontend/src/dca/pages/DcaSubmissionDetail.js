@@ -78,6 +78,22 @@ const DcaSubmissionDetail = () => {
     }
   };
 
+  // Download the original county-uploaded source file (ownership-checked route; sends the
+  // auth token, unlike a plain <a href> to the static mount).
+  const downloadSource = async () => {
+    try {
+      const res = await api.get(`/submissions/${submissionId}/source-file`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = submission?.file?.originalName || 'source-workbook';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast('Could not download the source file.');
+    }
+  };
+
   // Download the answers written into the real DCA workbook template (.xlsx).
   const downloadWorkbook = async () => {
     try {
@@ -151,13 +167,13 @@ const DcaSubmissionDetail = () => {
             </p>
             {online && s.file?.filePath && (
               <p className="text-sm mt-1">
-                <a
-                  href={`${process.env.REACT_APP_API_URL || 'http://localhost:5001/api'}/files/${s.file.filePath}`}
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium"
-                  download={s.file.originalName || true}
+                <button
+                  type="button"
+                  onClick={downloadSource}
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium underline"
                 >
                   Source workbook: {s.file.originalName || 'download'}
-                </a>
+                </button>
                 <span className="text-gray-400"> (imported by the county)</span>
               </p>
             )}

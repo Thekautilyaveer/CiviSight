@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const { auth, adminOnly, agencyOnly } = require('../middleware/auth');
 const { hasAdminPowers } = require('../utils/roles');
@@ -80,7 +82,9 @@ router.get('/', auth, async (req, res) => {
     if (req.query.agency && req.query.agency !== 'all') filters.agency = req.query.agency;
     if (req.query.status && req.query.status !== 'all') filters.status = req.query.status;
     if (req.query.formName) filters.formName = req.query.formName;
-    if (req.query.countyId) filters.countyId = req.query.countyId;
+    // Admins only — county users are locked to their own countyId above; honoring this
+    // param for them would let one county read another's submissions.
+    if (req.query.countyId && hasAdminPowers(req.user)) filters.countyId = req.query.countyId;
     if (req.query.taskId) filters.taskId = req.query.taskId;
 
     const submissions = await store.submissions.find(filters);
@@ -215,6 +219,39 @@ router.get('/:id/export-workbook', auth, async (req, res) => {
     res.send(buffer);
   } catch (error) {
     logger.error('Error exporting workbook:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/submissions/:id/source-file
+// @desc    Download the original county-uploaded file attached to a submission (e.g. the
+//          imported RLGF workbook). Ownership-checked — replaces the old world-readable
+//          /api/files static path for this file.
+// @access  Private (agency/ACCG, or the owning county)
+router.get('/:id/source-file', auth, async (req, res) => {
+  try {
+    const submission = await store.submissions.findByIdPopulated(req.params.id);
+    if (!submission) return res.status(404).json({ message: 'Submission not found' });
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== submission.countyId._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const rel = submission.file?.filePath;
+    if (!rel) return res.status(404).json({ message: 'No source file for this submission' });
+
+    // Resolve under uploads/ and reject anything that escapes it (path traversal).
+    const uploadsRoot = path.resolve(__dirname, '../uploads');
+    const abs = path.resolve(uploadsRoot, rel.replace(/^\/?api\/files\//, ''));
+    if (abs !== uploadsRoot && !abs.startsWith(uploadsRoot + path.sep)) {
+      return res.status(400).json({ message: 'Invalid file path' });
+    }
+    if (!fs.existsSync(abs)) return res.status(404).json({ message: 'File not found' });
+
+    const name = submission.file.originalName || path.basename(abs);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(name)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.sendFile(abs);
+  } catch (error) {
+    logger.error('Error downloading source file:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

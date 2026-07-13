@@ -32,8 +32,12 @@ app.use(cors({ exposedHeaders: ['Content-Disposition'] }));
 // express.json's 100kb default.
 app.use(express.json({ limit: '2mb' }));
 
-// Serve uploaded files
-app.use('/api/files', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files — authenticated only. Files are government filings; the mount was
+// previously world-readable. Ownership-scoped downloads go through dedicated routes
+// (e.g. /api/submissions/:id/source-file, /api/tasks/:id/download-form); this auth gate is
+// a defense-in-depth net so no upload is ever reachable without a valid login.
+const { auth } = require('./middleware/auth');
+app.use('/api/files', auth, express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
