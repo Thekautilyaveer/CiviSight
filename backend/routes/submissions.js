@@ -176,6 +176,49 @@ router.get('/:id/export', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/submissions/:id/export-workbook
+// @desc    Download an online submission as the official RLGF workbook (.xlsx): the real
+//          DCA template with the submitted answers written into their exact cells.
+// @access  Private (agency/ACCG, or the owning county)
+router.get('/:id/export-workbook', auth, async (req, res) => {
+  try {
+    const submission = await store.submissions.findByIdPopulated(req.params.id);
+    if (!submission) return res.status(404).json({ message: 'Submission not found' });
+    if (!hasAdminPowers(req.user) && req.user.countyId?.toString() !== submission.countyId._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    if (submission.formType !== 'online') {
+      return res.status(400).json({ message: 'Only online submissions can be exported as a workbook' });
+    }
+    const fields = submission.metadata?.fields || {};
+    if (!Object.keys(fields).length) {
+      return res.status(400).json({ message: 'This submission has no field metadata to map into the workbook' });
+    }
+
+    const { buildFilledWorkbook } = require('../utils/rlgfExport');
+    const { buffer, written, warnings } = buildFilledWorkbook(submission.answers || {}, fields);
+    if (warnings.length) logger.warn(`export-workbook ${req.params.id}: ${warnings.length} warnings`, { warnings: warnings.slice(0, 5) });
+
+    // DCA-style filename: {govid}_{year}_RLGF_{County}.xlsx
+    const findAnswer = (page, cell) => {
+      const id = Object.keys(fields).find((k) => fields[k]?.page === page && fields[k]?.cell === cell);
+      return id ? submission.answers?.[id] : undefined;
+    };
+    const govId = String(findAnswer('Page 1', 'C12') || '').replace(/[^\d]/g, '') || 'RLGF';
+    const year = String(findAnswer('Page 1', 'F17') || '').replace(/[^\d]/g, '') || new Date().getFullYear();
+    const county = String(submission.countyId?.name || 'County').replace(/\s*county\s*$/i, '').replace(/[^\w]+/g, '');
+    const filename = `${govId}_${year}_RLGF_${county}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Cells-Written', String(written));
+    res.send(buffer);
+  } catch (error) {
+    logger.error('Error exporting workbook:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/submissions/:id
 // @desc    Get one submitted form
 // @access  Private

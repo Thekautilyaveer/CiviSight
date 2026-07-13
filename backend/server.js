@@ -26,7 +26,8 @@ requiredEnvVars.forEach(varName => {
 const app = express();
 
 // Middleware
-app.use(cors());
+// Expose Content-Disposition so the browser can read server-chosen download filenames.
+app.use(cors({ exposedHeaders: ['Content-Disposition'] }));
 // 2mb: a fully-filled RLGF online submission (~750 answers + per-field metadata) exceeds
 // express.json's 100kb default.
 app.use(express.json({ limit: '2mb' }));

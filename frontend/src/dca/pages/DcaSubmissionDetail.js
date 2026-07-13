@@ -78,6 +78,23 @@ const DcaSubmissionDetail = () => {
     }
   };
 
+  // Download the answers written into the real DCA workbook template (.xlsx).
+  const downloadWorkbook = async () => {
+    try {
+      const res = await api.get(`/submissions/${submissionId}/export-workbook`, { responseType: 'blob' });
+      const cd = res.headers['content-disposition'] || '';
+      const name = /filename="([^"]+)"/.exec(cd)?.[1] || 'rlgf-workbook.xlsx';
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast('Could not generate the official workbook.');
+    }
+  };
+
   const backBtn = (
     <button onClick={() => navigate('/dca/submissions')} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 mb-4 flex items-center gap-2">
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,9 +177,14 @@ const DcaSubmissionDetail = () => {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Submitted Data</h2>
           {online && (
-            <button onClick={downloadExcel} className="text-sm font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400">
-              Download Excel
-            </button>
+            <div className="flex items-center gap-4">
+              <button onClick={downloadWorkbook} className="text-sm font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                Download official workbook (.xlsx)
+              </button>
+              <button onClick={downloadExcel} className="text-sm font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                Flat table (.xls)
+              </button>
+            </div>
           )}
         </div>
         {online ? (
