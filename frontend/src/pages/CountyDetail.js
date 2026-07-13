@@ -343,13 +343,10 @@ const CountyDetail = () => {
         throw new Error(error.message || 'Upload failed');
       }
 
-      // Uploading the completed form marks the filing as done.
-      try {
-        await api.put(`/tasks/${taskId}`, { status: 'completed' });
-      } catch (statusErr) {
-        console.error('Could not update status after upload:', statusErr);
-      }
-      showToast('Filled form uploaded — filing marked as completed', 'success');
+      // The upload endpoint records the submission and moves the task to
+      // "submitted" (awaiting agency review) — it is NOT complete until the
+      // agency accepts it, so don't force-complete it from the client.
+      showToast('Filled form submitted for review', 'success');
       fetchTasks();
     } catch (error) {
       showToast(error.message || 'Error uploading filled form', 'error');
@@ -768,6 +765,8 @@ const CountyDetail = () => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800 border border-green-200';
+      case 'submitted':
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
       case 'in_progress':
         return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       case 'pending':
@@ -776,6 +775,10 @@ const CountyDetail = () => {
         return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
   };
+
+  // 'submitted' = filed online, now awaiting agency review (not yet completed).
+  const getStatusLabel = (status) =>
+    status === 'submitted' ? 'submitted for review' : String(status).replace('_', ' ');
 
   const priorityColors = {
     low: 'bg-gray-100 text-gray-800 border border-gray-200',
@@ -977,7 +980,7 @@ const CountyDetail = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-base font-semibold text-gray-900">{task.title}</h3>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(task.status)}`}>
-                          {task.status.replace('_', ' ')}
+                          {getStatusLabel(task.status)}
                         </span>
                         {urgency.label && (
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${urgency.bg} ${urgency.color} border ${urgency.border}`}>
@@ -1106,7 +1109,7 @@ const CountyDetail = () => {
                               {task.priority}
                             </span>
                             <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${getStatusColor(task.status)}`}>
-                              {task.status.replace('_', ' ')}
+                              {getStatusLabel(task.status)}
                             </span>
                             {urgency.label && (
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${urgency.bg} ${urgency.color} border ${urgency.border}`}>

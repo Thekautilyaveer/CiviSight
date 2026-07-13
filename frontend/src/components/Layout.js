@@ -161,6 +161,12 @@ const Layout = ({ children }) => {
                         >
                           FormPilot
                         </Link>
+                        <Link
+                          to="/notifications"
+                          className={getLinkClasses('/notifications')}
+                        >
+                          Notifications
+                        </Link>
                       </>
                     )}
                   </>
@@ -246,6 +252,7 @@ const Layout = ({ children }) => {
                   <>
                     <Link to={`/county/${user.countyId}/contacts`} onClick={closeMobile} className={mobileLinkCls}>Contacts</Link>
                     <Link to={`/county/${user.countyId}/formpilot`} onClick={closeMobile} className={mobileLinkCls}>FormPilot</Link>
+                    <Link to="/notifications" onClick={closeMobile} className={mobileLinkCls}>Notifications</Link>
                   </>
                 )}
               </>

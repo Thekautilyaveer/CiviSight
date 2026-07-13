@@ -160,15 +160,23 @@ async function setFormFile(id, formFile) {
   await query(`update tasks set form_file = $2::jsonb where id = $1`, [id, JSON.stringify(formFile)]);
 }
 
+// Attach an uploaded filled form and move the task to 'submitted' (awaiting agency
+// review) — not 'completed'. Acceptance (in the review flow) is what completes it.
 async function setFilledFormFile(id, filledFormFile) {
   await query(
-    `update tasks set filled_form_file = $2::jsonb, status = 'completed', completed_at = now() where id = $1`,
+    `update tasks set filled_form_file = $2::jsonb, status = 'submitted', completed_at = null where id = $1`,
     [id, JSON.stringify(filledFormFile)]
   );
 }
 
 async function markCompleted(id) {
   await query(`update tasks set status = 'completed', completed_at = now() where id = $1`, [id]);
+}
+
+// County has submitted a filing online; it now awaits agency review (not yet "done").
+// completed_at is cleared so a bounce-back + re-submit doesn't retain a stale completion.
+async function markSubmitted(id) {
+  await query(`update tasks set status = 'submitted', completed_at = null where id = $1`, [id]);
 }
 
 // --- Comments ---
@@ -264,6 +272,7 @@ module.exports = {
   setFormFile,
   setFilledFormFile,
   markCompleted,
+  markSubmitted,
   pushComment,
   findCommentsPopulated,
   markCommentRead,

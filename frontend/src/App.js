@@ -128,7 +128,7 @@ function App() {
           <Route
             path="/notifications"
             element={
-              <PrivateRoute adminOnly={true}>
+              <PrivateRoute>
                 <Layout>
                   <Notifications />
                 </Layout>

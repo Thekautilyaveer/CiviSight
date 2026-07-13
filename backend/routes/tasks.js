@@ -637,7 +637,7 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
       uploadedBy: req.user._id
     };
 
-    // Automatically set status to completed when filled form is submitted
+    // Attach the file and move the task to 'submitted' (awaiting agency review).
     await store.tasks.setFilledFormFile(req.params.id, filledFormFile);
 
     // Record the submission for the receiving agency's review queue.
@@ -658,6 +658,24 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
       },
       metadata: { source: 'filled_form_upload' }
     });
+
+    // Notify the reviewing agency (DCA) that a new filing is waiting for review.
+    try {
+      const populated = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: false });
+      const countyName = populated.countyId?.name || 'A county';
+      const reviewers = await store.users.findByRole('dca');
+      for (const reviewer of reviewers) {
+        await store.notifications.create({
+          userId: reviewer._id,
+          type: 'submission_received',
+          title: 'New filing to review',
+          message: `${countyName} uploaded "${task.title}" for review`,
+          taskId: req.params.id
+        });
+      }
+    } catch (notifyErr) {
+      logger.error('Failed to create upload-received notifications:', notifyErr);
+    }
 
     const populatedTask = await store.tasks.findByIdPopulated(req.params.id, { countyEmail: false });
     res.json({ message: 'Filled form uploaded successfully', task: populatedTask });
@@ -727,9 +745,30 @@ router.post('/:id/submit-online', auth, async (req, res) => {
       }
     });
 
-    await store.tasks.markCompleted(req.params.id);
+    // Filing is with the agency now — awaiting review, NOT yet "completed".
+    // (Accepting it later marks the task completed; a bounce-back reopens it.)
+    await store.tasks.markSubmitted(req.params.id);
 
     const populatedSubmission = await store.submissions.findByIdPopulated(submission._id);
+
+    // Notify the reviewing agency (DCA) that a new filing is waiting for review.
+    try {
+      const countyName = populatedSubmission.countyId?.name || 'A county';
+      const formName = populatedSubmission.formName || task.title;
+      const reviewers = await store.users.findByRole('dca');
+      for (const reviewer of reviewers) {
+        await store.notifications.create({
+          userId: reviewer._id,
+          type: 'submission_received',
+          title: 'New filing to review',
+          message: `${countyName} submitted "${formName}" for review`,
+          taskId: req.params.id
+        });
+      }
+    } catch (notifyErr) {
+      logger.error('Failed to create submission-received notifications:', notifyErr);
+      // Non-fatal: the submission itself succeeded.
+    }
 
     res.status(201).json({
       message: 'Form submitted to agency successfully',

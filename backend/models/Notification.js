@@ -8,7 +8,8 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['deadline', 'reminder', 'task_assigned', 'task_completed'],
+    enum: ['deadline', 'reminder', 'task_assigned', 'task_completed',
+      'submission_received', 'submission_reviewed', 'submission_comment'],
     required: true
   },
   title: {

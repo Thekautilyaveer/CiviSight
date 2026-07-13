@@ -54,7 +54,7 @@ create table if not exists tasks (
   submitted_to text not null default '',
   portal_link text not null default '',
   status text not null default 'pending'
-       check (status in ('pending','in_progress','completed')),
+       check (status in ('pending','in_progress','submitted','completed')),
   priority text not null default 'medium'
        check (priority in ('low','medium','high')),
   deadline timestamptz not null,
@@ -99,7 +99,8 @@ create table if not exists notifications (
   id text primary key,
   user_id text not null references users(id) on delete cascade,
   type text not null
-       check (type in ('deadline','reminder','task_assigned','task_completed')),
+       check (type in ('deadline','reminder','task_assigned','task_completed',
+                       'submission_received','submission_reviewed','submission_comment')),
   title text not null,
   message text not null,
   task_id text references tasks(id) on delete set null,

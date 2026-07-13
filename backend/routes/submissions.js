@@ -109,6 +109,25 @@ router.post('/:id/comments', auth, agencyOnly, async (req, res) => {
     });
     if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
+    // Notify the county that a review comment arrived (the message previously lied —
+    // "Comment sent to county" — while sending nothing).
+    try {
+      const formName = submission.formName || submission.taskId?.title || 'your filing';
+      const countyId = submission.countyId?._id || submission.countyId;
+      const countyUsers = await store.users.findCountyUsers(countyId);
+      for (const user of countyUsers) {
+        await store.notifications.create({
+          userId: user._id,
+          type: 'submission_comment',
+          title: 'New review comment',
+          message: `The reviewer left a comment on "${formName}".`,
+          taskId: submission.taskId?._id || submission.taskId
+        });
+      }
+    } catch (notifyErr) {
+      logger.error('Failed to create comment notifications:', notifyErr);
+    }
+
     res.status(201).json({ message: 'Comment sent to county', submission });
   } catch (error) {
     logger.error('Error adding submission comment:', error);
@@ -289,9 +308,16 @@ router.put('/:id/review', auth, agencyOnly, async (req, res) => {
     const raw = await store.submissions.getRaw(req.params.id);
     if (!raw) return res.status(404).json({ message: 'Submission not found' });
 
-    // Bouncing a submission back re-opens its task for the county.
-    if (status === 'needs_correction') {
+    // Reflect the review outcome onto the county's task:
+    //   accepted        -> completed (compliance satisfied)
+    //   needs_correction -> in_progress (bounced back for the county to fix)
+    //   under_review/submitted -> submitted (still with the agency)
+    if (status === 'accepted') {
+      await store.tasks.markCompleted(raw.taskId);
+    } else if (status === 'needs_correction') {
       await store.tasks.updateFields(raw.taskId, { status: 'in_progress' });
+    } else {
+      await store.tasks.updateFields(raw.taskId, { status: 'submitted' });
     }
 
     const note = typeof reviewNote === 'string' ? reviewNote.trim() : raw.reviewNote;
@@ -301,6 +327,31 @@ router.put('/:id/review', auth, agencyOnly, async (req, res) => {
       reviewedBy: req.user._id,
       reviewedAt: new Date()
     });
+
+    // Notify the county of the review outcome (closes the previously-silent return path).
+    try {
+      const MESSAGES = {
+        accepted: (f) => ({ title: 'Filing accepted', message: `Your filing "${f}" was accepted.` }),
+        needs_correction: (f) => ({ title: 'Filing returned for correction', message: `Your filing "${f}" was returned for correction${note ? `: ${note}` : '.'}` }),
+        under_review: (f) => ({ title: 'Filing under review', message: `Your filing "${f}" is now under review.` }),
+        submitted: (f) => ({ title: 'Filing received', message: `Your filing "${f}" was received.` })
+      };
+      const formName = populated.formName || populated.taskId?.title || 'your filing';
+      const { title, message } = (MESSAGES[status] || MESSAGES.submitted)(formName);
+      const countyId = populated.countyId?._id || populated.countyId || raw.countyId;
+      const countyUsers = await store.users.findCountyUsers(countyId);
+      for (const user of countyUsers) {
+        await store.notifications.create({
+          userId: user._id,
+          type: 'submission_reviewed',
+          title,
+          message,
+          taskId: raw.taskId
+        });
+      }
+    } catch (notifyErr) {
+      logger.error('Failed to create review notifications:', notifyErr);
+    }
 
     res.json(populated);
   } catch (error) {

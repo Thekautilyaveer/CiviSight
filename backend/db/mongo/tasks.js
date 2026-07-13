@@ -109,12 +109,13 @@ async function setFormFile(id, formFile) {
   await task.save();
 }
 
+// Attach uploaded filled form; task -> 'submitted' (awaiting review), not 'completed'.
 async function setFilledFormFile(id, filledFormFile) {
   const task = await Task.findById(id);
   if (!task) return;
   task.filledFormFile = filledFormFile;
-  task.status = 'completed';
-  task.completedAt = new Date();
+  task.status = 'submitted';
+  task.completedAt = undefined;
   await task.save();
 }
 
@@ -123,6 +124,15 @@ async function markCompleted(id) {
   if (!task) return;
   task.status = 'completed';
   task.completedAt = new Date();
+  await task.save();
+}
+
+// County submitted a filing online; awaits agency review (not yet "done").
+async function markSubmitted(id) {
+  const task = await Task.findById(id);
+  if (!task) return;
+  task.status = 'submitted';
+  task.completedAt = undefined;
   await task.save();
 }
 
@@ -185,6 +195,7 @@ module.exports = {
   setFormFile,
   setFilledFormFile,
   markCompleted,
+  markSubmitted,
   pushComment,
   findCommentsPopulated,
   markCommentRead,
