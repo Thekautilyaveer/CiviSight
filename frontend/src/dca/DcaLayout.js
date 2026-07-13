@@ -16,7 +16,7 @@ const DcaLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useDcaUI();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -98,7 +98,7 @@ const DcaLayout = ({ children }) => {
               <div className="flex-shrink-0">
                 <span className="text-sm text-gray-700 dark:text-gray-300 mr-4 hidden sm:inline">{user?.username || 'dca'} (State Agency)</span>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => { logout(); navigate('/login'); }}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                 >
                   Logout
