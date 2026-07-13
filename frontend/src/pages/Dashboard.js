@@ -2,24 +2,55 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import RlgfForm from '../forms/rlgf/RlgfForm';
+import TaskCardDetails from '../components/TaskCardDetails';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const daysUntil = (deadline) => Math.ceil((new Date(deadline).getTime() - Date.now()) / DAY_MS);
+const isoDay = (deadline) => new Date(deadline).toISOString().slice(0, 10);
+
+const dueTag = (days) => {
+  if (days < 0) return `Overdue ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`;
+  if (days === 0) return 'Due today';
+  return `Due in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const fmtDeadline = (iso) =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+// Entity-type dropdown is UI-only: every real entity is a county today.
+const TYPE_OPTIONS = [
+  { value: 'all', label: 'All types' },
+  { value: 'county', label: 'Counties' },
+  { value: 'city', label: 'Cities' },
+  { value: 'authority', label: 'Authorities' }
+];
+
+// Flag the flagship RLGF form for the label.
+const rlgfLabel = (title) =>
+  /local government finance/i.test(title) && !/\(RLGF\)/i.test(title) ? `${title} (RLGF)` : title;
 
 const Dashboard = () => {
-  const [tasks, setTasks] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [reviewingSubmission, setReviewingSubmission] = useState(null);
-  const [commentingField, setCommentingField] = useState(null);
-  const [commentDraft, setCommentDraft] = useState('');
-  const [addingComment, setAddingComment] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [agency, setAgency] = useState('all');
-  const [expanded, setExpanded] = useState(null);
-  const { isAccg, user } = useAuth();
   const navigate = useNavigate();
+  const { isAccg, user } = useAuth();
+
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [selectedForm, setSelectedForm] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(''); // '' = both | 'done' | 'notdone'
+  const [deadlineFilter, setDeadlineFilter] = useState(''); // '' = all | ISO day
+
+  const [remindingId, setRemindingId] = useState(null);
+  const [remindingAll, setRemindingAll] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [toast, setToast] = useState('');
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const toggleExpand = (id) => setExpandedId((cur) => (cur === id ? null : id));
 
   useEffect(() => {
     // County users don't track all counties — send them to their own county page.
@@ -28,567 +59,415 @@ const Dashboard = () => {
       setLoading(false);
       return;
     }
-    const fetchTasks = async () => {
+    let active = true;
+    (async () => {
       try {
         setLoading(true);
-        const [taskRes, submissionRes] = await Promise.all([
-          api.get('/tasks'),
-          api.get('/submissions')
-        ]);
-        setTasks(taskRes.data || []);
-        setSubmissions(submissionRes.data || []);
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
+        const res = await api.get('/tasks');
+        if (active) setTasks(res.data || []);
+      } catch (err) {
+        if (active) setError('Could not load tasks.');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
-    };
-    fetchTasks();
+    })();
+    return () => { active = false; };
   }, [isAccg, user, navigate]);
 
-  const refreshSubmissions = async () => {
-    const submissionRes = await api.get('/submissions');
-    setSubmissions(submissionRes.data || []);
-  };
+  // Distinct forms = distinct task titles across every county.
+  const forms = useMemo(
+    () => [...new Set(tasks.map((t) => t.title))].sort((a, b) => a.localeCompare(b)),
+    [tasks]
+  );
 
-  const commentsByField = (submission) => (submission?.comments || []).reduce((grouped, comment) => {
-    if (!grouped[comment.fieldId]) grouped[comment.fieldId] = [];
-    grouped[comment.fieldId].push(comment);
-    return grouped;
-  }, {});
-
-  const startFieldComment = (fieldId) => {
-    setCommentingField(fieldId);
-    setCommentDraft('');
-  };
-
-  const updateCommentDraft = (fieldId, text) => {
-    setCommentingField(fieldId);
-    setCommentDraft(text);
-  };
-
-  const addFieldComment = async (fieldId) => {
-    if (!selectedSubmission || !commentDraft.trim()) return;
-    try {
-      setAddingComment(true);
-      const res = await api.post(`/submissions/${selectedSubmission._id}/comments`, {
-        fieldId,
-        text: commentDraft.trim()
-      });
-      setSelectedSubmission(res.data.submission);
-      setCommentingField(null);
-      setCommentDraft('');
-      await refreshSubmissions();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error sending comment to county');
-    } finally {
-      setAddingComment(false);
+  // Default to RLGF when it exists, otherwise the first form.
+  useEffect(() => {
+    if (!selectedForm && forms.length) {
+      const rlgf = forms.find((f) => /local government finance/i.test(f));
+      setSelectedForm(rlgf || forms[0]);
     }
+  }, [forms, selectedForm]);
+
+  const onSelectForm = (form) => {
+    setSelectedForm(form);
+    setPickerOpen(false);
+    setDeadlineFilter('');
   };
 
-  const urgencyFor = (deadline) => {
-    if (!deadline) return { level: 'todo', text: 'Not done' };
-    const diff = Math.ceil((new Date(deadline).getTime() - Date.now()) / DAY_MS);
-    if (diff < 0) {
-      const n = Math.abs(diff);
-      return { level: 'over', text: `Overdue by ${n} day${n === 1 ? '' : 's'}` };
-    }
-    if (diff === 0) return { level: 'over', text: 'Due today' };
-    if (diff <= 7) return { level: 'todo', text: `Due in ${diff} day${diff === 1 ? '' : 's'}` };
-    return { level: 'none', text: `Due in ${diff} days` };
-  };
+  const formTasks = useMemo(() => tasks.filter((t) => t.title === selectedForm), [tasks, selectedForm]);
 
-  const chipClass = (level) => {
-    const base = 'inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ';
-    if (level === 'over') return base + 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
-    if (level === 'todo') return base + 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
-    return base + 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
-  };
+  const { total, undone, overdue } = useMemo(() => {
+    const notDone = formTasks.filter((t) => t.status !== 'completed');
+    return {
+      total: formTasks.length,
+      undone: notDone.length,
+      overdue: notDone.filter((t) => daysUntil(t.deadline) < 0).length
+    };
+  }, [formTasks]);
 
-  // Group every task by its filing title -> one entry per filing, listing its counties.
-  const filings = useMemo(() => {
+  const fyLabel = useMemo(() => {
+    const counts = {};
+    formTasks.forEach((t) => {
+      const y = new Date(t.deadline).getFullYear();
+      if (y) counts[y] = (counts[y] || 0) + 1;
+    });
+    const years = Object.keys(counts);
+    if (!years.length) return '';
+    const y = Number(years.sort((a, b) => counts[b] - counts[a])[0]);
+    return `FY ${y - 1}-${String(y).slice(2)}`;
+  }, [formTasks]);
+
+  const deadlineOptions = useMemo(() => {
     const map = new Map();
-    tasks.forEach((t) => {
-      const key = t.title;
-      if (!map.has(key)) map.set(key, { title: key, submittedTo: t.submittedTo || '', counties: [] });
-      map.get(key).counties.push({
-        id: t.countyId?._id || t.countyId,
-        name: t.countyId?.name || 'Unknown county',
-        code: t.countyId?.code || '',
-        status: t.status,
-        deadline: t.deadline,
-        assignedContacts: Array.isArray(t.assignedContacts) ? t.assignedContacts : []
-      });
+    formTasks.forEach((t) => {
+      const key = isoDay(t.deadline);
+      map.set(key, (map.get(key) || 0) + 1);
     });
-    const now = Date.now();
-    const submissionsByForm = new Map();
-    submissions.forEach((submission) => {
-      const key = submission.formName || submission.taskId?.title;
-      if (!key) return;
-      if (!submissionsByForm.has(key)) submissionsByForm.set(key, []);
-      submissionsByForm.get(key).push(submission);
-    });
+    return [...map.entries()].map(([iso, count]) => ({ iso, count })).sort((a, b) => a.iso.localeCompare(b.iso));
+  }, [formTasks]);
 
-    const arr = [...map.values()].map((f) => {
-      const done = f.counties.filter((c) => c.status === 'completed');
-      const notDone = f.counties
-        .filter((c) => c.status !== 'completed')
-        .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
-      const overdueCount = notDone.filter((c) => new Date(c.deadline).getTime() < now).length;
-      const received = submissionsByForm.get(f.title) || [];
-      const statusCounts = received.reduce((counts, submission) => {
-        const status = submission.status || 'submitted';
-        counts[status] = (counts[status] || 0) + 1;
-        return counts;
-      }, { submitted: 0, under_review: 0, accepted: 0, needs_correction: 0 });
-      return { ...f, total: f.counties.length, done, notDone, overdueCount, submissions: received, statusCounts };
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return formTasks.filter((t) => {
+      const name = (t.countyId?.name || '').toLowerCase();
+      if (q && !name.includes(q)) return false;
+      if (typeFilter !== 'all' && typeFilter !== 'county') return false; // UI-only: all real entities are counties
+      if (deadlineFilter && isoDay(t.deadline) !== deadlineFilter) return false;
+      return true;
     });
-    // Most-attention-needed first: by overdue count, then by how many are still outstanding.
-    arr.sort(
-      (a, b) =>
-        b.overdueCount - a.overdueCount ||
-        b.notDone.length - a.notDone.length ||
-        a.title.localeCompare(b.title)
-    );
-    return arr;
-  }, [tasks, submissions]);
+  }, [formTasks, search, typeFilter, deadlineFilter]);
 
-  // Distinct submitting agencies for the filter strip.
-  const agencies = useMemo(
-    () => [...new Set(filings.map((f) => f.submittedTo).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
-    [filings]
+  const notDoneRows = useMemo(
+    () =>
+      filtered
+        .filter((t) => t.status !== 'completed')
+        .map((t) => ({ task: t, days: daysUntil(t.deadline) }))
+        .sort((a, b) => a.days - b.days),
+    [filtered]
   );
+  const doneRows = useMemo(() => filtered.filter((t) => t.status === 'completed'), [filtered]);
 
-  const filtered = filings.filter(
-    (f) =>
-      f.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (agency === 'all' || f.submittedTo === agency)
-  );
-  const attention = [];
-  const complete = filtered;
+  const showNotDone = statusFilter === '' || statusFilter === 'notdone';
+  const showDone = statusFilter === '' || statusFilter === 'done';
+
+  const remindOne = async (task) => {
+    setRemindingId(task._id);
+    try {
+      await api.post(`/tasks/${task._id}/reminder`);
+      showToast(`Reminder sent for ${task.countyId?.name || 'county'}.`);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to send reminder.');
+    } finally {
+      setRemindingId(null);
+    }
+  };
+
+  const remindAll = async () => {
+    const ids = notDoneRows.map((r) => r.task._id);
+    if (!ids.length) return;
+    setRemindingAll(true);
+    try {
+      const res = await api.post('/tasks/send-reminders', { taskIds: ids, message: '' });
+      const n = res.data?.sent ?? ids.length;
+      showToast(`Reminder sent to ${n} ${n === 1 ? 'county' : 'counties'}.`);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to send reminders.');
+    } finally {
+      setRemindingAll(false);
+    }
+  };
+
+  const viewCounty = (task) => {
+    const cid = task.countyId?._id || task.countyId;
+    if (cid) navigate(`/county/${cid}`);
+  };
 
   if (loading || !isAccg) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-32">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  const toggle = (title) => setExpanded((cur) => (cur === title ? null : title));
-
-  const statusLabel = (status) => {
-    switch (status) {
-      case 'under_review': return 'Under review';
-      case 'accepted': return 'Accepted';
-      case 'needs_correction': return 'Needs correction';
-      default: return 'Received';
-    }
-  };
-
-  const reviewSubmission = async (submission, status) => {
-    try {
-      setReviewingSubmission(submission._id);
-      const res = await api.put(`/submissions/${submission._id}/review`, { status });
-      setSelectedSubmission((cur) => (cur?._id === submission._id ? res.data : cur));
-      await refreshSubmissions();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error updating submission review');
-    } finally {
-      setReviewingSubmission(null);
-    }
-  };
-
-  const submittedAnswerRows = (submission) => {
-    const labels = submission?.metadata?.fields || {};
-    return Object.entries(submission?.answers || {}).map(([key, value]) => ({
-      key,
-      value,
-      label: labels[key]?.label || key,
-      cell: labels[key]?.cell || '',
-      page: labels[key]?.page || '',
-      type: labels[key]?.type || '',
-      needsReview: Boolean(labels[key]?.needsReview),
-      derived: Boolean(labels[key]?.derived)
-    }));
-  };
-
-  const downloadSubmissionExcel = async (submission) => {
-    try {
-      const response = await api.get(`/submissions/${submission._id}/export`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${(submission.formName || 'submitted-form').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'submitted-form'}.xls`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error exporting submitted form');
-    }
-  };
-
-  const FilingCard = ({ filing }) => {
-    const isOpen = expanded === filing.title;
-    const { total, done, notDone, overdueCount, submissions: filingSubmissions, statusCounts } = filing;
-    const accent =
-      overdueCount > 0
-        ? 'border-l-red-500'
-        : notDone.length > 0
-        ? 'border-l-amber-500'
-        : 'border-l-green-500';
-    const openCounty = (county) => {
-      const submittedForm = filingSubmissions.find(
-        (submission) => String(submission.countyId?._id || submission.countyId) === String(county.id)
-      );
-      if (submittedForm) {
-        setSelectedSubmission(submittedForm);
-        setCommentingField(null);
-        setCommentDraft('');
-      } else {
-        navigate(`/county/${county.id}`);
-      }
-    };
+  if (error) {
     return (
-      <div className={`rounded-lg border border-gray-200 dark:border-gray-700 border-l-[3px] ${accent} bg-white dark:bg-gray-800 overflow-hidden`}>
-        {/* Header */}
-        <button
-          onClick={() => toggle(filing.title)}
-          className="w-full text-left flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-        >
+      <div className="px-2 sm:px-4 py-2">
+        <div className="text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const inputCls =
+    'w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 transition-colors';
+
+  return (
+    <div className="px-2 sm:px-4 py-2">
+      {/* Hero banner — form title + form picker + stat line */}
+      <div className="relative bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-6">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="font-bold text-gray-900 dark:text-white truncate">{filing.title}</div>
-            <div className="flex items-center gap-2 flex-wrap mt-1">
-              {filing.submittedTo && (
-                <span className="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 px-2 py-0.5 text-[10.5px] font-semibold text-indigo-700 dark:text-indigo-300">
-                  {filing.submittedTo}
-                </span>
-              )}
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {done.length} of {total} done
-                {overdueCount > 0 && <span className="text-red-600 dark:text-red-400 font-semibold"> · {overdueCount} overdue</span>}
-              </span>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-blue-100/90 mb-1">
+              Association of County Commissioners of Georgia — Selected form
             </div>
-            {filingSubmissions.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {[
-                  ['submitted', 'Received', 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'],
-                  ['under_review', 'Under review', 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'],
-                  ['accepted', 'Accepted', 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'],
-                  ['needs_correction', 'Needs correction', 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300']
-                ].filter(([key]) => statusCounts[key] > 0).map(([key, label, classes]) => (
-                  <span key={key} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${classes}`}>
-                    {statusCounts[key]} {label}
+            <h1 className="text-3xl sm:text-4xl font-bold text-white break-words">
+              {selectedForm ? rlgfLabel(selectedForm) : 'No forms found'}
+            </h1>
+            <p className="mt-3 text-blue-100 text-sm sm:text-base">
+              <span className="font-semibold text-white">{undone}</span> of{' '}
+              <span className="font-semibold text-white">{total}</span> undone
+              <span className="mx-2 text-blue-200/70">·</span>
+              <span className="font-semibold text-white">{overdue}</span> overdue
+              {fyLabel && (
+                <>
+                  <span className="mx-2 text-blue-200/70">·</span>
+                  <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white">
+                    {fyLabel}
                   </span>
-                ))}
-              </div>
-            )}
+                </>
+              )}
+            </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {overdueCount > 0 ? (
-              <span className={chipClass('over')}>{overdueCount} overdue</span>
-            ) : notDone.length > 0 ? (
-              <span className={chipClass('todo')}>{notDone.length} not done</span>
-            ) : (
-              <span className={chipClass('done').replace('bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300')}>
-                All done
-              </span>
-            )}
-            <svg
-              className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-              fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+
+          {/* Form picker ("…") */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              title="Switch form"
+              aria-label="Switch form"
+              aria-haspopup="menu"
+              aria-expanded={pickerOpen}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
-          </div>
-        </button>
-
-        {/* Expanded breakdown */}
-        {isOpen && (
-          <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-700">
-            {notDone.length > 0 && (
-              <div className="mt-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                  Not done yet ({notDone.length})
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {notDone.map((c) => {
-                    const u = urgencyFor(c.deadline);
-                    return (
-                      <button
-                        key={c.id}
-                        onClick={() => openCounty(c)}
-                        className={`text-left flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-all hover:shadow-sm ${
-                          u.level === 'over'
-                            ? 'border-red-200 dark:border-red-900/50 bg-red-50/60 dark:bg-red-900/10'
-                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                        }`}
-                      >
-                        <span className="min-w-0">
-                          <span className="font-semibold text-gray-900 dark:text-white text-sm truncate block">
-                            {c.name}
-                            {c.status === 'in_progress' && (
-                              <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                                in progress
-                              </span>
-                            )}
-                          </span>
-                          {c.assignedContacts.length > 0 && (
-                            <span className="mt-1 flex flex-wrap gap-1">
-                              {c.assignedContacts.map((contact, idx) => (
-                                <span
-                                  key={`${contact.contactId || contact.email || contact.role || idx}`}
-                                  className="inline-flex rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 px-2 py-0.5 text-[10.5px] font-semibold text-blue-700 dark:text-blue-300"
-                                  title={[contact.name, contact.role, contact.email].filter(Boolean).join(' · ')}
-                                >
-                                  {contact.name || contact.role || contact.email || 'Form owner'}
-                                </span>
-                              ))}
-                            </span>
-                          )}
-                        </span>
-                        <span className={chipClass(u.level)}>{u.text}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {done.length > 0 && (
-              <div className="mt-4">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                  <svg className="w-4 h-4 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
-                  </svg>
-                  Completed ({done.length})
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {done.map((c) => (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+              </svg>
+            </button>
+            {pickerOpen && (
+              <>
+                <button
+                  className="fixed inset-0 z-30 cursor-default"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  onClick={() => setPickerOpen(false)}
+                />
+                <div
+                  role="menu"
+                  className="absolute right-0 mt-2 z-40 w-80 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1"
+                >
+                  <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    Select a form
+                  </div>
+                  {forms.map((form) => (
                     <button
-                      key={c.id}
-                      onClick={() => openCounty(c)}
-                      className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1.5 text-sm font-semibold hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all"
-                      title={
-                        c.assignedContacts?.length > 0
-                          ? `Form owners: ${c.assignedContacts.map((contact) => contact.name || contact.role || contact.email).filter(Boolean).join(', ')}`
-                          : undefined
-                      }
+                      key={form}
+                      role="menuitem"
+                      onClick={() => onSelectForm(form)}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        form === selectedForm
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
                     >
-                      <svg className="w-3.5 h-3.5 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
-                      </svg>
-                      <span className="text-gray-900 dark:text-white">{c.name}</span>
+                      {rlgfLabel(form)}
                     </button>
                   ))}
                 </div>
-              </div>
+              </>
             )}
-
           </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="px-2 sm:px-4 py-6">
-      {/* Title */}
-      <div className="mb-5">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Pick a filing to see which counties have completed it and which still owe it.
-        </p>
+        </div>
       </div>
 
-      {/* Search · Agency filter · Create Task shortcut on one row */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="relative flex-1">
+      {/* Controls row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="relative">
           <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="7" />
             <path strokeLinecap="round" d="m21 21-4.3-4.3" />
           </svg>
           <input
             type="text"
-            placeholder="Search for a filing…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 transition-colors"
+            placeholder="Search counties…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`${inputCls} pl-10`}
           />
         </div>
-        <select
-          value={agency}
-          onChange={(e) => setAgency(e.target.value)}
-          title="Filter by agency"
-          className="shrink-0 max-w-[200px] px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-        >
-          <option value="all">All agencies</option>
-          {agencies.map((a) => (
-            <option key={a} value={a}>{a}</option>
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} title="Entity type" className={inputCls}>
+          {TYPE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-        <button
-          onClick={() => navigate('/create-task')}
-          title="Create a new task"
-          aria-label="Create a new task"
-          className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} title="Status" className={inputCls}>
+          <option value="">Done &amp; Not Done</option>
+          <option value="notdone">Not Done</option>
+          <option value="done">Done</option>
+        </select>
+        <select value={deadlineFilter} onChange={(e) => setDeadlineFilter(e.target.value)} title="Filter by deadline" className={inputCls}>
+          <option value="">All deadlines</option>
+          {deadlineOptions.map((d) => (
+            <option key={d.iso} value={d.iso}>{fmtDeadline(d.iso)} ({d.count})</option>
+          ))}
+        </select>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-gray-500 dark:text-gray-400">No filings found.</p>
+      {formTasks.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center py-16">
+          <p className="text-gray-500 dark:text-gray-400">No counties owe this form.</p>
         </div>
       ) : (
-        <>
-          {attention.length > 0 && (
-            <section className="mb-7">
-              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-                <svg className="w-4 h-4 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-                </svg>
-                Needs attention
-                <span className="px-2 py-0.5 rounded-full text-[11px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                  {attention.length}
-                </span>
-              </h2>
-              <div className="flex flex-col gap-2.5">
-                {attention.map((f) => (
-                  <FilingCard key={f.title} filing={f} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {complete.length > 0 && (
+        <div className="space-y-7">
+          {/* NOT DONE */}
+          {showNotDone && (
             <section>
-              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-                <svg className="w-4 h-4 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
-                </svg>
-                Filings
-                <span className="px-2 py-0.5 rounded-full text-[11px] bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
-                  {complete.length}
-                </span>
-              </h2>
-              <div className="flex flex-col gap-2.5">
-                {complete.map((f) => (
-                  <FilingCard key={f.title} filing={f} />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
-      )}
-
-      {selectedSubmission && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/45 p-4">
-          <div className="flex h-[92vh] max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-gray-800">
-            <div className="flex flex-none items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-              <div>
-                <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">{selectedSubmission.formName}</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  {selectedSubmission.countyId?.name || 'Unknown county'} · {selectedSubmission.agency || selectedSubmission.taskId?.submittedTo || 'Unassigned agency'}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedSubmission(null)}
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white"
-                aria-label="Close submission"
-              >
-                ×
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
-                  <div className="text-xs text-gray-500">Answers</div>
-                  <div className="mt-1 font-semibold text-gray-900 dark:text-white">{Object.keys(selectedSubmission.answers || {}).length}</div>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
-                  <div className="text-xs text-gray-500">Submitted</div>
-                  <div className="mt-1 font-semibold text-gray-900 dark:text-white">{new Date(selectedSubmission.submittedAt).toLocaleDateString()}</div>
-                </div>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                  </svg>
+                  Not Done
+                  <span className="px-2 py-0.5 rounded-full text-[11px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                    {notDoneRows.length}
+                  </span>
+                </h2>
+                <button
+                  onClick={remindAll}
+                  disabled={remindingAll || notDoneRows.length === 0}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {remindingAll ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></div>
+                      Sending…
+                    </>
+                  ) : (
+                    <>Remind All ({notDoneRows.length})</>
+                  )}
+                </button>
               </div>
 
-              {selectedSubmission.formType === 'online' ? (
-                (selectedSubmission.metadata?.form === 'Report of Local Government Finances' || /Report of Local Government Finance/i.test(selectedSubmission.formName || '')) ? (
-                  <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <RlgfForm
-                      subtitle={`${selectedSubmission.countyId?.name || 'County'} · Submitted form`}
-                      initialValues={selectedSubmission.answers || {}}
-                      readOnly
-                      fieldComments={commentsByField(selectedSubmission)}
-                      commentingField={commentingField}
-                      commentDraft={commentDraft}
-                      onStartComment={startFieldComment}
-                      onCommentDraftChange={updateCommentDraft}
-                      onAddComment={addFieldComment}
-                    />
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900">
-                      Submitted answers
-                    </div>
-                    <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-                      {submittedAnswerRows(selectedSubmission).slice(0, 120).map((answer) => (
-                        <div key={answer.key} className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-4 px-3 py-2.5 text-sm">
-                          <div className="min-w-0">
-                            <div className="break-words font-semibold text-gray-900 dark:text-gray-100">{answer.label}</div>
-                            <div className="mt-1 flex flex-wrap gap-1 text-[10.5px] font-semibold uppercase tracking-wide text-gray-500">
-                              {answer.cell && <span>{answer.cell}</span>}
-                              {answer.page && <span>{answer.page}</span>}
-                              {answer.type && <span>{answer.type}</span>}
-                              {answer.derived && <span>derived</span>}
-                              {answer.needsReview && <span className="text-amber-700 dark:text-amber-300">review</span>}
-                            </div>
-                          </div>
-                          <span className="break-words text-gray-900 dark:text-gray-100">{String(answer.value ?? '')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
+              {notDoneRows.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-4 py-3">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
+                  </svg>
+                  Every county in this view has completed the form.
+                </div>
               ) : (
-                <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{selectedSubmission.file?.originalName || 'Submitted file'}</div>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">The uploaded form is stored with the task submission record.</p>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                  {notDoneRows.map(({ task, days }) => (
+                    <div key={task._id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <button onClick={() => viewCounty(task)} className="min-w-0 text-left">
+                          <div className="font-semibold text-gray-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-400">
+                            {task.countyId?.name || 'Unknown county'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Deadline {fmtDeadline(task.deadline)}
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span
+                            className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                              days < 0
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {dueTag(days)}
+                          </span>
+                          <button
+                            onClick={() => remindOne(task)}
+                            disabled={remindingId === task._id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-600 text-blue-700 dark:text-blue-300 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {remindingId === task._id ? 'Sending…' : 'Remind'}
+                          </button>
+                          <button
+                            onClick={() => toggleExpand(task._id)}
+                            aria-label="Toggle details"
+                            aria-expanded={expandedId === task._id}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <svg className={`w-4 h-4 transition-transform ${expandedId === task._id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      {expandedId === task._id && <TaskCardDetails task={task} />}
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
-            <div className="flex flex-none flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Submitted by {selectedSubmission.submittedBy?.email || selectedSubmission.submittedBy?.username || 'county user'}
-              </div>
-              <div className="flex gap-2">
-                {selectedSubmission.formType === 'online' && (
-                  <button
-                    onClick={() => downloadSubmissionExcel(selectedSubmission)}
-                    disabled={addingComment}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
-                  >
-                    Download Excel
-                  </button>
-                )}
-                {['under_review', 'accepted', 'needs_correction'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => reviewSubmission(selectedSubmission, status)}
-                    disabled={reviewingSubmission === selectedSubmission._id}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
-                  >
-                    {statusLabel(status)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+            </section>
+          )}
+
+          {/* DONE */}
+          {showDone && (
+            <section>
+              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                <svg className="w-4 h-4 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
+                </svg>
+                Done
+                <span className="px-2 py-0.5 rounded-full text-[11px] bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                  {doneRows.length}
+                </span>
+              </h2>
+
+              {doneRows.length === 0 ? (
+                <div className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+                  No counties have completed this form in the current view.
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                  {doneRows.map((task) => (
+                    <div key={task._id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-900 dark:text-white truncate">
+                            {task.countyId?.name || 'Unknown county'}
+                          </div>
+                          <div className="text-xs text-green-700 dark:text-green-400 mt-0.5">Completed</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => viewCounty(task)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => toggleExpand(task._id)}
+                            aria-label="Toggle details"
+                            aria-expanded={expandedId === task._id}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <svg className={`w-4 h-4 transition-transform ${expandedId === task._id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      {expandedId === task._id && <TaskCardDetails task={task} />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-lg">
+          {toast}
         </div>
       )}
     </div>

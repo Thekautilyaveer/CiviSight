@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
+// State agencies that receive county filings. Each maps to a backend account role.
+// Only DCA exists today; add more here as they gain a login/role.
+const STATE_AGENCIES = [
+  { value: 'dca', label: 'Georgia Department of Community Affairs (DCA)' }
+];
+
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [counties, setCounties] = useState([]);
@@ -14,6 +20,7 @@ const Users = () => {
     email: '',
     password: '',
     role: 'accg',
+    agency: STATE_AGENCIES[0].value,
     countyId: ''
   });
   const { user: currentUser } = useAuth();
@@ -44,19 +51,25 @@ const Users = () => {
     }
   };
 
+  const resetUserForm = () =>
+    setUserForm({ username: '', email: '', password: '', role: 'accg', agency: STATE_AGENCIES[0].value, countyId: '' });
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/auth/register', userForm);
+      // "State Agency" is a UI grouping; the real account role is the selected agency (e.g. dca).
+      const finalRole = userForm.role === 'state_agency' ? userForm.agency : userForm.role;
+      const payload = {
+        username: userForm.username,
+        email: userForm.email,
+        password: userForm.password,
+        role: finalRole,
+        countyId: finalRole === 'county_user' ? userForm.countyId : ''
+      };
+      await api.post('/auth/register', payload);
       alert('User created successfully!');
       setShowCreateModal(false);
-      setUserForm({
-        username: '',
-        email: '',
-        password: '',
-        role: 'accg',
-        countyId: ''
-      });
+      resetUserForm();
       fetchUsers();
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Error creating user';
@@ -95,7 +108,9 @@ const Users = () => {
   }
 
   const accgUsers = users.filter(u => u.role === 'accg');
+  const stateAgencyUsers = users.filter(u => u.role === 'dca');
   const countyUsers = users.filter(u => u.role === 'county_user');
+  const agencyLabel = (v) => (STATE_AGENCIES.find(a => a.value === v)?.label) || v.toUpperCase();
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -137,6 +152,53 @@ const Users = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
                         {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {user._id === currentUser?._id ? (
+                        <span className="text-gray-400">Current User</span>
+                      ) : (
+                        <button
+                          onClick={() => handleDeleteUser(user._id)}
+                          disabled={deletingUserId === user._id}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        >
+                          {deletingUserId === user._id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* State Agency Users Section */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">State Agency Users ({stateAgencyUsers.length})</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agency</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {stateAgencyUsers.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-4 text-sm text-gray-400 text-center">No state agency users yet.</td></tr>
+                ) : stateAgencyUsers.map((user) => (
+                  <tr key={user._id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.username}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                        {agencyLabel(user.role)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -251,13 +313,28 @@ const Users = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
                   <select
                     value={userForm.role}
-                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value, countyId: e.target.value === 'accg' ? '' : userForm.countyId })}
+                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value, countyId: e.target.value === 'county_user' ? userForm.countyId : '' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="accg">ACCG</option>
+                    <option value="state_agency">State Agency</option>
                     <option value="county_user">County User</option>
                   </select>
                 </div>
+                {userForm.role === 'state_agency' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">State Agency *</label>
+                    <select
+                      value={userForm.agency}
+                      onChange={(e) => setUserForm({ ...userForm, agency: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {STATE_AGENCIES.map((a) => (
+                        <option key={a.value} value={a.value}>{a.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {userForm.role === 'county_user' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">County *</label>
@@ -287,13 +364,7 @@ const Users = () => {
                     type="button"
                     onClick={() => {
                       setShowCreateModal(false);
-                      setUserForm({
-                        username: '',
-                        email: '',
-                        password: '',
-                        role: 'accg',
-                        countyId: ''
-                      });
+                      resetUserForm();
                     }}
                     className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
                   >
