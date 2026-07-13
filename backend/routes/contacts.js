@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { auth, adminOnly } = require('../middleware/auth');
 const { hasAdminPowers } = require('../utils/roles');
 const store = require('../db/store');
 const logger = require('../utils/logger');
@@ -26,6 +26,20 @@ const DEFAULT_CONTACT_ROLES = [
   'Records Manager',
   'Deeds & Records Clerk'
 ];
+
+// @route   GET /api/contacts
+// @desc    Get every county's contacts in one call (admin only). Replaces N per-county
+//          fetches for any bulk/directory view.
+// @access  Private (Admin only)
+router.get('/', auth, adminOnly, async (req, res) => {
+  try {
+    const all = await store.contacts.findAllPopulated();
+    res.json(all);
+  } catch (error) {
+    logger.error('Error fetching all contacts:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // @route   GET /api/contacts/:countyId
 // @desc    Get contacts for a county

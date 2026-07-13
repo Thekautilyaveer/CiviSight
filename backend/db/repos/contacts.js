@@ -19,6 +19,22 @@ async function findByCountyId(countyId) {
   return rows[0] ? m.contact(rows[0]) : null;
 }
 
+// All contact docs, county populated ({_id,name,code}), sorted by county name.
+// One round-trip instead of N per-county fetches.
+async function findAllPopulated() {
+  const { rows } = await query(
+    `select ct.id, ct.county_id, ct.contacts, ct.created_at, ct.updated_at,
+            c.name as c_name, c.code as c_code
+       from contacts ct left join counties c on c.id = ct.county_id
+      order by c.name asc`
+  );
+  return rows.map((r) => {
+    const doc = m.contact(r);
+    doc.countyId = r.c_name ? { _id: r.county_id, name: r.c_name, code: r.c_code } : r.county_id;
+    return doc;
+  });
+}
+
 // Create a contact doc for a county with the given contacts array.
 async function create(countyId, contacts) {
   const id = m.newId();
@@ -38,4 +54,4 @@ async function updateContacts(countyId, contacts) {
   return rows[0] ? m.contact(rows[0]) : null;
 }
 
-module.exports = { findByCountyId, create, updateContacts };
+module.exports = { findByCountyId, findAllPopulated, create, updateContacts };

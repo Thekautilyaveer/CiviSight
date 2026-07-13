@@ -5,6 +5,10 @@ async function findByCountyId(countyId) {
   return Contact.findOne({ countyId });
 }
 
+async function findAllPopulated() {
+  return Contact.find().populate('countyId', 'name code');
+}
+
 async function create(countyId, contacts) {
   const contact = new Contact({ countyId, contacts: contacts || [] });
   await contact.save();
@@ -19,4 +23,4 @@ async function updateContacts(countyId, contacts) {
   return contact;
 }
 
-module.exports = { findByCountyId, create, updateContacts };
+module.exports = { findByCountyId, findAllPopulated, create, updateContacts };
