@@ -66,6 +66,46 @@ router.get('/filings/:filingId/versions', auth, agencyGate, async (req, res) => 
   }
 });
 
+// Compliance rollup: per entity, is the required form filed & ACCEPTED for each of the last
+// 3 reporting years? (Anchored on the latest period present; a real deployment would use each
+// entity's own fiscal-year-end. GOMI/AARF join in once they have a catalog + filings.)
+router.get('/compliance', auth, agencyGate, async (req, res) => {
+  try {
+    const formCode = (req.query.form || 'rlgf').toLowerCase();
+    const { entities, facts, latestPeriod } = await store.explorer.complianceData({
+      entityTypes: entityTypesFor(req.user), formCode,
+    });
+    const ref = Number(req.query.period) || latestPeriod || new Date().getFullYear();
+    const years = [ref - 2, ref - 1, ref];
+
+    // index facts: entityId -> { period -> status }
+    const byEntity = new Map();
+    for (const f of facts) {
+      if (!byEntity.has(f.entity_id)) byEntity.set(f.entity_id, {});
+      byEntity.get(f.entity_id)[f.reporting_period] = f.status;
+    }
+
+    let compliantCount = 0;
+    const rows = entities.map((e) => {
+      const statuses = byEntity.get(e.id) || {};
+      const byYear = {};
+      years.forEach((y) => { byYear[y] = statuses[y] || 'missing'; });
+      const compliant = years.every((y) => byYear[y] === 'accepted');
+      if (compliant) compliantCount += 1;
+      return { entityId: e.id, entityName: e.name, entityType: e.type, govId: e.gov_id, byYear, compliant };
+    });
+
+    res.json({
+      formCode, years,
+      summary: { total: rows.length, compliant: compliantCount, nonCompliant: rows.length - compliantCount },
+      rows,
+    });
+  } catch (error) {
+    logger.error('Explorer compliance error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // One-click clean CSV export (respects filters + selected value columns).
 router.get('/export', auth, agencyGate, async (req, res) => {
   try {

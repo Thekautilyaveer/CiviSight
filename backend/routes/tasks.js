@@ -10,6 +10,7 @@ const { uploadForm, uploadFilledForm, getSignedUrl, deleteFile } = require('../m
 const { sendReminderEmail, sendTaskAssignmentEmail, sendFormUploadEmail } = require('../utils/email');
 const logger = require('../utils/logger');
 const { DEPARTMENT_ROLE_SLUGS } = require('../constants/departmentRoles');
+const { validateFiling } = require('../utils/validateFiling');
 
 const FISCAL_OFFSET_DAYS = [60, 90, 180, 270];
 
@@ -758,6 +759,19 @@ router.post('/:id/submit-online', auth, async (req, res) => {
     const entity = await store.counties.findById(task.countyId);
     const reportingPeriod = statedReportingPeriod(answers, metadata.fields) ?? fiscalYearEndingBy(entity, submittedAt);
 
+    // Born-clean validation against the form catalog. Hard type errors block the filing;
+    // soft warnings (out-of-range, required-blank) are recorded for the reviewer.
+    let validation;
+    if (formDef) {
+      const catalog = await store.forms.fieldsForDefinition(formDef.id);
+      const byKey = Object.fromEntries(catalog.map((f) => [f.field_key, f]));
+      const { errors, warnings } = validateFiling(answers, byKey);
+      if (errors.length) {
+        return res.status(422).json({ message: 'This filing has validation errors and was not submitted.', errors });
+      }
+      if (warnings.length) validation = { warnings, validatedAt: submittedAt };
+    }
+
     const submission = await store.submissions.create({
       taskId: req.params.id,
       countyId: task.countyId,
@@ -776,7 +790,8 @@ router.post('/:id/submit-online', auth, async (req, res) => {
         source: 'online_form',
         form: req.body.form,
         version: req.body.version,
-        answerCount
+        answerCount,
+        validation
       }
     });
 

@@ -236,3 +236,16 @@ create table if not exists submission_values (
 create index if not exists idx_submission_values_submission on submission_values(submission_id);
 create index if not exists idx_submission_values_ucoa on submission_values(ucoa_code);
 create index if not exists idx_submission_values_ucoa_num on submission_values(ucoa_code, numeric_value);
+
+-- === filing_compliance (fact view) ===
+-- One row per (entity × cataloged form × reporting period) = the CURRENT filing's review
+-- status. The compliance rollup ("filed & accepted for the last N years") is computed from
+-- this in routes/database.js. Only cataloged forms (form_definition_id set) are tracked, so
+-- GOMI/AARF join in automatically once they have a form_definition + filings.
+create or replace view filing_compliance as
+select e.id as entity_id, e.name as entity_name, e.type as entity_type,
+       fd.code as form_code, s.reporting_period,
+       s.status, (s.status = 'accepted') as accepted
+  from entities e
+  join submissions s on s.county_id = e.id and s.is_current
+  join form_definitions fd on fd.id = s.form_definition_id;

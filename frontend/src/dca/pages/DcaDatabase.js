@@ -15,6 +15,8 @@ const DcaDatabase = () => {
   const navigate = useNavigate();
   const { showToast } = useDcaUI();
 
+  const [mode, setMode] = useState('filings'); // 'filings' | 'compliance'
+  const [compliance, setCompliance] = useState(null);
   const [meta, setMeta] = useState({ fields: [], periods: [], statuses: [] });
   const [filters, setFilters] = useState({ type: '', period: '', status: '', q: '' });
   const [selectedFields, setSelectedFields] = useState([]); // [ucoaCode]
@@ -58,7 +60,12 @@ const DcaDatabase = () => {
     }
   }, [filters, selectedFields]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (mode === 'filings') load(); }, [load, mode]);
+
+  useEffect(() => {
+    if (mode !== 'compliance' || compliance) return;
+    api.get('/database/compliance').then((res) => setCompliance(res.data)).catch(() => setCompliance({ years: [], rows: [], summary: {} }));
+  }, [mode, compliance]);
 
   const addField = () => {
     if (fieldToAdd && !selectedFields.includes(fieldToAdd)) setSelectedFields((s) => [...s, fieldToAdd]);
@@ -110,14 +117,29 @@ const DcaDatabase = () => {
             Every submitted filing — validated, unified, and queryable across entities, types, and years.
           </p>
         </div>
-        <button
-          onClick={exportCsv}
-          disabled={exporting || !rows.length}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50"
-        >
-          {exporting ? 'Exporting…' : 'Export CSV'}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            {[['filings', 'Filings'], ['compliance', 'Compliance']].map(([m, label]) => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-colors ${mode === m ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {mode === 'filings' && (
+            <button onClick={exportCsv} disabled={exporting || !rows.length}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50">
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {mode === 'compliance' ? (
+        <ComplianceView data={compliance} />
+      ) : (
+      <>
+
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -233,6 +255,73 @@ const DcaDatabase = () => {
           </div>
         </div>
       )}
+      </>
+      )}
+    </div>
+  );
+};
+
+// Compliance grid: per entity, is the required form filed & accepted for each of the last
+// 3 reporting years? (Anchored on the latest year present.)
+const CELL = {
+  accepted: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  under_review: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
+  submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  needs_correction: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  missing: 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500',
+};
+const ComplianceView = ({ data }) => {
+  if (!data) return <div className="flex items-center justify-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div></div>;
+  const { years = [], rows = [], summary = {} } = data;
+  return (
+    <div>
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{summary.compliant ?? 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Compliant</div>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400">{summary.nonCompliant ?? 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Not compliant</div>
+        </div>
+        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+          RLGF filed &amp; accepted for FY{years[0]}–FY{years[years.length - 1]}
+        </div>
+      </div>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-900">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Entity</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                {years.map((y) => <th key={y} className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">FY{y}</th>)}
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {rows.map((r) => (
+                <tr key={r.entityId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white whitespace-nowrap">{r.entityName}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 capitalize">{r.entityType}</td>
+                  {years.map((y) => (
+                    <td key={y} className="px-4 py-2 text-center">
+                      <span className={`inline-block px-2 py-1 rounded-md text-[11px] font-semibold ${CELL[r.byYear[y]] || CELL.missing}`}>
+                        {(r.byYear[y] || 'missing').replace('_', ' ')}
+                      </span>
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-center">
+                    {r.compliant
+                      ? <span className="text-green-600 dark:text-green-400 font-bold">✓ Compliant</span>
+                      : <span className="text-red-500 dark:text-red-400 font-semibold">Not compliant</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

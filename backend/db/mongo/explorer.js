@@ -5,5 +5,6 @@ async function listFilings() { return []; }
 async function distinctPeriods() { return []; }
 async function fieldCatalog() { return []; }
 async function filingVersions() { return []; }
+async function complianceData() { return { entities: [], facts: [], latestPeriod: null }; }
 
-module.exports = { listFilings, distinctPeriods, fieldCatalog, filingVersions };
+module.exports = { listFilings, distinctPeriods, fieldCatalog, filingVersions, complianceData };

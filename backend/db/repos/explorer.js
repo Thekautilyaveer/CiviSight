@@ -115,4 +115,23 @@ async function filingVersions(filingId) {
   }));
 }
 
-module.exports = { listFilings, distinctPeriods, fieldCatalog, filingVersions };
+// --- compliance: entities in scope + their cataloged-form filing statuses by year ---
+// Returns { entities:[{id,name,type,gov_id}], facts:[{entity_id,reporting_period,status}],
+// latestPeriod }. The route rolls these up into a "last N years" compliance matrix.
+async function complianceData({ entityTypes, formCode = 'rlgf' } = {}) {
+  const eParams = [];
+  const eWhere = Array.isArray(entityTypes) && entityTypes.length
+    ? `where type = any($1::text[])` : '';
+  if (eWhere) eParams.push(entityTypes);
+  const entities = (await query(`select id, name, type, gov_id from entities ${eWhere} order by name asc`, eParams)).rows;
+
+  const facts = (await query(
+    `select entity_id, reporting_period, status, accepted from filing_compliance where form_code = $1`,
+    [String(formCode).toLowerCase()]
+  )).rows;
+
+  const lp = (await query(`select max(reporting_period) as mx from filing_compliance where form_code = $1`, [String(formCode).toLowerCase()])).rows[0];
+  return { entities, facts, latestPeriod: lp.mx };
+}
+
+module.exports = { listFilings, distinctPeriods, fieldCatalog, filingVersions, complianceData };
