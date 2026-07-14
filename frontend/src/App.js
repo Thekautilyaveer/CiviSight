@@ -24,6 +24,7 @@ import DcaEntityDetail from './dca/pages/DcaEntityDetail';
 import DcaSubmissions from './dca/pages/DcaSubmissions';
 import DcaSubmissionDetail from './dca/pages/DcaSubmissionDetail';
 import DcaReminders from './dca/pages/DcaReminders';
+import DcaDatabase from './dca/pages/DcaDatabase';
 
 function App() {
   return (
@@ -160,6 +161,7 @@ function App() {
             <Route path="entities" element={<DcaEntities />} />
             <Route path="entities/:entityId" element={<DcaEntityDetail />} />
             <Route path="submissions" element={<DcaSubmissions />} />
+            <Route path="database" element={<DcaDatabase />} />
             <Route path="submissions/:submissionId" element={<DcaSubmissionDetail />} />
             <Route path="reminders" element={<DcaReminders />} />
             {/* Add Report reuses the existing ACCG Add Task flow (real create endpoint). */}

@@ -49,6 +49,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/submissions', require('./routes/submissions'));
 app.use('/api/rlgf', require('./routes/rlgf'));
+app.use('/api/database', require('./routes/database'));
 
 // Connect to the selected data store
 if (DATA_DRIVER === 'mongo') {

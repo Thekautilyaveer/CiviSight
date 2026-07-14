@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/dca', label: 'Dashboard' },
   { to: '/dca/entities', label: 'Entities' },
   { to: '/dca/submissions', label: 'Submissions' },
+  { to: '/dca/database', label: 'Database' },
   { to: '/dca/reminders', label: 'Reminders' },
   { to: '/dca/add-report', label: 'Add Report' }
 ];

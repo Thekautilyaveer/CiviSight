@@ -12,6 +12,7 @@ const store = DATA_DRIVER === 'mongo'
       notifications: require('./mongo/notifications'),
       submissions: require('./mongo/submissions'),
       forms: require('./mongo/forms'),
+      explorer: require('./mongo/explorer'),
     }
   : {
       counties: require('./repos/counties'),
@@ -21,6 +22,7 @@ const store = DATA_DRIVER === 'mongo'
       notifications: require('./repos/notifications'),
       submissions: require('./repos/submissions'),
       forms: require('./repos/forms'),
+      explorer: require('./repos/explorer'),
     };
 
 store.driver = DATA_DRIVER;
