@@ -141,6 +141,16 @@ create table if not exists submissions (
   reviewed_by text references users(id) on delete set null,
   reviewed_at timestamptz,
   review_note text not null default '',
+  -- System-of-record versioning: a "filing" = (entity × form × reporting period). Each
+  -- (re)submission is an immutable version under a shared filing_id; is_current marks the
+  -- latest. reporting_period (fiscal year) is first-class, not inferred from the task.
+  -- form_definition_id pins the exact form version filed (see form_definitions).
+  reporting_period int,
+  form_definition_id text references form_definitions(id) on delete set null,
+  filing_id text,
+  version int not null default 1,
+  is_current boolean not null default true,
+  supersedes_id text references submissions(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -148,6 +158,10 @@ create index if not exists idx_submissions_task on submissions(task_id, submitte
 create index if not exists idx_submissions_county on submissions(county_id, submitted_at desc);
 create index if not exists idx_submissions_agency_status on submissions(agency, status);
 create index if not exists idx_submissions_form_agency on submissions(form_name, agency);
+create index if not exists idx_submissions_filing on submissions(filing_id);
+create index if not exists idx_submissions_period on submissions(reporting_period);
+-- one current version per filing (NULL filing_ids are distinct, so pre-backfill rows are fine)
+create unique index if not exists idx_submissions_one_current on submissions(filing_id) where is_current and filing_id is not null;
 create or replace trigger trg_submissions_updated before update on submissions
   for each row execute function set_updated_at();
 

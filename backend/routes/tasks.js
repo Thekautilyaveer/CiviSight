@@ -13,6 +13,23 @@ const { DEPARTMENT_ROLE_SLUGS } = require('../constants/departmentRoles');
 
 const FISCAL_OFFSET_DAYS = [60, 90, 180, 270];
 
+// Reporting fiscal year a filing is FOR. Prefer the year the filer stated on the RLGF
+// (Page 1 / cell F17); the write path falls back to the entity's fiscal year if absent.
+function statedReportingPeriod(answers, fields) {
+  if (!answers || !fields) return null;
+  let key = Object.keys(fields).find((k) => fields[k] && fields[k].page === 'Page 1' && fields[k].cell === 'F17');
+  if (!key && answers.fiscalYear != null) key = 'fiscalYear';
+  const yr = parseInt(String(key ? answers[key] : '').replace(/[^\d]/g, ''), 10);
+  return (yr >= 1990 && yr <= 2100) ? yr : null;
+}
+// The fiscal year (labeled by the calendar year it ends) most recently ended as of `date`.
+function fiscalYearEndingBy(entity, date) {
+  const dt = new Date(date), y = dt.getFullYear();
+  if (!entity) return y;
+  const m = entity.fiscalYearEndMonth || 12, d = entity.fiscalYearEndDay || 31;
+  return dt >= new Date(y, m - 1, d, 23, 59, 59) ? y : y - 1;
+}
+
 function parseAssignedRoles(arr) {
   if (!Array.isArray(arr)) return [];
   const valid = arr.filter((s) => typeof s === 'string' && DEPARTMENT_ROLE_SLUGS.includes(s.trim()));
@@ -643,7 +660,12 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
     // Attach the file and move the task to 'submitted' (awaiting agency review).
     await store.tasks.setFilledFormFile(req.params.id, filledFormFile);
 
-    // Record the submission for the receiving agency's review queue.
+    // Record the submission for the receiving agency's review queue. An uploaded file
+    // carries no answers to read a year from, so the reporting period is the entity's
+    // fiscal year most recently ended. form_definition_id stays null (the form filed
+    // inside an arbitrary PDF isn't identifiable).
+    const uploadedAt = new Date();
+    const entity = await store.counties.findById(task.countyId);
     await store.submissions.create({
       taskId: req.params.id,
       countyId: task.countyId,
@@ -652,13 +674,14 @@ router.post('/:id/upload-filled-form', auth, uploadFilledForm, async (req, res) 
       formType: 'file',
       status: 'submitted',
       submittedBy: req.user._id,
-      submittedAt: new Date(),
+      submittedAt: uploadedAt,
       file: {
         originalName: req.file.originalname,
         fileName: req.file.filename,
         filePath: relativePath,
-        uploadedAt: new Date()
+        uploadedAt
       },
+      reportingPeriod: fiscalYearEndingBy(entity, uploadedAt),
       metadata: { source: 'filled_form_upload' }
     });
 
@@ -728,6 +751,13 @@ router.post('/:id/submit-online', auth, async (req, res) => {
       }
     }
 
+    // Pin the exact form version filed, and stamp the reporting fiscal year (first-class,
+    // so filings are queryable by year and resubmissions version cleanly).
+    const submittedAt = new Date();
+    const formDef = await store.forms.findDefinitionByCode(req.body.form || 'rlgf');
+    const entity = await store.counties.findById(task.countyId);
+    const reportingPeriod = statedReportingPeriod(answers, metadata.fields) ?? fiscalYearEndingBy(entity, submittedAt);
+
     const submission = await store.submissions.create({
       taskId: req.params.id,
       countyId: task.countyId,
@@ -736,9 +766,11 @@ router.post('/:id/submit-online', auth, async (req, res) => {
       formType: 'online',
       status: 'submitted',
       submittedBy: req.user._id,
-      submittedAt: new Date(),
+      submittedAt,
       answers,
       file,
+      reportingPeriod,
+      formDefinitionId: formDef ? formDef.id : null,
       metadata: {
         ...metadata,
         source: 'online_form',

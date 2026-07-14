@@ -140,6 +140,13 @@ function submission(row, { task = null, county = null, submittedBy = null, revie
     reviewedBy: reviewedBy ? userRef(reviewedBy, { withRole: true }) : (row.reviewed_by != null ? row.reviewed_by : null),
     reviewedAt: row.reviewed_at != null ? iso(row.reviewed_at) : null,
     reviewNote: row.review_note,
+    // System-of-record versioning (a filing = entity × form × reporting period)
+    reportingPeriod: row.reporting_period ?? null,
+    formDefinitionId: row.form_definition_id ?? null,
+    filingId: row.filing_id ?? null,
+    version: row.version ?? 1,
+    isCurrent: row.is_current ?? true,
+    supersedesId: row.supersedes_id ?? null,
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
   };

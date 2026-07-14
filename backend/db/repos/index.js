@@ -7,4 +7,5 @@ module.exports = {
   contacts: require('./contacts'),
   notifications: require('./notifications'),
   submissions: require('./submissions'),
+  forms: require('./forms'),
 };

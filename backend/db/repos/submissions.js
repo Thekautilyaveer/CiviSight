@@ -1,11 +1,13 @@
 // Submission repository (Supabase Postgres). Reproduces the Mongoose populate behavior of
 // routes/submissions.js: taskId/countyId/submittedBy/reviewedBy and comments[].createdBy.
-const { query } = require('../pool');
+const { query, withTransaction } = require('../pool');
 const usersRepo = require('./users');
 const m = require('../mapper');
 
 const COLS = `id,task_id,county_id,agency,form_name,form_type,status,submitted_by,submitted_at,
-  answers,metadata,comments,file,reviewed_by,reviewed_at,review_note,created_at,updated_at`;
+  answers,metadata,comments,file,reviewed_by,reviewed_at,review_note,
+  reporting_period,form_definition_id,filing_id,version,is_current,supersedes_id,
+  created_at,updated_at`;
 const S = COLS.split(',').map((c) => 's.' + c.trim()).join(',');
 
 const TASK_JOIN = `t.id as t_id, t.title as t_title, t.deadline as t_deadline, t.status as t_status, t.submitted_to as t_submitted_to`;
@@ -99,23 +101,55 @@ async function findForStats(filters = {}) {
   return rows.map((r) => m.submission(r, { task: taskFrom(r), county: countyFrom(r) }));
 }
 
+// Create a submission as the next immutable VERSION of its filing (entity × form ×
+// reporting period). If a prior version exists, it is superseded (is_current -> false) and
+// this one becomes version N+1; otherwise a new filing_id is minted at version 1. Done in a
+// transaction so the "flip prior current + insert new current" pair is atomic (the partial
+// unique index idx_submissions_one_current is the backstop).
 async function create(data) {
   const id = m.newId();
-  const { rows } = await query(
-    `insert into submissions
-       (id,task_id,county_id,agency,form_name,form_type,status,submitted_by,submitted_at,
-        answers,metadata,file)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11::jsonb,$12::jsonb)
-     returning ${COLS}`,
-    [
-      id, data.taskId, data.countyId, data.agency || '', data.formName, data.formType,
-      data.status || 'submitted', data.submittedBy, data.submittedAt || new Date(),
-      data.answers == null ? null : JSON.stringify(data.answers),
-      JSON.stringify(data.metadata || {}),
-      data.file == null ? null : JSON.stringify(data.file),
-    ]
-  );
-  return m.submission(rows[0]);
+  const formKey = data.formDefinitionId || data.formName; // groups versions of the same form
+  const canVersion = data.countyId != null && data.reportingPeriod != null;
+
+  return withTransaction(async (client) => {
+    let filingId = m.newId();
+    let version = 1;
+    let supersedesId = null;
+
+    if (canVersion) {
+      const prior = await client.query(
+        `select id, filing_id, version, is_current from submissions
+          where county_id = $1 and reporting_period = $2
+            and coalesce(form_definition_id, form_name) = $3
+          order by version desc`,
+        [data.countyId, data.reportingPeriod, formKey]
+      );
+      if (prior.rows.length) {
+        filingId = prior.rows[0].filing_id;
+        version = prior.rows[0].version + 1;
+        const cur = prior.rows.find((r) => r.is_current) || prior.rows[0];
+        supersedesId = cur.id;
+        await client.query(`update submissions set is_current = false where filing_id = $1 and is_current`, [filingId]);
+      }
+    }
+
+    const { rows } = await client.query(
+      `insert into submissions
+         (id,task_id,county_id,agency,form_name,form_type,status,submitted_by,submitted_at,
+          answers,metadata,file,reporting_period,form_definition_id,filing_id,version,is_current,supersedes_id)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11::jsonb,$12::jsonb,$13,$14,$15,$16,true,$17)
+       returning ${COLS}`,
+      [
+        id, data.taskId, data.countyId, data.agency || '', data.formName, data.formType,
+        data.status || 'submitted', data.submittedBy, data.submittedAt || new Date(),
+        data.answers == null ? null : JSON.stringify(data.answers),
+        JSON.stringify(data.metadata || {}),
+        data.file == null ? null : JSON.stringify(data.file),
+        data.reportingPeriod ?? null, data.formDefinitionId ?? null, filingId, version, supersedesId,
+      ]
+    );
+    return m.submission(rows[0]);
+  });
 }
 
 // POST /submissions/:id/comments — append a field-level comment (with _id + empty readBy).
