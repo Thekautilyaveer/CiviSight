@@ -215,3 +215,24 @@ create index if not exists idx_form_fields_def on form_fields(form_definition_id
 create index if not exists idx_form_fields_ucoa on form_fields(ucoa_code);
 create or replace trigger trg_form_fields_updated before update on form_fields
   for each row execute function set_updated_at();
+
+-- === submission_values (the query projection) ===
+-- Each answered, non-derived field of a submission, projected into a narrow indexable row
+-- keyed by UCOA account code. Analytics query THIS (fast, joinable) instead of cracking the
+-- answers JSONB blob. Written alongside the JSONB on submit (submissions.create) and
+-- backfilled by scripts/backfill-submission-values.js. To restrict to the latest filing,
+-- join submissions and filter on is_current; period/entity come from that join.
+create table if not exists submission_values (
+  id text primary key,
+  submission_id text not null references submissions(id) on delete cascade,
+  field_key text not null,
+  ucoa_code text,
+  data_type text,
+  numeric_value numeric,
+  text_value text,
+  created_at timestamptz not null default now(),
+  unique (submission_id, field_key)
+);
+create index if not exists idx_submission_values_submission on submission_values(submission_id);
+create index if not exists idx_submission_values_ucoa on submission_values(ucoa_code);
+create index if not exists idx_submission_values_ucoa_num on submission_values(ucoa_code, numeric_value);

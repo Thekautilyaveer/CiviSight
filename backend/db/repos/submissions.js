@@ -101,6 +101,44 @@ async function findForStats(filters = {}) {
   return rows.map((r) => m.submission(r, { task: taskFrom(r), county: countyFrom(r) }));
 }
 
+// Project a submission's answered, non-derived fields into flat rows for submission_values
+// (the query layer). Numeric when the field is a dollar/integer or the value parses as a
+// number; text always kept. Derived/formula fields are skipped (recomputed, not filed).
+function projectionRows(submissionId, answers, fields) {
+  const out = [];
+  if (!answers || !fields) return out;
+  for (const [key, meta] of Object.entries(fields)) {
+    if (!meta || meta.derived) continue;
+    const val = answers[key];
+    if (val === undefined || val === null || String(val).trim() === '') continue;
+    const ucoa = meta.ucoaCode || meta.ucoa_code || null;
+    const type = meta.type || null;
+    const isNum = type === 'dollar' || type === 'integer' || /^-?\d+(\.\d+)?$/.test(String(val).trim());
+    const cleaned = String(val).replace(/[^0-9.\-]/g, '');
+    const num = isNum && cleaned !== '' && Number.isFinite(Number(cleaned)) ? Number(cleaned) : null;
+    out.push({ id: m.newId(), submissionId, fieldKey: key, ucoa, type, num, text: String(val) });
+  }
+  return out;
+}
+
+// Batched insert of a submission's projection rows (on the given tx client or the pool).
+async function insertProjection(exec, submissionId, answers, fields) {
+  const rows = projectionRows(submissionId, answers, fields);
+  if (!rows.length) return 0;
+  const params = [];
+  const tuples = rows.map((r) => {
+    const b = params.length;
+    params.push(r.id, r.submissionId, r.fieldKey, r.ucoa, r.type, r.num, r.text);
+    return `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7})`;
+  });
+  await exec.query(
+    `insert into submission_values (id, submission_id, field_key, ucoa_code, data_type, numeric_value, text_value)
+     values ${tuples.join(',')} on conflict (submission_id, field_key) do nothing`,
+    params
+  );
+  return rows.length;
+}
+
 // Create a submission as the next immutable VERSION of its filing (entity × form ×
 // reporting period). If a prior version exists, it is superseded (is_current -> false) and
 // this one becomes version N+1; otherwise a new filing_id is minted at version 1. Done in a
@@ -148,6 +186,8 @@ async function create(data) {
         data.reportingPeriod ?? null, data.formDefinitionId ?? null, filingId, version, supersedesId,
       ]
     );
+    // Project answers into the query layer, in the same transaction.
+    await insertProjection(client, id, data.answers, data.metadata && data.metadata.fields);
     return m.submission(rows[0]);
   });
 }
@@ -184,4 +224,6 @@ module.exports = {
   create,
   pushComment,
   updateReview,
+  projectionRows,
+  insertProjection,
 };
