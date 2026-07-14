@@ -150,3 +150,54 @@ create index if not exists idx_submissions_agency_status on submissions(agency, 
 create index if not exists idx_submissions_form_agency on submissions(form_name, agency);
 create or replace trigger trg_submissions_updated before update on submissions
   for each row execute function set_updated_at();
+
+-- === form catalog (versioned form definitions + their fields) ===
+-- A form's definition is DATA, not a repo file: one form_definitions row per (code,version)
+-- and one form_fields row per question. Seeded from the RLGF schema JSON
+-- (frontend/src/forms/rlgf/rlgf_schema.json) via scripts/seed-forms.js. Submissions will
+-- later pin the form_definition_id they were filed against. Additive: nothing reads these
+-- tables yet, so creating/seeding them does not affect the running app.
+create table if not exists form_definitions (
+  id text primary key,
+  code text not null,                     -- 'rlgf' | 'gomi' | 'aarf' | ...
+  version text not null,                  -- e.g. '2020_UCOA_4th+parts'
+  title text not null default '',
+  source_file text not null default '',
+  ucoa_version text,
+  effective_from date,
+  effective_to date,
+  status text not null default 'active' check (status in ('draft','active','retired')),
+  generated_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (code, version)
+);
+create or replace trigger trg_form_definitions_updated before update on form_definitions
+  for each row execute function set_updated_at();
+
+create table if not exists form_fields (
+  id text primary key,
+  form_definition_id text not null references form_definitions(id) on delete cascade,
+  field_key text not null,                -- stable id within the form (schema field id)
+  page text not null default '',
+  part text,
+  page_title text,
+  nav_label text,
+  cell text,                              -- Excel address (e.g. C12) for the workbook bridge
+  label text not null default '',
+  ucoa_code text,
+  data_type text not null default 'text', -- dropdown | text | dollar | ...
+  derived boolean not null default false, -- schema `is_derived`
+  formula text,
+  options_source text,
+  needs_review boolean not null default false,
+  validation jsonb not null default '{}'::jsonb,   -- {min,max,required,allow_text}
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (form_definition_id, field_key)
+);
+create index if not exists idx_form_fields_def on form_fields(form_definition_id);
+create index if not exists idx_form_fields_ucoa on form_fields(ucoa_code);
+create or replace trigger trg_form_fields_updated before update on form_fields
+  for each row execute function set_updated_at();
