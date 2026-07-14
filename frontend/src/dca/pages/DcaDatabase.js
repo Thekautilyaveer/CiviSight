@@ -119,7 +119,7 @@ const DcaDatabase = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {[['filings', 'Filings'], ['compliance', 'Compliance']].map(([m, label]) => (
+            {[['filings', 'Filings'], ['compliance', 'Compliance'], ['ask', 'Ask ✨']].map(([m, label]) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-colors ${mode === m ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                 {label}
@@ -135,7 +135,9 @@ const DcaDatabase = () => {
         </div>
       </div>
 
-      {mode === 'compliance' ? (
+      {mode === 'ask' ? (
+        <AskView />
+      ) : mode === 'compliance' ? (
         <ComplianceView data={compliance} />
       ) : (
       <>
@@ -322,6 +324,108 @@ const ComplianceView = ({ data }) => {
           </table>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Illuminate — ask a question in plain English; the server turns it into a safe read-only
+// query over the financial data and returns the result (with the SQL shown for trust).
+const EXAMPLES = [
+  'Which counties had total tax revenue over $5 million in 2025 with zero debt service?',
+  'Top 5 governments by ending fund balance in 2025',
+  'Average debt service across all cities in 2025',
+  'Which entities reported public safety spending above $4 million?',
+];
+const looksNumeric = (v) => typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v);
+const cell = (v) => (v == null ? '—' : looksNumeric(v) ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }) : String(v));
+
+const AskView = () => {
+  const [q, setQ] = useState('');
+  const [asking, setAsking] = useState(false);
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState('');
+  const [showSql, setShowSql] = useState(false);
+
+  const run = async (question) => {
+    const text = (question ?? q).trim();
+    if (!text) return;
+    setQ(text); setAsking(true); setErr(''); setResult(null);
+    try {
+      const res = await api.post('/database/ask', { question: text });
+      setResult(res.data);
+    } catch (e) {
+      setErr(e.response?.data?.message || 'Could not answer that. Try rephrasing.');
+    } finally {
+      setAsking(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') run(); }}
+          placeholder="Ask about the filing data — e.g. which counties had revenue over $5M with zero debt in 2025?"
+          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-4 py-2.5 text-gray-900 dark:text-gray-100"
+        />
+        <button onClick={() => run()} disabled={asking || !q.trim()}
+          className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50">
+          {asking ? 'Thinking…' : 'Ask'}
+        </button>
+      </div>
+
+      {!result && !asking && !err && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {EXAMPLES.map((ex) => (
+            <button key={ex} onClick={() => run(ex)}
+              className="text-xs text-left text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1.5 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {asking && <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}
+
+      {err && <div className="text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">{err}</div>}
+
+      {result && (
+        <div>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-300">{result.explanation}</p>
+            <button onClick={() => setShowSql((s) => !s)} className="shrink-0 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800">{showSql ? 'Hide SQL' : 'Show SQL'}</button>
+          </div>
+          {showSql && (
+            <pre className="text-xs bg-gray-900 text-gray-100 rounded-lg p-3 mb-3 overflow-x-auto whitespace-pre-wrap">{result.sql}</pre>
+          )}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>{(result.fields || []).map((f) => (
+                    <th key={f} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{f.replace(/_/g, ' ')}</th>
+                  ))}</tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {(result.rows || []).map((row, i) => (
+                    <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      {result.fields.map((f) => (
+                        <td key={f} className={`px-4 py-3 whitespace-nowrap ${looksNumeric(row[f]) ? 'text-right tabular-nums text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>{cell(row[f])}</td>
+                      ))}
+                    </tr>
+                  ))}
+                  {result.rows.length === 0 && (
+                    <tr><td colSpan={result.fields.length || 1} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">No rows matched.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">{result.rows.length} row{result.rows.length === 1 ? '' : 's'} · answered from the live filing data</p>
+        </div>
+      )}
     </div>
   );
 };

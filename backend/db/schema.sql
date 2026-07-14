@@ -249,3 +249,27 @@ select e.id as entity_id, e.name as entity_name, e.type as entity_type,
   from entities e
   join submissions s on s.county_id = e.id and s.is_current
   join form_definitions fd on fd.id = s.form_definition_id;
+
+-- === illuminate_financials (semantic view for natural-language querying) ===
+-- One row per CURRENT cataloged filing, with the key financial line items pivoted into
+-- human-named dollar columns (summed across cells sharing a UCOA code). This is the ONLY
+-- relation the Illuminate NL->SQL layer is allowed to read — a clean, safe, single-table
+-- surface (see utils/illuminate.js + routes/database.js POST /ask).
+create or replace view illuminate_financials as
+select s.filing_id,
+       e.name as entity, e.type as entity_type, e.gov_id,
+       s.reporting_period as fiscal_year, s.status,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '31.1100'), 0) as real_property_tax,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '31.1300'), 0) as motor_vehicle_tax,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '31.3100'), 0) as local_option_sales_tax,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '34.1000'), 0) as charges_for_services,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '51.1000'), 0) as general_government_expenditures,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '51.3200'), 0) as public_safety_expenditures,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '58.1000'), 0) as debt_service,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code = '99.9999'), 0) as ending_fund_balance,
+       coalesce(sum(sv.numeric_value) filter (where sv.ucoa_code in ('31.1100','31.1300','31.3100')), 0) as total_tax_revenue
+  from submissions s
+  join entities e on e.id = s.county_id
+  join submission_values sv on sv.submission_id = s.id
+ where s.is_current and s.form_definition_id is not null
+ group by s.filing_id, e.name, e.type, e.gov_id, s.reporting_period, s.status;

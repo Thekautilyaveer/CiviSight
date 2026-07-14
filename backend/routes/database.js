@@ -5,9 +5,10 @@
 // @access  Private (agency operators; ACCG is scoped to counties via entityTypesFor)
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { auth, agencyOnly } = require('../middleware/auth');
 const { hasAdminPowers, entityTypesFor } = require('../utils/roles');
 const store = require('../db/store');
+const { generateSql, validateSelect, enforceLimit } = require('../utils/illuminate');
 const logger = require('../utils/logger');
 
 // Only agency operators (ACCG/DCA) get the explorer; county users do not.
@@ -130,6 +131,44 @@ router.get('/export', auth, agencyGate, async (req, res) => {
     res.send(lines.join('\n'));
   } catch (error) {
     logger.error('Explorer export error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Illuminate — ask a question in plain English. Gemini generates a SELECT over the curated
+// illuminate_financials view; it's validated (read-only, single statement, that view only,
+// bounded) and run in a read-only transaction. Reviewing agency (DCA) only.
+router.post('/ask', auth, agencyOnly, async (req, res) => {
+  const question = String(req.body.question || '').trim();
+  if (!question) return res.status(400).json({ message: 'Ask a question.' });
+  try {
+    let generated;
+    try {
+      generated = await generateSql(question);
+    } catch (err) {
+      if (err.code === 'NO_LLM') return res.status(503).json({ message: 'Illuminate is not configured (missing GEMINI_API).' });
+      logger.error('Illuminate generate error:', err.message);
+      return res.status(502).json({ message: 'Could not interpret the question. Try rephrasing.' });
+    }
+
+    const check = validateSelect(generated.sql);
+    if (!check.ok) {
+      logger.warn('Illuminate rejected SQL:', { question, sql: generated.sql, reason: check.reason });
+      return res.status(400).json({ message: `Could not build a safe query (${check.reason}). Try rephrasing.` });
+    }
+    const sql = enforceLimit(check.sql);
+
+    let result;
+    try {
+      result = await store.explorer.runReadOnly(sql);
+    } catch (err) {
+      logger.error('Illuminate run error:', { sql, error: err.message });
+      return res.status(400).json({ message: 'That query could not be run. Try rephrasing.' });
+    }
+
+    res.json({ question, sql, explanation: generated.explanation, fields: result.fields, rows: result.rows });
+  } catch (error) {
+    logger.error('Illuminate error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

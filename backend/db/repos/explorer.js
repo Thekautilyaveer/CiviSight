@@ -2,7 +2,7 @@
 // record: current-version filings (submissions where is_current) joined to entities, with
 // any UCOA-coded value pulled from submission_values, plus the form-field catalog for the
 // column picker and a filing's full version history. Powers routes/database.js.
-const { query } = require('../pool');
+const { query, getPool } = require('../pool');
 
 // --- current filings for the grid, with optional pulled UCOA value columns ---
 // filters: { entityTypes[], period, status, formSearch, entitySearch, ucoaCodes[], limit }
@@ -134,4 +134,24 @@ async function complianceData({ entityTypes, formCode = 'rlgf' } = {}) {
   return { entities, facts, latestPeriod: lp.mx };
 }
 
-module.exports = { listFilings, distinctPeriods, fieldCatalog, filingVersions, complianceData };
+// Run a pre-validated SELECT in a READ ONLY transaction with a statement timeout, so even
+// if validation is somehow bypassed the DB itself refuses writes and long scans. For
+// Illuminate (utils/illuminate.js). Returns { fields:[names], rows }.
+async function runReadOnly(sql) {
+  const client = await getPool().connect();
+  try {
+    await client.query('begin');
+    await client.query('set transaction read only');
+    await client.query("set local statement_timeout = '5000ms'");
+    const res = await client.query(sql);
+    await client.query('rollback');
+    return { fields: res.fields.map((f) => f.name), rows: res.rows };
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { listFilings, distinctPeriods, fieldCatalog, filingVersions, complianceData, runReadOnly };
